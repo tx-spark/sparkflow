@@ -1,3 +1,8 @@
+info:
+  LegSess: 89R
+config:
+  misses_allowed: 10
+  google_sheets_id: 1mB-wBoFKuu4kS482Yc2FQn6kByDJi6uIgm7l09V_8PQ
 sources:
   rss:
     daily:
@@ -22,9 +27,14 @@ sources:
     sponsors: https://capitol.texas.gov/BillLookup/Sponsors.aspx
     captions: https://capitol.texas.gov/BillLookup/Captions.aspx
     bill_stages: https://capitol.texas.gov/BillLookup/BillStages.aspx
-
-info:
-  LegSess: 89R
-config:
-  misses_allowed: 10
-  google_sheets_id: 1mB-wBoFKuu4kS482Yc2FQn6kByDJi6uIgm7l09V_8PQ
+  ftp:
+    host: ftp.legis.state.tx.us
+    base_path: ftp://ftp.legis.state.tx.us/bills/{LegSess}
+    paths:
+      analysis: analysis
+      billhistory: billhistory
+      billtext: billtext
+      documents: documents
+      fiscalnotes: fiscalnotes
+      reports: reports
+      witlistbill: witlistbill
