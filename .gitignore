@@ -173,3 +173,9 @@ cython_debug/
 
 # Raw data
 raw_data/
+
+# DBT
+
+target/
+dbt_packages/
+logs/

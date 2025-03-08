@@ -1,0 +1,1 @@
+select * from raw_bills.authors

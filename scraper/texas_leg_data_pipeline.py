@@ -225,6 +225,30 @@ def parse_bill_xml(ftp_connection, url):
         
     return bill_data
 
+def get_bills_data(raw_bills_df):
+    """
+    Extract core bill data from raw bills dataframe into standardized format.
+    
+    Args:
+        raw_bills_df (pd.DataFrame): DataFrame containing raw bill data
+        
+    Returns:
+        pd.DataFrame: DataFrame with columns bill_id, leg_id, caption, last_action, caption_version
+    """
+    bills_data = []
+    for _, row in raw_bills_df.iterrows():
+        bill_id, leg_id = clean_bill_id(row['bill_id'])
+        bills_data.append({
+            'bill_id': bill_id,
+            'leg_id': leg_id,
+            'caption': row['caption'],
+            'last_action_date': row['last_action'].split(' ')[0],
+            'last_action_chamber': row['last_action'].split(' ')[1],
+            'last_action': ' '.join(row['last_action'].split(' ')[2:]),
+            'caption_version': row['caption_version']
+        })
+    return pd.DataFrame(bills_data, columns=['bill_id', 'leg_id', 'caption', 'last_action', 'last_action_date', 'last_action_chamber', 'caption_version'])
+
 def get_authors_data(raw_bills_df):
     authors_data = []
     for _, row in raw_bills_df.iterrows():
@@ -244,6 +268,7 @@ def get_authors_data(raw_bills_df):
                 'author_type': 'coauthor'
             })
     return pd.DataFrame(authors_data, columns=['bill_id', 'leg_id', 'author', 'author_type'])
+
 
 def get_sponsors_data(raw_bills_df):
     """
@@ -447,6 +472,18 @@ def get_raw_bills_data(base_path, leg_session, ftp_connection):
 ################################################################################
 
 @dlt.resource(write_disposition="replace")
+def bills(raw_bills_df):
+    bills_df = get_bills_data(raw_bills_df)
+    print(bills_df)
+    yield bills_df
+
+@dlt.resource(write_disposition="replace")
+def actions(raw_bills_df):
+    actions_df = get_actions_data(raw_bills_df)
+    print(actions_df)
+    yield actions_df
+
+@dlt.resource(write_disposition="replace")
 def authors(raw_bills_df):
     authors_df = get_authors_data(raw_bills_df)
     print(authors_df)
@@ -476,6 +513,12 @@ def versions(raw_bills_df):
     print(versions_df)
     yield versions_df
 
+@dlt.resource(write_disposition="replace")
+def companions(raw_bills_df):
+    companions_df = get_companions_data(raw_bills_df)
+    print(companions_df)
+    yield companions_df
+
 
 ################################################################################
 # MAIN
@@ -498,8 +541,13 @@ if __name__ == "__main__":
     leg_session = config['info']['LegSess']
     raw_bills_df = get_raw_bills_data(base_path, leg_session, conn)
     
-    pipeline.run(authors(raw_bills_df))
-    #pipeline.run(sponsors(raw_bills_df)) # commenting out sponsors for now, because none of the bills have sponsors and it bugs out dlt
-    pipeline.run(subjects(raw_bills_df))
-    pipeline.run(committees(raw_bills_df))
-    pipeline.run(versions(raw_bills_df))
+    pipeline.run([
+        bills(raw_bills_df),
+        authors(raw_bills_df),
+        subjects(raw_bills_df),
+        committees(raw_bills_df),
+        versions(raw_bills_df),
+        actions(raw_bills_df),
+        companions(raw_bills_df)
+    ])
+

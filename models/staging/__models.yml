@@ -1,0 +1,185 @@
+models:
+  - name: stg_committees
+    schema: new
+    description: "Staging table for legislative committees data"
+    columns:
+      - name: bill_id
+        description: "Unique identifier for the bill being considered"
+        tests:
+          - not_null
+      - name: leg_id
+        description: "Unique identifier for the legislative session"
+        tests:
+          - not_null
+      - name: chamber
+        description: "Chamber of the legislature where the committee exists"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['House', 'Senate']
+      - name: name
+        description: "Name of the committee"
+      - name: status
+        description: "Status of the bill in committee"
+      - name: aye_votes
+        description: "Number of members voting yes"
+      - name: nay_votes
+        description: "Number of members voting nay"
+      - name: present_votes
+        description: "Number of members voting present"
+      - name: absent_votes
+        description: "Number of members absent for the vote"
+  - name: stg_authors
+    schema: new
+    description: "Staging table for bill authors data"
+    columns:
+      - name: bill_id
+        description: "Unique identifier for the bill"
+        tests:
+          - not_null
+      - name: leg_id
+        description: "Unique identifier for the legislative session"
+        tests:
+          - not_null
+      - name: author
+        description: "Name of the bill author"
+        tests:
+          - not_null
+      - name: author_type
+        description: "Type of authorship (e.g. Author, Co-Author)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Author', 'Coauthor']
+  - name: stg_bills
+    schema: new
+    description: "Staging table for core bill data"
+    columns:
+      - name: bill_id
+        description: "Unique identifier for the bill"
+        tests:
+          - not_null
+      - name: leg_id
+        description: "Unique identifier for the legislative session"
+        tests:
+          - not_null
+      - name: caption
+        description: "Caption/summary text of the bill"
+        tests:
+          - not_null
+      - name: last_action_date
+        description: "Date of the most recent action on the bill"
+        tests:
+          - not_null
+      - name: last_action_chamber
+        description: "Chamber where the last action occurred"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['House', 'Senate']
+      - name: last_action
+        description: "Description of the most recent action taken on the bill"
+        tests:
+          - not_null
+      - name: caption_version
+        description: "Version number of the bill caption"
+        tests:
+          - not_null
+  - name: stg_actions
+    schema: new
+    description: "Staging table for bill actions"
+    columns:
+      - name: bill_id
+        description: "Unique identifier for the bill"
+        tests:
+          - not_null
+      - name: leg_id
+        description: "Unique identifier for the legislative session"
+        tests:
+          - not_null
+      - name: action_number
+        description: ""
+        tests:
+          - not_null
+      - name: action_date
+        description: "Date and time when the action occurred"
+        tests:
+          - not_null
+      - name: description
+        description: "Description of the action taken"
+        tests:
+          - not_null
+      - name: comment
+        description: "Additional comments about the action"
+      - name: action_timestamp
+        description: "Timestamp of when the action was recorded"
+        tests:
+          - not_null
+  - name: stg_subjects
+    schema: new
+    description: "Staging table for bill subjects"
+    columns:
+      - name: bill_id
+        description: "Unique identifier for the bill"
+        tests:
+          - not_null
+      - name: leg_id
+        description: "Unique identifier for the legislative session"
+        tests:
+          - not_null
+      - name: subject_title
+        description: "Title of the subject category"
+        tests:
+          - not_null
+      - name: subject_id
+        description: "Unique identifier for the subject"
+        tests:
+          - not_null
+  - name: stg_versions
+    schema: new
+    description: "Staging table for bill versions"
+    columns:
+      - name: bill_id
+        description: "Unique identifier for the bill"
+        tests:
+          - not_null
+      - name: leg_id
+        description: "Unique identifier for the legislative session"
+        tests:
+          - not_null
+      - name: type
+        description: "Type of bill version"
+        tests:
+          - not_null
+      - name: description
+        description: "Description of the bill version"
+        tests:
+          - not_null
+      - name: html_url
+        description: "URL to access HTML version of the bill"
+      - name: pdf_url
+        description: "URL to access PDF version of the bill"
+      - name: ftp_html_url
+        description: "FTP URL for HTML version of the bill"
+      - name: ftp_pdf_url
+        description: "FTP URL for PDF version of the bill"
+  - name: stg_companions
+    schema: new
+    description: "Staging table for companion bills"
+    columns:
+      - name: bill_id
+        description: "Unique identifier for the bill"
+        tests:
+          - not_null
+      - name: leg_id
+        description: "Unique identifier for the legislative session"
+        tests:
+          - not_null
+      - name: companion_bill_id
+        description: "Unique identifier for the companion bill"
+        tests:
+          - not_null
+      - name: relationship
+        description: "Relationship between the bills"
+        tests:
+          - not_null

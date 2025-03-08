@@ -18,4 +18,3 @@ Go over all the configuration options setup in `scraper/scraper_config.yaml`, an
 Run the scraper with `poetry run python scraper/scraper.py`.
 
 
-

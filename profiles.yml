@@ -1,0 +1,10 @@
+texas_leg_scraper:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: 'texas_bills.duckdb'
+      extensions:
+        - httpfs
+        - parquet
+      external_root: 'data/curated'
