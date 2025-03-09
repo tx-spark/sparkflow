@@ -1,7 +1,7 @@
 models:
-  - name: stg_committees
+  - name: curr_committees
     schema: bills
-    description: "Staging table for legislative committees data"
+    description: "Current data for legislative committees data"
     columns:
       - name: bill_id
         description: "Unique identifier for the bill being considered"
@@ -33,9 +33,9 @@ models:
         description: "Timestamp of when the record was first seen"
       - name: last_seen_at
         description: "Timestamp of when the record was last seen"
-  - name: stg_authors
+  - name: curr_authors
     schema: bills
-    description: "Staging table for bill authors data"
+    description: "Current data for bill authors data"
     columns:
       - name: bill_id
         description: "Unique identifier for the bill"
@@ -59,9 +59,9 @@ models:
         description: "Timestamp of when the record was first seen"
       - name: last_seen_at
         description: "Timestamp of when the record was last seen"
-  - name: stg_bills
+  - name: curr_bills
     schema: bills
-    description: "Staging table for core bill data"
+    description: "Current data for core bill data"
     columns:
       - name: bill_id
         description: "Unique identifier for the bill"
@@ -97,9 +97,9 @@ models:
         description: "Timestamp of when the record was first seen"
       - name: last_seen_at
         description: "Timestamp of when the record was last seen"
-  - name: stg_actions
+  - name: curr_actions
     schema: bills
-    description: "Staging table for bill actions"
+    description: "Current data for bill actions"
     columns:
       - name: bill_id
         description: "Unique identifier for the bill"
@@ -131,9 +131,9 @@ models:
         description: "Timestamp of when the record was first seen"
       - name: last_seen_at
         description: "Timestamp of when the record was last seen"
-  - name: stg_subjects
+  - name: curr_subjects
     schema: bills
-    description: "Staging table for bill subjects"
+    description: "Current data for bill subjects"
     columns:
       - name: bill_id
         description: "Unique identifier for the bill"
@@ -155,9 +155,9 @@ models:
         description: "Timestamp of when the record was first seen"
       - name: last_seen_at
         description: "Timestamp of when the record was last seen"
-  - name: stg_versions
+  - name: curr_versions
     schema: bills
-    description: "Staging table for bill versions"
+    description: "Current data for bill versions"
     columns:
       - name: bill_id
         description: "Unique identifier for the bill"
@@ -187,9 +187,9 @@ models:
         description: "Timestamp of when the record was first seen"
       - name: last_seen_at
         description: "Timestamp of when the record was last seen"
-  - name: stg_companions
+  - name: curr_companions
     schema: bills
-    description: "Staging table for companion bills"
+    description: "Current data for companion bills"
     columns:
       - name: bill_id
         description: "Unique identifier for the bill"
@@ -211,9 +211,9 @@ models:
         description: "Timestamp of when the record was first seen"
       - name: last_seen_at
         description: "Timestamp of when the record was last seen"
-  - name: stg_links
+  - name: curr_links
     schema: bills
-    description: "Staging table for bill links"
+    description: "Current data for bill links"
     columns:
       - name: bill_id
         description: "Unique identifier for the bill"

@@ -11,13 +11,15 @@ sources:
       - name: actions
       - name: bills
       - name: companions
-  - name: new
-    schema: new
+      - name: links
+  - name: bills
+    schema: bills
     tables:
-      - name: authors
-      - name: subjects
-      - name: committees
-      - name: versions
-      - name: actions
-      - name: bills
-      - name: companions
+      - name: stg_authors
+      - name: stg_subjects
+      - name: stg_committees
+      - name: stg_versions
+      - name: stg_actions
+      - name: stg_bills
+      - name: stg_companions
+      - name: stg_links

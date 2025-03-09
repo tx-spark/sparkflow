@@ -119,9 +119,13 @@ class FtpConnection:
     
     def close(self):
         """Close the FTP connection"""
-        if self.ftp:
-            self.ftp.quit()
-            self.ftp = None
+
+        try:    
+            if self.ftp:
+                self.ftp.quit()
+                self.ftp = None
+        except Exception as e:
+            pass
 
 ################################################################################
 # UTILITY FUNCTIONS

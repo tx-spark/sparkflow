@@ -1,16 +1,21 @@
-import dlt
-import pandas as pd
 import re
-from bs4 import BeautifulSoup
-from utils import FtpConnection
 import yaml
 import functools
+
+import dlt
+import duckdb
+import pandas as pd
+from bs4 import BeautifulSoup
+from utils import FtpConnection
+
 
 ################################################################################
 # CONFIGURATION
 ################################################################################
 
-CONFIG_PATH = 'scraper_config.yaml'
+CONFIG_PATH = 'config.yaml'
+PIPELINE_NAME = "texas_bills"
+OUT_DATASET_NAME = "raw_bills"
 
 ################################################################################
 # HELPER FUNCTIONS
@@ -38,6 +43,60 @@ def clean_bill_id(bill_id):
     bill_number = bill_part.replace(' ', '')
     
     return bill_number, session
+
+def merge_with_current_data(new_df, curr_df):
+    """
+    Merge two dataframes and handle first_seen_at and last_seen_at timestamps.
+    
+    Args:
+        new_df: DataFrame containing new records
+        curr_df: DataFrame containing existing records
+        match_columns: List of column names to match on
+        
+    Returns:
+        DataFrame with first_seen_at and last_seen_at columns properly set
+    """
+    # Get current timestamp truncated to minute
+    curr_time = pd.Timestamp.now().floor('min')
+
+    match_columns = new_df.columns.tolist()
+    
+    # Add timestamp columns to new_df
+    new_df['first_seen_at'] = curr_time
+    new_df['last_seen_at'] = curr_time
+
+    if curr_df is None or len(curr_df) == 0:
+        return new_df
+        
+    # Find matching and non-matching rows
+    merged = new_df.merge(curr_df, on=match_columns, how='outer', indicator=True)
+    
+    # For new data only, keep current timestamps
+    new_only_mask = merged['_merge'] == 'left_only'
+    merged.loc[new_only_mask, 'first_seen_at'] = curr_time
+    merged.loc[new_only_mask, 'last_seen_at'] = curr_time
+    
+    # For matching rows, keep original first_seen_at and update last_seen_at
+    matching_mask = merged['_merge'] == 'both'
+    merged.loc[matching_mask, 'first_seen_at'] = merged.loc[matching_mask, 'first_seen_at_y']
+    merged.loc[matching_mask, 'last_seen_at'] = curr_time
+    
+    # For rows only in curr_df, keep original timestamps
+    curr_only_mask = merged['_merge'] == 'right_only'
+    merged.loc[curr_only_mask, 'first_seen_at'] = merged.loc[curr_only_mask, 'first_seen_at_y']
+    merged.loc[curr_only_mask, 'last_seen_at'] = merged.loc[curr_only_mask, 'last_seen_at_y']
+    
+    # Clean up merge artifacts
+    merged = merged.drop(['first_seen_at_x', 'first_seen_at_y', 
+                         'last_seen_at_x', 'last_seen_at_y', '_merge'], axis=1)
+    print(merged)
+    return merged
+
+def get_current_table_data(duckdb_conn, table_name, dataset_name):
+    curr_df = None
+    if duckdb_conn.sql(f"SELECT count(*) FROM information_schema.tables WHERE table_name = '{table_name}' AND table_schema = '{dataset_name}'").fetchone()[0] > 0:
+        curr_df = duckdb_conn.table(f"{dataset_name}.{table_name}").df()
+    return curr_df
 
 ################################################################################
 # DATA SCRAPING FUNCTIONS
@@ -265,7 +324,7 @@ def get_authors_data(raw_bills_df):
                 'bill_id': bill_id,
                 'leg_id': leg_id,
                 'author': coauthor,
-                'author_type': 'coauthor'
+                'author_type': 'Coauthor'
             })
     return pd.DataFrame(authors_data, columns=['bill_id', 'leg_id', 'author', 'author_type'])
 
@@ -454,11 +513,32 @@ def get_versions_data(raw_bills_df):
     return pd.DataFrame(versions_data, columns=['bill_id', 'leg_id', 'type', 'description',
                                               'html_url', 'pdf_url', 'ftp_html_url', 'ftp_pdf_url'])
 
+def get_links_data(raw_bills_df, config):
+    links_data = []
+    
+    for _, row in raw_bills_df.iterrows():
+        bill_id, leg_id = clean_bill_id(row['bill_id'])
+
+        # Build links dictionary
+        links = {
+            'bill_id': bill_id,
+            'leg_id': leg_id,
+        }
+        for link_type, base_url in config['sources']['html'].items():
+            # Format URL with session and bill info
+            formatted_url = f"{base_url}?LegSess={leg_id}&Bill={bill_id}"
+            links[link_type] = formatted_url
+            
+        links_data.append(links)
+
+    return pd.DataFrame(links_data, columns=['bill_id', 'leg_id'] + list(config['sources']['html'].keys()))
+
 def get_raw_bills_data(base_path, leg_session, ftp_connection):
     print("Getting raw bills data")
     bill_urls = get_bill_urls(base_path, leg_session, ftp_connection)
     raw_bills = []
-    for url in bill_urls[:5]:
+    for url in bill_urls:
+        print(url)
         bill_data = parse_bill_xml(ftp_connection, url)
         if bill_data:
             raw_bills.append(bill_data)
@@ -470,69 +550,91 @@ def get_raw_bills_data(base_path, leg_session, ftp_connection):
 ################################################################################
 # DATA PIPELINE
 ################################################################################
-
 @dlt.resource(write_disposition="replace")
-def bills(raw_bills_df):
+def bills(raw_bills_df, curr_bills_df=None):
     bills_df = get_bills_data(raw_bills_df)
-    print(bills_df)
-    yield bills_df
+    
+    result_df = merge_with_current_data(bills_df, curr_bills_df)
+    print(result_df)
+    yield result_df
 
 @dlt.resource(write_disposition="replace")
-def actions(raw_bills_df):
+def actions(raw_bills_df, curr_actions_df=None):
     actions_df = get_actions_data(raw_bills_df)
-    print(actions_df)
-    yield actions_df
+    
+    result_df = merge_with_current_data(actions_df, curr_actions_df)
+    print(result_df)
+    yield result_df
 
 @dlt.resource(write_disposition="replace")
-def authors(raw_bills_df):
+def authors(raw_bills_df, curr_authors_df=None):
     authors_df = get_authors_data(raw_bills_df)
-    print(authors_df)
-    yield authors_df
+    
+    result_df = merge_with_current_data(authors_df, curr_authors_df)
+    print(result_df)
+    yield result_df
 
 @dlt.resource(write_disposition="replace")
-def sponsors(raw_bills_df):
+def sponsors(raw_bills_df, curr_sponsors_df=None):
     sponsors_df = get_sponsors_data(raw_bills_df)
-    print(sponsors_df)
-    yield sponsors_df
+    
+    result_df = merge_with_current_data(sponsors_df, curr_sponsors_df)
+    print(result_df)
+    yield result_df
 
 @dlt.resource(write_disposition="replace")
-def subjects(raw_bills_df):
+def subjects(raw_bills_df, curr_subjects_df=None):
     subjects_df = get_subjects_data(raw_bills_df)
-    print(subjects_df)
-    yield subjects_df
+    
+    result_df = merge_with_current_data(subjects_df, curr_subjects_df)
+    print(result_df)
+    yield result_df
 
 @dlt.resource(write_disposition="replace")
-def committees(raw_bills_df):
+def committees(raw_bills_df, curr_committees_df=None):
     committees_df = get_committees_data(raw_bills_df)
-    print(committees_df)
-    yield committees_df 
+    
+    result_df = merge_with_current_data(committees_df, curr_committees_df)
+    print(result_df)
+    yield result_df
 
 @dlt.resource(write_disposition="replace")
-def versions(raw_bills_df):
+def versions(raw_bills_df, curr_versions_df=None):
     versions_df = get_versions_data(raw_bills_df)
-    print(versions_df)
-    yield versions_df
+    
+    result_df = merge_with_current_data(versions_df, curr_versions_df)
+    print(result_df)
+    yield result_df
 
 @dlt.resource(write_disposition="replace")
-def companions(raw_bills_df):
+def companions(raw_bills_df, curr_companions_df=None):
     companions_df = get_companions_data(raw_bills_df)
-    print(companions_df)
-    yield companions_df
+    
+    result_df = merge_with_current_data(companions_df, curr_companions_df)
+    print(result_df)
+    yield result_df
+
+@dlt.resource(write_disposition="replace")
+def links(raw_bills_df, config, curr_links_df=None):
+    links_df = get_links_data(raw_bills_df,config)
+    
+    result_df = merge_with_current_data(links_df, curr_links_df)
+    print(result_df)
+    yield result_df
 
 
 ################################################################################
 # MAIN
 ################################################################################
 
-
 if __name__ == "__main__":
-    with open("scraper/scraper_config.yaml", "r", encoding="utf-8") as f:
+    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
     pipeline = dlt.pipeline(
         destination="duckdb",
-        dataset_name="raw_bills",
-        pipeline_name="texas_bills"
+        dataset_name=OUT_DATASET_NAME,
+        PIPELINE_NAME=PIPELINE_NAME
     )
 
     conn = FtpConnection(config['sources']['ftp']['host'])
@@ -541,13 +643,25 @@ if __name__ == "__main__":
     leg_session = config['info']['LegSess']
     raw_bills_df = get_raw_bills_data(base_path, leg_session, conn)
     
+    duckdb_conn = duckdb.connect(f"{PIPELINE_NAME}.duckdb")
+
+    curr_bills_df = get_current_table_data(duckdb_conn, 'bills', OUT_DATASET_NAME)
+    curr_authors_df = get_current_table_data(duckdb_conn, 'authors', OUT_DATASET_NAME) 
+    curr_subjects_df = get_current_table_data(duckdb_conn, 'subjects', OUT_DATASET_NAME)
+    curr_committees_df = get_current_table_data(duckdb_conn, 'committees', OUT_DATASET_NAME)
+    curr_versions_df = get_current_table_data(duckdb_conn, 'versions', OUT_DATASET_NAME)
+    curr_actions_df = get_current_table_data(duckdb_conn, 'actions', OUT_DATASET_NAME)
+    curr_companions_df = get_current_table_data(duckdb_conn, 'companions', OUT_DATASET_NAME)
+    curr_links_df = get_current_table_data(duckdb_conn, 'links', OUT_DATASET_NAME)
+
     pipeline.run([
-        bills(raw_bills_df),
-        authors(raw_bills_df),
-        subjects(raw_bills_df),
-        committees(raw_bills_df),
-        versions(raw_bills_df),
-        actions(raw_bills_df),
-        companions(raw_bills_df)
+        bills(raw_bills_df, curr_bills_df),
+        authors(raw_bills_df, curr_authors_df),
+        subjects(raw_bills_df, curr_subjects_df),
+        committees(raw_bills_df, curr_committees_df),
+        versions(raw_bills_df, curr_versions_df),
+        actions(raw_bills_df, curr_actions_df),
+        companions(raw_bills_df, curr_companions_df),
+        links(raw_bills_df, config, curr_links_df)
     ])
 

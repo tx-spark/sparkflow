@@ -8,5 +8,7 @@ SELECT
         when 'S' then 'Senate' 
         else 'Unknown' end as last_action_chamber,
     last_action,
-    caption_version
+    caption_version,
+    first_seen_at,
+    last_seen_at
 FROM {{ source('raw_bills', 'bills') }}

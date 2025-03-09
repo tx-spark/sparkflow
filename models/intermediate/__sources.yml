@@ -1,0 +1,12 @@
+sources:
+  - name: bills
+    schema: bills
+    tables:
+      - name: curr_authors
+      - name: curr_subjects
+      - name: curr_committees
+      - name: curr_versions
+      - name: curr_actions
+      - name: curr_bills
+      - name: curr_companions
+      - name: curr_links
