@@ -3,7 +3,8 @@ SELECT
     leg_id,
         case chamber
         when 'house' then 'House' 
-        when 'senate' then 'Senate' 
+        when 'senate' then 'Senate'
+        when 'joint' then 'Joint'
         else 'Unknown' end as chamber,
     name,
     -- subcommittee_name,

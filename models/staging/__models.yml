@@ -171,6 +171,10 @@ models:
         description: "Type of bill version"
         tests:
           - not_null
+      - name: text_order
+        description: "Order of the bill version in the text"
+        tests:
+          - not_null
       - name: description
         description: "Description of the bill version"
         tests:
@@ -259,3 +263,29 @@ models:
         description: "URL to bill stages page"
         tests:
           - not_null
+  - name: stg_committee_meetings
+    schema: bills
+    description: "Staging table for committee meetings"
+    columns:
+      - name: leg_id
+        description: "Unique identifier for the legislative session"
+        tests:
+          - not_null
+      - name: name
+        description: "Name of the committee"
+        tests:
+          - not_null
+      - name: link
+        description: "Link to the committee meetings"
+        tests:
+          - not_null
+      - name: chamber
+        description: "Chamber of the legislature where the committee exists"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['House', 'Senate', 'Joint']
+      - name: first_seen_at
+        description: "Timestamp of when the record was first seen"
+      - name: last_seen_at
+        description: "Timestamp of when the record was last seen"

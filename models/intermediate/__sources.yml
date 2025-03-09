@@ -10,3 +10,4 @@ sources:
       - name: curr_bills
       - name: curr_companions
       - name: curr_links
+      - name: curr_committee_meetings

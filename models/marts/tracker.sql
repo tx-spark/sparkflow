@@ -22,9 +22,9 @@ companions as (
     select * from {{ source('bills', 'curr_companions') }}
 ),
 
-ammendments as (
-    select * from {{ source('bills', 'curr_ammendments') }}
-)
+committee_meetings as (
+    select * from {{ source('bills', 'curr_committee_meetings') }}
+),
 
 ----------------------------------------------------------
 
@@ -82,14 +82,6 @@ most_recent_companion as (
         on c.companion_bill_id = links.bill_id
         and c.leg_id = links.leg_id
     WHERE rn = 1
-),
-
-ammendments_count as (
-    select 
-        bill_id,
-        leg_id,
-        count(distinct amendment_id) as amendments_count
-    from ammendments
 )
 ----------------------------------------------------------
 
@@ -133,6 +125,8 @@ select
         companions_agg.companions_list,
         '")'
     ) as recent_bill_text,
+    links.amendments as amendments,
+    NULL as sponsors -- MONITOR SPONSORS, IF DATA STARTS TO COME IN, ADD THIS COLUMN
     -- Companions =HYPERLINK("https://capitol.texas.gov/BillLookup/History.aspx?LegSess=89R&Bill=HB3", "HB 3")
     -- Amendments =HYPERLINK("https://capitol.texas.gov/BillLookup/Amendments.aspx?LegSess=89R&Bill=SB2", "37")
     -- Sponsors =https://capitol.texas.gov/BillLookup/Sponsors.aspx?LegSess=89R&Bill=SB2
@@ -159,9 +153,6 @@ left join companions_agg
 left join most_recent_companion
     on bills.bill_id = most_recent_companion.bill_id
     and bills.leg_id = most_recent_companion.leg_id
-left join ammendments_count
-    on bills.bill_id = ammendments_count.bill_id
-    and bills.leg_id = ammendments_count.leg_id
 -- left join actions
 --     on bills.bill_id = actions.bill_id
 --     and bills.leg_id = actions.leg_id

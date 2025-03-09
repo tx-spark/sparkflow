@@ -5,7 +5,7 @@ with links as (
 ranked_links AS (
     SELECT
         *,
-        ROW_NUMBER() OVER (PARTITION BY bill_id, leg_id ORDER BY first_seen_at DESC) AS rn
+        ROW_NUMBER() OVER (PARTITION BY bill_id, leg_id ORDER BY last_seen_at DESC) AS rn
     FROM links
 )
 
