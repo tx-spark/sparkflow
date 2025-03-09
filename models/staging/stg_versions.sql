@@ -2,6 +2,7 @@ SELECT
     bill_id,
     leg_id,
     type,
+    text_order,
     description,
     html_url,
     pdf_url,

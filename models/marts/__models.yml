@@ -1,0 +1,13 @@
+models:
+  - name: tracker
+    schema: bills
+    description: "Staging table for legislative committees data"
+    columns:
+      - name: bill_id
+        description: "Unique identifier for the bill being considered"
+        tests:
+          - not_null
+      - name: leg_id
+        description: "Unique identifier for the legislative session"
+        tests:
+          - not_null

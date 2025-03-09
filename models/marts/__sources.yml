@@ -1,0 +1,5 @@
+sources:
+  - name: bills
+    schema: bills
+    tables:
+      - name: stg_tracker

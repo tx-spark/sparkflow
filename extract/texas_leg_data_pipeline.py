@@ -1,5 +1,6 @@
 import re
 import yaml
+import requests
 import functools
 
 import dlt
@@ -56,28 +57,34 @@ def merge_with_current_data(new_df, curr_df):
     Returns:
         DataFrame with first_seen_at and last_seen_at columns properly set
     """
+
     # Get current timestamp truncated to minute
     curr_time = pd.Timestamp.now().floor('min')
-
-    match_columns = new_df.columns.tolist()
     
+
+    if curr_df is None or len(curr_df) == 0:
+        # Add timestamp columns to new_df
+        new_df['first_seen_at'] = curr_time
+        new_df['last_seen_at'] = curr_time
+        return new_df
+    
+    match_columns = new_df.columns.tolist()
+
     # Add timestamp columns to new_df
     new_df['first_seen_at'] = curr_time
     new_df['last_seen_at'] = curr_time
-
-    if curr_df is None or len(curr_df) == 0:
-        return new_df
         
     # Find matching and non-matching rows
     merged = new_df.merge(curr_df, on=match_columns, how='outer', indicator=True)
     
-    # For new data only, keep current timestamps
+    # For new data only, keep current timestamps d
     new_only_mask = merged['_merge'] == 'left_only'
     merged.loc[new_only_mask, 'first_seen_at'] = curr_time
     merged.loc[new_only_mask, 'last_seen_at'] = curr_time
-    
+
     # For matching rows, keep original first_seen_at and update last_seen_at
     matching_mask = merged['_merge'] == 'both'
+
     merged.loc[matching_mask, 'first_seen_at'] = merged.loc[matching_mask, 'first_seen_at_y']
     merged.loc[matching_mask, 'last_seen_at'] = curr_time
     
@@ -99,7 +106,69 @@ def get_current_table_data(duckdb_conn, table_name, dataset_name):
     return curr_df
 
 ################################################################################
-# DATA SCRAPING FUNCTIONS
+# HTML SCRAPING FUNCTIONS
+################################################################################
+
+def extract_committee_meetings_links(committees_page_url, leg_id):
+    session = requests.Session()
+
+    # Step 1: GET request to retrieve hidden form fields
+    response = session.get(committees_page_url)
+    soup = BeautifulSoup(response.text, 'html.parser')
+
+    # Extract necessary hidden fields
+    viewstate = soup.find("input", {"name": "__VIEWSTATE"})["value"]
+    eventvalidation = soup.find("input", {"name": "__EVENTVALIDATION"})["value"]
+    viewstategenerator = soup.find("input", {"name": "__VIEWSTATEGENERATOR"})["value"]
+
+    # Step 2: POST request with hidden fields and selected legislature
+    data = {
+        "__VIEWSTATE": viewstate,
+        "__EVENTVALIDATION": eventvalidation,
+        "__VIEWSTATEGENERATOR": viewstategenerator,
+        "__EVENTTARGET": "ddlLegislature",  # Mimic dropdown change
+        "__EVENTARGUMENT": "",
+        "ddlLegislature": leg_id
+    }
+
+    response = session.post(committees_page_url, data=data)
+
+    soup = BeautifulSoup(response.text, 'html.parser')
+
+    committees_list = soup.find_all('a', id='CmteList')
+
+    committees = []
+
+    for committee in committees_list:
+        committees.append({
+            'name': committee.text.strip(),
+            'href': committee['href']
+        })
+
+    return committees
+
+def get_committee_meetings_data(config):
+
+    committees_list_url = config['sources']['static_html']['committees_list']
+    committees_url = config['sources']['static_html']['committees']
+    leg_id = config['info']['LegSess']
+
+    for chamber in ['H', 'J', 'S']:
+        committees_page_url = f"{committees_list_url}?Chamber={chamber}"
+        committees = extract_committee_meetings_links(committees_page_url, leg_id)
+
+        committee_meetings = []
+        for committee in committees:
+            committee_meetings.append({
+                'name': committee['name'],
+                'href': committees_url + committee['href'],
+                'chamber': chamber,
+                'leg_id': leg_id
+            })
+        return pd.DataFrame(committee_meetings)
+    
+################################################################################
+# FTP SCRAPING FUNCTIONS
 ################################################################################
 
 def get_bill_urls(base_path, leg_session, ftp_connection):
@@ -239,9 +308,10 @@ def parse_bill_xml(ftp_connection, url):
     
     # Get versions from bill text
     bill_versions = soup.find('billtext').find('docTypes').find('bill').find('versions').find_all('version')
-    for version in bill_versions:
+    for idx, version in enumerate(bill_versions):
         version_data = {
             'type': 'Bill',
+            'text_order': idx+1,  # Adding index +1 as text_order
             'description': version.find('versionDescription').text.strip(),
             'urls': {
                 'web_html': version.find('WebHTMLURL').text.strip(),
@@ -251,12 +321,14 @@ def parse_bill_xml(ftp_connection, url):
             }
         }
         bill_data['versions'].append(version_data)
+
         
     # Get versions from analysis
     analysis_versions = soup.find('billtext').find('docTypes').find('analysis').find('versions').find_all('version')
-    for version in analysis_versions:
+    for idx, version in enumerate(analysis_versions):
         version_data = {
             'type': 'Analysis',
+            'text_order': idx+1,  # Adding index +1 as text_order
             'description': version.find('versionDescription').text.strip(),
             'urls': {
                 'web_html': version.find('WebHTMLURL').text.strip(),
@@ -273,6 +345,7 @@ def parse_bill_xml(ftp_connection, url):
         version_data = {
             'type': 'Fiscal Note',
             'description': version.find('versionDescription').text.strip(),
+            'text_order': idx+1,  # Adding index +1 as text_order
             'urls': {
                 'web_html': version.find('WebHTMLURL').text.strip(),
                 'web_pdf': version.find('WebPDFURL').text.strip(),
@@ -436,14 +509,14 @@ def get_actions_data(raw_bills_df):
             actions_data.append({
                 'bill_id': bill_id,
                 'leg_id': leg_id,
-                'actionNumber': action['number'],
+                'action_number': action['number'],
                 'action_date': action['date'],
                 'description': action['description'],
                 'comment': action['comment'],
                 'action_timestamp': action.get('timestamp', None)
             })
             
-    return pd.DataFrame(actions_data, columns=['bill_id', 'leg_id', 'actionNumber', 'action_date', 
+    return pd.DataFrame(actions_data, columns=['bill_id', 'leg_id', 'action_number', 'action_date', 
                                              'description', 'comment', 'action_timestamp'])
 
 
@@ -473,9 +546,9 @@ def get_committees_data(raw_bills_df):
                 'leg_id': leg_id,
                 'chamber': committee.get('type'),
                 'name': committee.get('name'),
-                'subcommittee_name': None,  # Not in sample data but included for schema
+                #'subcommittee_name': None,  # Not in sample data but included for schema
                 'status': committee.get('status'),
-                'subcommittee_status': None,  # Not in sample data but included for schema
+                #'subcommittee_status': None,  # Not in sample data but included for schema
                 'aye_votes': votes.get('aye', 0),
                 'nay_votes': votes.get('nay', 0), 
                 'present_votes': votes.get('present_not_voting', 0),
@@ -483,7 +556,7 @@ def get_committees_data(raw_bills_df):
             })
             
     return pd.DataFrame(committees_data, columns=['bill_id', 'leg_id', 'chamber', 'name',
-                                                'subcommittee_name', 'status', 'subcommittee_status',
+                                                'status', #'subcommittee_name', 'subcommittee_status',
                                                 'aye_votes', 'nay_votes', 'present_votes', 'absent_votes'])
 
 def get_versions_data(raw_bills_df):
@@ -503,6 +576,7 @@ def get_versions_data(raw_bills_df):
                 'bill_id': bill_id,
                 'leg_id': leg_id,
                 'type': version.get('type'),
+                'text_order': version.get('text_order'),
                 'description': version.get('description'),
                 'html_url': urls.get('web_html'),
                 'pdf_url': urls.get('web_pdf'),
@@ -510,7 +584,7 @@ def get_versions_data(raw_bills_df):
                 'ftp_pdf_url': urls.get('ftp_pdf')
             })
             
-    return pd.DataFrame(versions_data, columns=['bill_id', 'leg_id', 'type', 'description',
+    return pd.DataFrame(versions_data, columns=['bill_id', 'leg_id', 'type', 'text_order', 'description',
                                               'html_url', 'pdf_url', 'ftp_html_url', 'ftp_pdf_url'])
 
 def get_links_data(raw_bills_df, config):
@@ -543,7 +617,6 @@ def get_raw_bills_data(base_path, leg_session, ftp_connection):
         if bill_data:
             raw_bills.append(bill_data)
     return pd.DataFrame(raw_bills)
-
 
 
 
@@ -622,6 +695,15 @@ def links(raw_bills_df, config, curr_links_df=None):
     print(result_df)
     yield result_df
 
+@dlt.resource(write_disposition="replace")
+def committee_meetings(config, curr_committee_meetings_df=None):
+
+    committee_meetings_df = get_committee_meetings_data(config)
+    
+    result_df = merge_with_current_data(committee_meetings_df, curr_committee_meetings_df)
+    print(result_df)
+    yield result_df
+
 
 ################################################################################
 # MAIN
@@ -634,7 +716,7 @@ if __name__ == "__main__":
     pipeline = dlt.pipeline(
         destination="duckdb",
         dataset_name=OUT_DATASET_NAME,
-        PIPELINE_NAME=PIPELINE_NAME
+        pipeline_name=PIPELINE_NAME
     )
 
     conn = FtpConnection(config['sources']['ftp']['host'])
@@ -653,7 +735,8 @@ if __name__ == "__main__":
     curr_actions_df = get_current_table_data(duckdb_conn, 'actions', OUT_DATASET_NAME)
     curr_companions_df = get_current_table_data(duckdb_conn, 'companions', OUT_DATASET_NAME)
     curr_links_df = get_current_table_data(duckdb_conn, 'links', OUT_DATASET_NAME)
-
+    curr_committee_meetings_df = get_current_table_data(duckdb_conn, 'committee_meetings', OUT_DATASET_NAME)
+    
     pipeline.run([
         bills(raw_bills_df, curr_bills_df),
         authors(raw_bills_df, curr_authors_df),
@@ -662,6 +745,7 @@ if __name__ == "__main__":
         versions(raw_bills_df, curr_versions_df),
         actions(raw_bills_df, curr_actions_df),
         companions(raw_bills_df, curr_companions_df),
-        links(raw_bills_df, config, curr_links_df)
+        links(raw_bills_df, config, curr_links_df),
+        committee_meetings(config, curr_committee_meetings_df)
     ])
 

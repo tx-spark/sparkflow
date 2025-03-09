@@ -171,6 +171,10 @@ models:
         description: "Type of bill version"
         tests:
           - not_null
+      - name: text_order
+        description: "Order of the bill version in the text"
+        tests:
+          - not_null
       - name: description
         description: "Description of the bill version"
         tests:
