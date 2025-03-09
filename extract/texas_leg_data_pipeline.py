@@ -5,6 +5,7 @@ import functools
 
 import dlt
 import duckdb
+import feedparser
 import pandas as pd
 from bs4 import BeautifulSoup
 from utils import FtpConnection
@@ -84,7 +85,6 @@ def merge_with_current_data(new_df, curr_df):
 
     # For matching rows, keep original first_seen_at and update last_seen_at
     matching_mask = merged['_merge'] == 'both'
-
     merged.loc[matching_mask, 'first_seen_at'] = merged.loc[matching_mask, 'first_seen_at_y']
     merged.loc[matching_mask, 'last_seen_at'] = curr_time
     
@@ -104,6 +104,21 @@ def get_current_table_data(duckdb_conn, table_name, dataset_name):
     if duckdb_conn.sql(f"SELECT count(*) FROM information_schema.tables WHERE table_name = '{table_name}' AND table_schema = '{dataset_name}'").fetchone()[0] > 0:
         curr_df = duckdb_conn.table(f"{dataset_name}.{table_name}").df()
     return curr_df
+
+################################################################################
+# RSS SCRAPING FUNCTIONS
+################################################################################
+
+def get_rss_data(rss_url):
+    feed = feedparser.parse(rss_url)
+
+    if feed.status == 200:
+        for entry in feed.entries:
+            print(entry.title)
+            print(entry.link)
+            print(entry.guid)
+    else:
+        print("Failed to get RSS feed. Status code:", feed.status)
 
 ################################################################################
 # HTML SCRAPING FUNCTIONS
@@ -151,7 +166,7 @@ def get_committee_meetings_data(config):
 
     committees_list_url = config['sources']['static_html']['committees_list']
     committees_url = config['sources']['static_html']['committees']
-    leg_id = config['info']['LegSess']
+    leg_id = ''.join(filter(lambda i: i.isdigit(), config['info']['LegSess']))
 
     for chamber in ['H', 'J', 'S']:
         committees_page_url = f"{committees_list_url}?Chamber={chamber}"
@@ -161,7 +176,7 @@ def get_committee_meetings_data(config):
         for committee in committees:
             committee_meetings.append({
                 'name': committee['name'],
-                'href': committees_url + committee['href'],
+                'link': committees_url + committee['href'],
                 'chamber': chamber,
                 'leg_id': leg_id
             })
@@ -736,7 +751,7 @@ if __name__ == "__main__":
     curr_companions_df = get_current_table_data(duckdb_conn, 'companions', OUT_DATASET_NAME)
     curr_links_df = get_current_table_data(duckdb_conn, 'links', OUT_DATASET_NAME)
     curr_committee_meetings_df = get_current_table_data(duckdb_conn, 'committee_meetings', OUT_DATASET_NAME)
-    
+
     pipeline.run([
         bills(raw_bills_df, curr_bills_df),
         authors(raw_bills_df, curr_authors_df),
@@ -746,6 +761,6 @@ if __name__ == "__main__":
         actions(raw_bills_df, curr_actions_df),
         companions(raw_bills_df, curr_companions_df),
         links(raw_bills_df, config, curr_links_df),
-        committee_meetings(config, curr_committee_meetings_df)
+        committee_meetings(config, curr_committee_meetings_df) # TODO: Decide if this is needed
     ])
 
