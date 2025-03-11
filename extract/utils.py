@@ -167,4 +167,7 @@ def write_df_to_gsheets(df, google_sheets_id, worksheet_name, minimize_to_rows=F
         num_cols = len(data[0]) if data else 0 #handle empty dataframe case
         worksheet.resize(cols=num_cols)
 
-    worksheet.update('A2', data, value_input_option="USER_ENTERED")
+    if replace_headers:
+        worksheet.update('A2', data, value_input_option="USER_ENTERED")
+    else:
+        worksheet.update('A1', data, value_input_option="USER_ENTERED")
