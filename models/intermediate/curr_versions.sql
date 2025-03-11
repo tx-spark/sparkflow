@@ -3,8 +3,9 @@ with versions as (
 ),
 
 most_recent_timestamp as ( -- I'm assuming that there are no bills without versions
-    select max(last_seen_at) as seen_at_timestamp
+    select leg_id,max(last_seen_at) as seen_at_timestamp
     from versions
+    group by leg_id
 ),
 
 -- remove all the versions that have dropped off
@@ -14,6 +15,7 @@ current_versions AS (
     FROM versions
     inner join most_recent_timestamp
         on versions.last_seen_at = most_recent_timestamp.seen_at_timestamp 
+        and versions.leg_id = most_recent_timestamp.leg_id
 )
 
 select

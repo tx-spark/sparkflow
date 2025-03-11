@@ -1,7 +1,6 @@
 from ftplib import FTP
 from urllib.parse import urlparse
 import io
-import yaml
 import atexit
 import gspread
 
@@ -124,42 +123,48 @@ class FtpConnection:
             if self.ftp:
                 self.ftp.quit()
                 self.ftp = None
-        except Exception as e:
+        except BrokenPipeError:
             pass
 
 ################################################################################
 # UTILITY FUNCTIONS
 ################################################################################
 
-def write_df_to_gsheets(df, google_sheets_id, worksheet_name):
+def write_df_to_gsheets(df, google_sheets_id, worksheet_name, minimize_to_rows=False, minimize_to_cols=False, replace_headers=True):
     """
     Write a pandas DataFrame to a Google Sheets worksheet.
-    
+
     Args:
         df: pandas DataFrame to write
-        google_sheets_id: ID of the target Google Sheet 
+        google_sheets_id: ID of the target Google Sheet
         worksheet_name: Name of the worksheet to write to
-        
-    The function will resize the worksheet to match the DataFrame dimensions
+        minimize_to_rows: If True, resize the worksheet to match the DataFrame rows.
+        minimize_to_cols: If True, resize the worksheet to match the DataFrame columns.
+        replace_headers: If True, include the DataFrame headers in the worksheet. If False, only write the values.
+
+    The function will resize the worksheet to match the DataFrame dimensions (optionally)
     and write all data starting from cell A1.
     """
     google_sheets_df = df.copy()
-    google_sheets_df.fillna('',inplace=True)
+    google_sheets_df.fillna('', inplace=True)
 
     gc = gspread.service_account()
 
     sh = gc.open_by_key(google_sheets_id)
 
-    # Select the first worksheet
     worksheet = sh.worksheet(worksheet_name)
 
-    # Convert DataFrame to list of lists (including column headers)
-    data = [google_sheets_df.columns.tolist()] + google_sheets_df.values.tolist()
+    if replace_headers:
+        data = [google_sheets_df.columns.tolist()] + google_sheets_df.values.tolist()
+    else:
+        data = google_sheets_df.values.tolist()
 
-    # Minimize to just the data
-    num_rows = len(data)
-    num_cols = len(data[0])
-    worksheet.resize(rows=num_rows,cols=num_cols)
+    if minimize_to_rows:
+        num_rows = len(data)
+        worksheet.resize(rows=num_rows)
 
-    # Write data to the sheet, starting from A1
-    worksheet.update(data,value_input_option="USER_ENTERED")
+    if minimize_to_cols:
+        num_cols = len(data[0]) if data else 0 #handle empty dataframe case
+        worksheet.resize(cols=num_cols)
+
+    worksheet.update('A2', data, value_input_option="USER_ENTERED")

@@ -263,3 +263,17 @@ models:
         description: "URL to bill stages page"
         tests:
           - not_null
+  - name: curr_committee_meetings
+    schema: bills
+    description: "Current data for committee meetings"
+    columns:
+      - name: leg_id
+        description: "Unique identifier for the legislative session"
+        tests:
+          - not_null
+      - name: name
+        description: "Name of the committee"
+        tests:
+          - not_null
+      
+  

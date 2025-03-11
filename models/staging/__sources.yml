@@ -13,6 +13,10 @@ sources:
       - name: companions
       - name: links
       - name: committee_meetings
+      - name: bill_stages
+      - name: rss_feeds
+      - name: complete_bills_list
+
   - name: bills
     schema: bills
     tables:
@@ -25,3 +29,5 @@ sources:
       - name: stg_companions
       - name: stg_links
       - name: stg_committee_meetings
+      - name: stg_bill_stages
+      - name: stg_complete_bills_list

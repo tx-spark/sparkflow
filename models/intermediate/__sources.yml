@@ -11,3 +11,5 @@ sources:
       - name: curr_companions
       - name: curr_links
       - name: curr_committee_meetings
+      - name: curr_bill_stages
+      - name: curr_complete_bills_list

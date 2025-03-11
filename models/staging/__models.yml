@@ -289,3 +289,31 @@ models:
         description: "Timestamp of when the record was first seen"
       - name: last_seen_at
         description: "Timestamp of when the record was last seen"
+  - name: stg_bill_stages
+    schema: bills
+    description: "Staging table for bill stages"
+    columns:
+      - name: bill_id
+        description: "Unique identifier for the bill"
+        tests:
+          - not_null
+      - name: leg_id
+        description: "Unique identifier for the legislative session"
+        tests:
+          - not_null
+      - name: stage
+        description: "Stage of the bill"
+        tests:
+          - not_null
+      - name: stage_text
+        description: "Text of the stage"
+      - name: stage_date
+        description: "Date of the stage"
+      - name: div_class
+        description: "Class of the stage"
+      - name: after_status
+        description: "Status of the bill after the stage"
+      - name: first_seen_at
+        description: "Timestamp of when the record was first seen"
+      - name: last_seen_at
+        description: "Timestamp of when the record was last seen"

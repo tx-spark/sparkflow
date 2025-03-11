@@ -4,6 +4,7 @@ texas_leg_scraper:
     dev:
       type: duckdb
       path: 'texas_bills.duckdb'
+      schema: 'bills'
       extensions:
         - httpfs
         - parquet

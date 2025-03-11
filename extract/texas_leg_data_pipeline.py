@@ -1,8 +1,8 @@
 import re
 import yaml
 import requests
+import datetime
 import functools
-
 import dlt
 import duckdb
 import feedparser
@@ -61,7 +61,6 @@ def merge_with_current_data(new_df, curr_df):
 
     # Get current timestamp truncated to minute
     curr_time = pd.Timestamp.now().floor('min')
-    
 
     if curr_df is None or len(curr_df) == 0:
         # Add timestamp columns to new_df
@@ -74,10 +73,22 @@ def merge_with_current_data(new_df, curr_df):
     # Add timestamp columns to new_df
     new_df['first_seen_at'] = curr_time
     new_df['last_seen_at'] = curr_time
-        
+
+
+    # Get the full set of columns
+    all_columns = set(new_df.columns) | set(curr_df.columns)
+
+    # Add missing columns with NaN
+    for df in [new_df, curr_df]:
+        for col in all_columns:
+            if col not in df.columns:
+                df[col] = pd.NA
+
     # Find matching and non-matching rows
     merged = new_df.merge(curr_df, on=match_columns, how='outer', indicator=True)
-    
+
+    # For new data only, keep current timestamps d
+    new_only_mask = merged['_merge'] == 'left_only'
     # For new data only, keep current timestamps d
     new_only_mask = merged['_merge'] == 'left_only'
     merged.loc[new_only_mask, 'first_seen_at'] = curr_time
@@ -87,16 +98,15 @@ def merge_with_current_data(new_df, curr_df):
     matching_mask = merged['_merge'] == 'both'
     merged.loc[matching_mask, 'first_seen_at'] = merged.loc[matching_mask, 'first_seen_at_y']
     merged.loc[matching_mask, 'last_seen_at'] = curr_time
-    
+
     # For rows only in curr_df, keep original timestamps
     curr_only_mask = merged['_merge'] == 'right_only'
     merged.loc[curr_only_mask, 'first_seen_at'] = merged.loc[curr_only_mask, 'first_seen_at_y']
     merged.loc[curr_only_mask, 'last_seen_at'] = merged.loc[curr_only_mask, 'last_seen_at_y']
-    
+
     # Clean up merge artifacts
     merged = merged.drop(['first_seen_at_x', 'first_seen_at_y', 
                          'last_seen_at_x', 'last_seen_at_y', '_merge'], axis=1)
-    print(merged)
     return merged
 
 def get_current_table_data(duckdb_conn, table_name, dataset_name):
@@ -105,20 +115,31 @@ def get_current_table_data(duckdb_conn, table_name, dataset_name):
         curr_df = duckdb_conn.table(f"{dataset_name}.{table_name}").df()
     return curr_df
 
+
+
 ################################################################################
 # RSS SCRAPING FUNCTIONS
 ################################################################################
 
-def get_rss_data(rss_url):
-    feed = feedparser.parse(rss_url)
+def get_rss_data(config):
+    timeframes = config['sources']['rss']
+    current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
 
-    if feed.status == 200:
-        for entry in feed.entries:
-            print(entry.title)
-            print(entry.link)
-            print(entry.guid)
-    else:
-        print("Failed to get RSS feed. Status code:", feed.status)
+    for timeframe in timeframes.keys():
+
+        entries = []
+        for rss_label, rss_url in zip(timeframes[timeframe].keys(), timeframes[timeframe].values()):
+            feed = feedparser.parse(rss_url)
+            for entry in feed.entries:
+                entry_dict = {
+                    'timeframe': timeframe,
+                    'rss_label': rss_label,
+                    'date': current_date
+                }
+                for key, value in entry.items():
+                    entry_dict[key] = value
+                entries.append(entry_dict)
+    return pd.DataFrame(entries)
 
 ################################################################################
 # HTML SCRAPING FUNCTIONS
@@ -181,6 +202,87 @@ def get_committee_meetings_data(config):
                 'leg_id': leg_id
             })
         return pd.DataFrame(committee_meetings)
+    
+def get_indv_bill_stages(bill_stages_url, bill_id, leg_id):
+    """
+    TO DO: WRITE DESCRIPTION
+    """
+    bill_text_url = f'{bill_stages_url}?LegSess={leg_id}&Bill={bill_id}'
+
+    site_html = requests.get(bill_text_url,timeout=30).text
+    soup = BeautifulSoup(site_html, 'html.parser')
+
+    stages_div = soup.find('div', id='usrBillStages_pnlBillStages')
+    stages_div = soup.find('div', class_='bill-status')
+    # Initialize empty list to store stages
+    stages = []
+
+    stage = {'bill_id': bill_id, 'leg_id': leg_id}
+    if stages_div:
+        # Find all stage boxes and continuations
+        stage_boxes = stages_div.find_all('div')
+
+        # Process each stage
+        for box in stage_boxes:
+            text = box.text.strip()
+            div_class = box.get('class')[0]
+            
+            # Get image filename from continuation div
+            img = box.find('img')
+            img_src = img['src'].split('/')[-1] if img else None
+
+            if len(text.split('\n')) > 2:
+                stage.update({
+                    'stage': text.split('\n')[0],
+                    'stage_title': text.split('\n')[1],
+                    'stage_date': ''.join(text.split('\n')[2:]),
+                    'div_class': div_class.split('-')[-1]
+                })
+            elif img_src is not None:
+                stage.update({
+                    'after_status': img_src.split('.')[0]
+                })
+                if 'Not reached' not in stage['stage_title']:
+                    stages.append(stage)
+                stage = {'bill_id': bill_id, 'leg_id': leg_id}
+            else:
+                continue
+        if 'stage_title' in stage.keys() and 'Not reached' not in stage['stage_title']:
+            stages.append(stage)
+    else:
+        # If no stages div found, return empty list
+        stages = []
+
+    #########################################################
+
+    stage_labels = soup.find_all('div', class_='stageLabel')
+    stage_texts = soup.find_all('div', class_='stageText')
+
+
+    stage_details = []
+    for label, text in zip(stage_labels, stage_texts):
+        stage_detail = {
+            'stage': label.text.strip(),
+            'stage_text': text.text.strip()
+        }
+        stage_details.append(stage_detail)
+
+    for i in range(len(stages)):
+        stages[i].update(stage_details[i])
+
+    return stages
+
+def get_bill_stages(bill_stages_url, raw_bills_df):
+    bill_stages = []
+    for _, row in raw_bills_df.iterrows():
+        bill_id, leg_id = clean_bill_id(row['bill_id'])
+        print(bill_id)
+        try:
+            bill_stages.extend(get_indv_bill_stages(bill_stages_url, bill_id, leg_id))
+        except Exception as e:
+            print(f"Error getting bill stages for {bill_id}: {e}")
+    return pd.DataFrame(bill_stages)
+
     
 ################################################################################
 # FTP SCRAPING FUNCTIONS
@@ -622,15 +724,48 @@ def get_links_data(raw_bills_df, config):
 
     return pd.DataFrame(links_data, columns=['bill_id', 'leg_id'] + list(config['sources']['html'].keys()))
 
+def get_complete_bills_list(raw_bills_df):
+    new_rows = []
+    
+    # Extract and clean bill_id and leg_id
+    cleaned_data = []
+    for _, row in raw_bills_df.iterrows():
+        bill_id, leg_id = clean_bill_id(row['bill_id'])
+        cleaned_data.append((bill_id, leg_id))
+    
+    cleaned_df = pd.DataFrame(cleaned_data, columns=["bill_id", "leg_id"])
+    
+    # Group by legislative session
+    for leg_id, group in cleaned_df.groupby("leg_id"):
+        bill_types = group["bill_id"].str.extract(r"([A-Z]+)(\d+)")  # Extract prefix and number
+        group["prefix"] = bill_types[0]
+        group["number"] = bill_types[1].astype(int)
+        
+        # Ensure each prefix has a consecutive sequence
+        for prefix, sub_group in group.groupby("prefix"):
+            min_bill = sub_group["number"].min()
+            max_bill = sub_group["number"].max()
+            print(f"Prefix: {prefix}, Min: {min_bill}, Max: {max_bill}")
+            full_range = pd.DataFrame({
+                "bill_id": [f"{prefix}{i}" for i in range(min_bill, max_bill + 1)],
+                "leg_id": leg_id
+            })
+            new_rows.append(full_range)
+    
+    return pd.concat(new_rows, ignore_index=True)
+
 def get_raw_bills_data(base_path, leg_session, ftp_connection):
     print("Getting raw bills data")
     bill_urls = get_bill_urls(base_path, leg_session, ftp_connection)
     raw_bills = []
     for url in bill_urls:
         print(url)
-        bill_data = parse_bill_xml(ftp_connection, url)
-        if bill_data:
-            raw_bills.append(bill_data)
+        try:
+            bill_data = parse_bill_xml(ftp_connection, url)
+            if bill_data:
+                raw_bills.append(bill_data)
+        except Exception as e:
+            print(f"Error parsing bill data for {url}: {e}")
     return pd.DataFrame(raw_bills)
 
 
@@ -719,12 +854,48 @@ def committee_meetings(config, curr_committee_meetings_df=None):
     print(result_df)
     yield result_df
 
+@dlt.resource(write_disposition="replace")
+def bill_stages(raw_bills_df, config,curr_bill_stages_df=None):
+
+    bill_stages_df = get_bill_stages(config['sources']['html']['bill_stages'], raw_bills_df)
+    
+    result_df = merge_with_current_data(bill_stages_df, curr_bill_stages_df)
+    print(result_df)
+    yield result_df
+
+@dlt.resource(write_disposition="replace")
+def complete_bills_list(raw_bills_df,curr_complete_bills_list_df=None):
+
+    complete_bills_list_df = get_complete_bills_list(raw_bills_df)
+    
+    result_df = merge_with_current_data(complete_bills_list_df, curr_complete_bills_list_df)
+    print(result_df)
+    yield result_df
+
+@dlt.resource(write_disposition="replace")
+def rss_feeds(config, curr_rss_df=None):
+    rss_df = get_rss_data(config)
+    
+    result_df = merge_with_current_data(rss_df, curr_rss_df)
+    print(result_df)
+    yield result_df
+
+@dlt.resource(write_disposition="append")
+def run_logs(start_time, end_time, notes):
+    yield {
+        "start_time": start_time,
+        "end_time": end_time,
+        "notes": notes
+    }
+
 
 ################################################################################
 # MAIN
 ################################################################################
 
 if __name__ == "__main__":
+
+    start_time = datetime.datetime.now()
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
@@ -751,6 +922,11 @@ if __name__ == "__main__":
     curr_companions_df = get_current_table_data(duckdb_conn, 'companions', OUT_DATASET_NAME)
     curr_links_df = get_current_table_data(duckdb_conn, 'links', OUT_DATASET_NAME)
     curr_committee_meetings_df = get_current_table_data(duckdb_conn, 'committee_meetings', OUT_DATASET_NAME)
+    curr_bill_stages_df = get_current_table_data(duckdb_conn, 'bill_stages', OUT_DATASET_NAME)
+    curr_complete_bills_list_df = get_current_table_data(duckdb_conn, 'complete_bills_list', OUT_DATASET_NAME)
+    curr_rss_df = get_current_table_data(duckdb_conn, 'rss_feeds', OUT_DATASET_NAME)
+
+    duckdb_conn.close()
 
     pipeline.run([
         bills(raw_bills_df, curr_bills_df),
@@ -761,6 +937,10 @@ if __name__ == "__main__":
         actions(raw_bills_df, curr_actions_df),
         companions(raw_bills_df, curr_companions_df),
         links(raw_bills_df, config, curr_links_df),
-        committee_meetings(config, curr_committee_meetings_df) # TODO: Decide if this is needed
+        committee_meetings(config, curr_committee_meetings_df), # TODO: Decide if this data should be moved to seeds
+        bill_stages(raw_bills_df, config, curr_bill_stages_df),
+        complete_bills_list(raw_bills_df, curr_complete_bills_list_df),
+        #rss_feeds(config, curr_rss_df),
+        run_logs(start_time, datetime.datetime.now(), "")
     ])
 

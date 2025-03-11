@@ -33,8 +33,9 @@ models:
   texas_bills:
     staging:
       +materialized: view
-    bills:
-      +materialized: table
+    intermediate:
+      +materialized: view
     marts:
       +materialized: table
-
+    bills_passed:
+      +materialized: table
