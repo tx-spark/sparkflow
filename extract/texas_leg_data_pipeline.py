@@ -141,9 +141,122 @@ def get_rss_data(config):
                 entries.append(entry_dict)
     return pd.DataFrame(entries)
 
+def get_upcoming_from_rss(upcoming_rss_urls:dict):
+    """
+    Gets RSS feed data from the configured URLs and returns a DataFrame.
+    
+    Args:
+        config (dict): Configuration dictionary containing labelsRSS feed URLs
+        
+    Returns:
+        pandas.DataFrame: DataFrame containing RSS feed entries
+    """
+    current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+    entries = []
+    
+    for rss_label, rss_url in zip(upcoming_rss_urls.keys(), upcoming_rss_urls.values()):
+        feed = feedparser.parse(rss_url)
+        for entry in feed.entries:
+            entry_dict = {
+                'rss_label': rss_label,
+                'date': current_date,
+                'description': entry.description,
+            }
+            for key, value in entry.items():
+                if type(value) == feedparser.util.FeedParserDict:
+                    for k,v in value.items():
+                        entry_dict[f'{key}_{k}'] = v
+                else:
+                    entry_dict[key] = value
+            entries.append(entry_dict)
+            
+    return pd.DataFrame(entries)
+
+def get_committee_meetings(rss_config):
+    """
+    Gets all committee meetings from RSS feed and returns a standardized DataFrame.
+    
+    Args:
+        rss_config (dict): Dictionary containing RSS feed URLs for upcoming meetings
+        
+    Returns:
+        DataFrame with standardized meeting details including bills
+    """
+    # Get upcoming meetings from RSS
+    upcoming_meetings = get_upcoming_from_rss(rss_config)
+    
+    # Filter for committee meetings and reset index
+    meetings_mask = upcoming_meetings['rss_label'].isin(['meetings_senate', 'meetings_house'])
+    filtered_meetings = upcoming_meetings[meetings_mask].reset_index(drop=True)
+    meetings_links = filtered_meetings['link'].tolist()
+    meetings_labels = filtered_meetings['rss_label'].tolist()
+    
+    # Get detailed meeting data
+    meetings_df = pd.DataFrame(map(read_committee_meeting, meetings_links))
+    
+    # Convert bills columns from string to list if needed
+    if isinstance(meetings_df['bills'].iloc[0], str):
+        meetings_df['bills'] = meetings_df['bills'].apply(eval)
+    if isinstance(meetings_df['deleted_bills'].iloc[0], str):
+        meetings_df['deleted_bills'] = meetings_df['deleted_bills'].apply(eval)
+    if isinstance(meetings_df['added_bills'].iloc[0], str):
+        meetings_df['added_bills'] = meetings_df['added_bills'].apply(eval)
+
+    # Extract date and time from filtered_meetings
+    meetings_df['date'] = filtered_meetings['title'].str.extract(r'-\s*(\d{1,2}/\d{1,2}/\d{4})')
+    meetings_df['time'] = filtered_meetings['description'].str.extract(r'Time:\s*(\d{1,2}:\d{2}\s*[AP]M)')
+
+    # Create standardized output
+    result = []
+    for i, meeting in meetings_df.iterrows():
+        meeting_info = {
+            'committee': meeting['committee'],
+            'chamber': 'Senate' if meetings_labels[i] == 'meetings_senate' else 'House',
+            'date': meeting['date'],
+            'time': meeting['time'],
+            'location': meeting['place'],
+            'chair': meeting['chair'],
+            'meeting_url': meeting['meeting_url'],
+            'bills': []
+        }
+
+        # Add regular bills
+        for bill in meeting['bills']:
+            bill_info = {
+                'bill_id': bill['bill_id'],
+                'link': bill['bill_link'],
+                'author': bill.get('author', ''),
+                'description': bill.get('description', ''),
+                'status': 'scheduled'
+            }
+            meeting_info['bills'].append(bill_info)
+
+        # Add deleted bills
+        for bill in meeting['deleted_bills']:
+            bill_info = {
+                'bill_id': bill['bill_id'],
+                'link': bill['bill_link'],
+                'status': 'deleted'
+            }
+            meeting_info['bills'].append(bill_info)
+
+        # Add added bills  
+        for bill in meeting['added_bills']:
+            bill_info = {
+                'bill_id': bill['bill_id'],
+                'link': bill['bill_link'],
+                'status': 'added'
+            }
+            meeting_info['bills'].append(bill_info)
+
+        result.append(meeting_info)
+
+    return pd.DataFrame(result)
+
 ################################################################################
 # HTML SCRAPING FUNCTIONS
 ################################################################################
+
 
 def extract_committee_meetings_links(committees_page_url, leg_id):
     session = requests.Session()
@@ -474,6 +587,134 @@ def parse_bill_xml(ftp_connection, url):
         
     return bill_data
 
+def read_committee_meeting(meeting_url):
+    """
+    Reads a committee meeting URL and returns a dictionary of the meeting data.
+    
+    Args:
+        meeting_url (str): URL of the committee meeting page
+        
+    Returns:
+        dict: Dictionary containing committee info and list of bills to be discussed
+    """
+    response = requests.get(meeting_url)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    
+    # Find the first table with class MsoNormalTable
+    tables = soup.find_all('table', class_='MsoNormalTable')
+    if len(tables) < 2:
+        return {}
+    
+    table = tables[1]
+
+    # Extract data using string parsing
+    meeting_data = {
+        'bills': []
+    }
+
+    # Get committee info
+    paragraphs = table.find_all('p', class_='MsoNormal')
+    for p in paragraphs:
+        text = p.get_text(' ', strip=True)
+        text = re.sub(r'\s+', ' ', text)
+        
+        if text.startswith('COMMITTEE:'):
+            meeting_data['committee'] = text.replace('COMMITTEE:', '').strip()
+        elif text.startswith('TIME & DATE:'):
+            meeting_data['time_date'] = text.replace('TIME & DATE:', '').strip()
+        elif text.startswith('PLACE:'):
+            place_chair = text.replace('PLACE:', '').strip()
+            if 'CHAIR:' in place_chair:
+                place, chair = place_chair.split('CHAIR:')
+                meeting_data['place'] = place.strip()
+                meeting_data['chair'] = chair.strip()
+            else:
+                meeting_data['place'] = place_chair
+    
+    # Find all bill rows
+    bill_rows = soup.find_all('tr', style='page-break-inside:avoid')
+    
+    for row in bill_rows:
+        bill_p = row.find('p', class_='MsoNormal')
+        if not bill_p:
+            continue
+            
+        # Get bill link and ID
+        bill_link = bill_p.find('a')
+        if not bill_link:
+            continue
+            
+        bill_href = 'https://capitol.texas.gov' + bill_link['href']
+        bill_id = bill_link.get_text(strip=True)
+        
+        # Get author text after </a> tag but before first <br> tag
+        author = ''
+        for content in bill_link.next_siblings:
+            if content.name == 'br':
+                break
+            author += str(content)
+        author = re.sub(r'[\r\n]', '', author.strip())
+        # Get description text between first and second <br> tags
+        description = ''
+        br_tags = bill_p.find_all('br')
+        if len(br_tags) >= 2:
+            description_content = br_tags[0].next_sibling
+            if description_content and description_content.string:
+                description = re.sub(r'[\r\n]', '', description_content.string.strip())
+
+        
+        meeting_data['bills'].append({
+            'bill_id': bill_id,
+            'bill_link': bill_href,
+            'author': author,
+            'description': description,
+        })
+
+    # Check for deleted and added bills sections
+    deleted_bills = []
+    added_bills = []
+    
+    # Find headers for deleted and added bills
+    deleted_header = soup.find('p', class_='MsoNormal', string=lambda x: x and 'Bills deleted' in x)
+    added_header = soup.find('p', class_='MsoNormal', string=lambda x: x and 'Bills added' in x)
+    
+    # Get deleted bills if they exist
+    if deleted_header:
+        # Get all bill links between deleted header and added header (if it exists)
+        next_header = added_header if added_header else None
+        current = deleted_header.find_next('a')
+        while current and current != next_header:
+            deleted_bill_id = current.get_text(strip=True)
+            deleted_bill_href = 'https://capitol.texas.gov' + current['href']
+            deleted_bills.append({
+                'bill_id': deleted_bill_id,
+                'bill_link': deleted_bill_href
+            })
+            current = current.find_next('a')
+    
+    # Get added bills if they exist        
+    if added_header:
+        # Get all bill links after added header
+        current = added_header.find_next('a')
+        while current:
+            added_bill_id = current.get_text(strip=True)
+            added_bill_href = 'https://capitol.texas.gov' + current['href']
+            added_bills.append({
+                'bill_id': added_bill_id,
+                'bill_link': added_bill_href
+            })
+            current = current.find_next('a')
+            
+    meeting_data['deleted_bills'] = deleted_bills
+    meeting_data['added_bills'] = added_bills
+
+    meeting_data['meeting_url'] = meeting_url
+    return meeting_data
+
+########################################################
+# Standardized Data Extraction Functions
+########################################################
+
 def get_bills_data(raw_bills_df):
     """
     Extract core bill data from raw bills dataframe into standardized format.
@@ -754,6 +995,43 @@ def get_complete_bills_list(raw_bills_df):
     
     return pd.concat(new_rows, ignore_index=True)
 
+def get_upcoming_committee_meetings(config):
+    upcoming_meetings_df = get_committee_meetings(config['sources']['rss']['upcoming'])
+    return upcoming_meetings_df[['committee', 'chamber', 'date', 'time', 'location', 'chair', 'meeting_url']]
+
+def get_upcoming_committee_meeting_bills(config):
+    upcoming_meetings_df = get_committee_meetings(config['sources']['rss']['upcoming'])
+
+    # Create list to store flattened bill records
+    bills_list = []
+    
+    # Iterate through meetings and their bills
+    for _, meeting in upcoming_meetings_df.iterrows():
+        # Get meeting details
+        meeting_details = {
+            'committee': meeting['committee'],
+            'chamber': meeting['chamber'], 
+            'date': meeting['date'],
+            'time': meeting['time'],
+            'meeting_url': meeting['meeting_url']
+        }
+        
+        # Add each bill with meeting details
+        for bill in meeting['bills']:
+            bill_record = meeting_details.copy()
+            bill_record.update({
+                'bill_id': bill['bill_id'],
+                'link': bill['link'],
+                'author': bill.get('author', None),
+                'description': bill.get('description', None),
+                'status': bill.get('status', None)
+            })
+            bills_list.append(bill_record)
+            
+    # Convert to DataFrame
+    bills_df = pd.DataFrame(bills_list)
+    return bills_df
+
 def get_raw_bills_data(base_path, leg_session, ftp_connection):
     print("Getting raw bills data")
     bill_urls = get_bill_urls(base_path, leg_session, ftp_connection)
@@ -881,6 +1159,20 @@ def rss_feeds(config, curr_rss_df=None):
     yield result_df
 
 @dlt.resource(write_disposition="append")
+def upcoming_committee_meetings(config, curr_upcoming_committee_meetings_df=None):
+    upcoming_meetings_df = get_upcoming_committee_meetings(config)
+    upcoming_meetings_df['seen_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+    print(upcoming_meetings_df)
+    yield upcoming_meetings_df
+
+@dlt.resource(write_disposition="append")
+def upcoming_committee_meeting_bills(config, curr_upcoming_committee_meeting_bills_df=None):
+    upcoming_meeting_bills_df = get_upcoming_committee_meeting_bills(config)
+    upcoming_meeting_bills_df['seen_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+    print(upcoming_meeting_bills_df)
+    yield upcoming_meeting_bills_df
+
+@dlt.resource(write_disposition="append")
 def run_logs(start_time, end_time, notes):
     yield {
         "start_time": start_time,
@@ -909,7 +1201,7 @@ if __name__ == "__main__":
 
     base_path = config['sources']['ftp']['base_path']
     leg_session = config['info']['LegSess']
-    raw_bills_df = get_raw_bills_data(base_path, leg_session, conn)
+    #raw_bills_df = get_raw_bills_data(base_path, leg_session, conn)
     
     duckdb_conn = duckdb.connect(f"{PIPELINE_NAME}.duckdb")
 
@@ -929,17 +1221,19 @@ if __name__ == "__main__":
     duckdb_conn.close()
 
     pipeline.run([
-        bills(raw_bills_df, curr_bills_df),
-        authors(raw_bills_df, curr_authors_df),
-        subjects(raw_bills_df, curr_subjects_df),
-        committees(raw_bills_df, curr_committees_df),
-        versions(raw_bills_df, curr_versions_df),
-        actions(raw_bills_df, curr_actions_df),
-        companions(raw_bills_df, curr_companions_df),
-        links(raw_bills_df, config, curr_links_df),
-        committee_meetings(config, curr_committee_meetings_df), # TODO: Decide if this data should be moved to seeds
-        bill_stages(raw_bills_df, config, curr_bill_stages_df),
-        complete_bills_list(raw_bills_df, curr_complete_bills_list_df),
+        # bills(raw_bills_df, curr_bills_df),
+        # authors(raw_bills_df, curr_authors_df),
+        # subjects(raw_bills_df, curr_subjects_df),
+        # committees(raw_bills_df, curr_committees_df),
+        # versions(raw_bills_df, curr_versions_df),
+        # actions(raw_bills_df, curr_actions_df),
+        # companions(raw_bills_df, curr_companions_df),
+        # links(raw_bills_df, config, curr_links_df),
+        # committee_meetings(config, curr_committee_meetings_df), # TODO: Decide if this data should be moved to seeds
+        # bill_stages(raw_bills_df, config, curr_bill_stages_df),
+        # complete_bills_list(raw_bills_df, curr_complete_bills_list_df),
+        upcoming_committee_meetings(config),
+        upcoming_committee_meeting_bills(config),
         #rss_feeds(config, curr_rss_df),
         run_logs(start_time, datetime.datetime.now(), "")
     ])
