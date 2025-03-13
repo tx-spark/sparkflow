@@ -179,3 +179,7 @@ raw_data/
 target/
 dbt_packages/
 logs/
+seeds/
+
+# DLT
+.dlt/
