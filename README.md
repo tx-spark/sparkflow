@@ -1,4 +1,4 @@
-# texas-leg-scraper
+# Texas Legislature Bill Tracker
 
 This is a scraper for the Texas Legislature website. See the tracker [here!](https://docs.google.com/spreadsheets/d/1mB-wBoFKuu4kS482Yc2FQn6kByDJi6uIgm7l09V_8PQ/edit?usp=sharing).
 
@@ -28,7 +28,6 @@ The short description of the process:
 - Working on logging and monitoring of the pipeline process.
 
 ---
-
 
 ## Browsing the data
 Some options:
