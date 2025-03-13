@@ -2,7 +2,6 @@
 
 This is a scraper for the Texas Legislature website. See the tracker [here!](https://docs.google.com/spreadsheets/d/1mB-wBoFKuu4kS482Yc2FQn6kByDJi6uIgm7l09V_8PQ/edit?usp=sharing).
 
----
 ## Setup
 
 ### Poetry
@@ -13,8 +12,6 @@ This project uses gspread to write to google sheets. You'll need to set up a ser
 
 ### Scraper config
 Go over all the configuration options setup in `config.yaml`, and make sure they're correct for your use case.
-
----
 
 ## Usage
 
@@ -31,16 +28,12 @@ The short description of the process:
 - Working on logging and monitoring of the pipeline process.
 
 ---
+
+
 ## Browsing the data
 Some options:
 - [duckcli](https://pypi.org/project/duckcli/)
 - [DuckDB CLI](https://duckdb.org/docs/installation/?environment=cli)
 - [How to set up DBeaver SQL IDE for DuckDB](https://duckdb.org/docs/guides/sql_editors/dbeaver)
-
----
-For more information on dbt:
-- Read the [introduction to dbt](https://docs.getdbt.com/docs/introduction)
-- Read the [dbt viewpoint](https://docs.getdbt.com/docs/about/viewpoint)
-- Join the [dbt Community](http://community.getdbt.com/)
 
 
