@@ -1,0 +1,9 @@
+data_tests:
+  - name: tracker_contains_continuous_rows
+    description: >
+      Tracker should have continuous rows, so as to not mess up the ordering, and disalign user comments.
+      This test ensures that the rows are continuous.
+  - name: tracker_contains_duplicates
+    description: >
+      Tracker should not have duplicates.
+      This test ensures that there are no bills with multiple rows.
