@@ -71,12 +71,16 @@ def merge_with_current_data(new_df, curr_df):
             if col not in df.columns:
                 df[col] = pd.NA
 
+    # Replace null values with a distinct placeholder before merging
+    # This prevents merge issues with null values
+    placeholder = '___NULL___'
+    new_df = new_df.fillna(placeholder)
+    curr_df = curr_df.fillna(placeholder)
+
     # Find matching and non-matching rows
     merged = new_df.merge(curr_df, on=match_columns, how='outer', indicator=True)
 
-    # For new data only, keep current timestamps d
-    new_only_mask = merged['_merge'] == 'left_only'
-    # For new data only, keep current timestamps d
+    # For new data only, keep current timestamps
     new_only_mask = merged['_merge'] == 'left_only'
     merged.loc[new_only_mask, 'first_seen_at'] = curr_time
     merged.loc[new_only_mask, 'last_seen_at'] = curr_time
@@ -94,6 +98,10 @@ def merge_with_current_data(new_df, curr_df):
     # Clean up merge artifacts
     merged = merged.drop(['first_seen_at_x', 'first_seen_at_y', 
                          'last_seen_at_x', 'last_seen_at_y', '_merge'], axis=1)
+
+    # Replace the placeholder back with null values
+    merged = merged.replace(placeholder, pd.NA)
+    
     return merged
 
 def get_current_table_data(duckdb_conn, table_name, dataset_name):
@@ -289,24 +297,25 @@ def get_committee_meetings_data(config):
     committees_url = config['sources']['static_html']['committees']
     leg_id = ''.join(filter(lambda i: i.isdigit(), config['info']['LegSess']))
 
+    committee_meetings = []
     for chamber in ['H', 'J', 'S']:
         committees_page_url = f"{committees_list_url}?Chamber={chamber}"
         committees = extract_committee_meetings_links(committees_page_url, leg_id)
-
-        committee_meetings = []
+        
         for committee in committees:
             committee_meetings.append({
                 'name': committee['name'],
                 'link': committees_url + committee['href'],
                 'chamber': chamber,
-                'leg_id': leg_id
+                'leg_id': config['info']['LegSess']
             })
-        return pd.DataFrame(committee_meetings)
+    return pd.DataFrame(committee_meetings)
     
 def get_indv_bill_stages(bill_stages_url, bill_id, leg_id):
     """
     TO DO: WRITE DESCRIPTION
     """
+    print(f'Getting bill stages for {bill_id} in {leg_id}')
     bill_text_url = f'{bill_stages_url}?LegSess={leg_id}&Bill={bill_id}'
 
     site_html = requests.get(bill_text_url,timeout=30).text
@@ -1006,9 +1015,12 @@ def get_upcoming_committee_meeting_bills(config):
         # Add each bill with meeting details
         for bill in meeting['bills']:
             bill_record = meeting_details.copy()
+            # Extract leg_id from link using regex
+            leg_id = re.search(r'/tlodocs/(\w+)/', meeting['meeting_url']).group(1)
             bill_record.update({
                 'bill_id': bill['bill_id'],
-                'link': bill['link'],
+                'leg_id': leg_id,
+                'link': bill['link'], 
                 'author': bill.get('author', None),
                 'description': bill.get('description', None),
                 'status': bill.get('status', None)
@@ -1023,7 +1035,7 @@ def get_raw_bills_data(base_path, leg_session, ftp_connection):
     print("Getting raw bills data")
     bill_urls = get_bill_urls(base_path, leg_session, ftp_connection)
     raw_bills = []
-    for url in bill_urls[:10]:
+    for url in bill_urls:
         print(url)
         try:
             bill_data = parse_bill_xml(ftp_connection, url)
@@ -1032,3 +1044,4 @@ def get_raw_bills_data(base_path, leg_session, ftp_connection):
         except Exception as e:
             print(f"Error parsing bill data for {url}: {e}")
     return pd.DataFrame(raw_bills)
+

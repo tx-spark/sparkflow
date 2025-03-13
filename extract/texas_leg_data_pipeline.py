@@ -28,10 +28,11 @@ def bills(raw_bills_df, curr_bills_df=None):
 @dlt.resource(write_disposition="replace")
 def actions(raw_bills_df, curr_actions_df=None):
     actions_df = get_actions_data(raw_bills_df)
-    
     result_df = merge_with_current_data(actions_df, curr_actions_df)
+
     print(result_df)
     yield result_df
+        
 
 @dlt.resource(write_disposition="replace")
 def authors(raw_bills_df, curr_authors_df=None):
@@ -76,7 +77,8 @@ def versions(raw_bills_df, curr_versions_df=None):
 @dlt.resource(write_disposition="replace")
 def companions(raw_bills_df, curr_companions_df=None):
     companions_df = get_companions_data(raw_bills_df)
-    
+    print('Getting companions!!!')
+
     result_df = merge_with_current_data(companions_df, curr_companions_df)
     print(result_df)
     yield result_df
@@ -100,7 +102,7 @@ def committee_meetings(config, curr_committee_meetings_df=None):
 
 @dlt.resource(write_disposition="replace")
 def bill_stages(raw_bills_df, config,curr_bill_stages_df=None):
-
+    print('Getting bill stages!!!')
     bill_stages_df = get_bill_stages(config['sources']['html']['bill_stages'], raw_bills_df)
     
     result_df = merge_with_current_data(bill_stages_df, curr_bill_stages_df)
@@ -125,14 +127,14 @@ def rss_feeds(config, curr_rss_df=None):
     yield result_df
 
 @dlt.resource(write_disposition="append")
-def upcoming_committee_meetings(config, curr_upcoming_committee_meetings_df=None):
+def upcoming_committee_meetings(config):
     upcoming_meetings_df = get_upcoming_committee_meetings(config)
     upcoming_meetings_df['seen_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
     print(upcoming_meetings_df)
     yield upcoming_meetings_df
 
 @dlt.resource(write_disposition="append")
-def upcoming_committee_meeting_bills(config, curr_upcoming_committee_meeting_bills_df=None):
+def upcoming_committee_meeting_bills(config):
     upcoming_meeting_bills_df = get_upcoming_committee_meeting_bills(config)
     upcoming_meeting_bills_df['seen_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
     print(upcoming_meeting_bills_df)
@@ -145,7 +147,6 @@ def run_logs(start_time, end_time, notes):
         "end_time": end_time,
         "notes": notes
     }
-
 
 ################################################################################
 # MAIN
@@ -200,7 +201,7 @@ if __name__ == "__main__":
         complete_bills_list(raw_bills_df, curr_complete_bills_list_df),
         upcoming_committee_meetings(config),
         upcoming_committee_meeting_bills(config),
-        #rss_feeds(config, curr_rss_df),
+        rss_feeds(config, curr_rss_df),
         run_logs(start_time, datetime.datetime.now(), "")
     ])
 

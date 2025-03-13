@@ -4,30 +4,33 @@ sources:
   - name: raw_bills
     schema: raw_bills
     tables:
-      - name: authors
-      - name: subjects
-      - name: committees
-      - name: versions
       - name: actions
-      - name: bills
-      - name: companions
-      - name: links
-      - name: committee_meetings
+      - name: authors
       - name: bill_stages
-      - name: rss_feeds
+      - name: bills
+      - name: committee_meetings
+      - name: committees
+      - name: companions
       - name: complete_bills_list
+      - name: links
+      - name: subjects
+      - name: upcoming_committee_meetings
+      - name: upcoming_committee_meeting_bills
+      - name: versions
 
   - name: bills
     schema: bills
     tables:
-      - name: stg_authors
-      - name: stg_subjects
-      - name: stg_committees
-      - name: stg_versions
       - name: stg_actions
-      - name: stg_bills
-      - name: stg_companions
-      - name: stg_links
-      - name: stg_committee_meetings
+      - name: stg_authors
       - name: stg_bill_stages
+      - name: stg_bills
+      - name: stg_committee_meetings
+      - name: stg_committees
+      - name: stg_companions
       - name: stg_complete_bills_list
+      - name: stg_links
+      - name: stg_subjects
+      - name: stg_upcoming_committee_meetings
+      - name: stg_upcoming_committee_meeting_bills
+      - name: stg_versions

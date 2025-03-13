@@ -6,7 +6,7 @@ SELECT
         when 'senate' then 'Senate'
         when 'joint' then 'Joint'
         else 'Unknown' end as chamber,
-    name,
+    REPLACE(name, '&', 'and') as name,
     -- subcommittee_name,
     status,
     -- subcommittee_status,
@@ -17,3 +17,4 @@ SELECT
     first_seen_at,
     last_seen_at
 FROM {{ source('raw_bills', 'committees') }}
+where name != ''

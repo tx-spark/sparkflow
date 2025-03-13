@@ -33,8 +33,13 @@ stages as (
     select * from {{ source('bills', 'curr_bill_stages') }}
 ),
 
+committees as (
+    select * from {{ source('bills', 'curr_committees') }}
+),
 
-
+upcoming_committee_meeting_bills as (
+    select * from {{ source('bills', 'curr_upcoming_committee_meeting_bills') }}
+),
 ----------------------------------------------------------
 
 authors_agg as (
@@ -120,10 +125,10 @@ bill_status as (
     SELECT 
         bill_id,
         leg_id,
-        IF(stage_num = 7 and status = 'Alive', 'Passed', status) as status
+        IF(stage_num = 7 and status = 'Alive', 'Law', status) as status
     FROM (
         SELECT *,
-               ROW_NUMBER() OVER (PARTITION BY bill_id, leg_id ORDER BY stage_date DESC) as rn
+               ROW_NUMBER() OVER (PARTITION BY bill_id, leg_id ORDER BY stage_num DESC) as rn
         FROM stages
     ) 
     WHERE rn = 1
@@ -137,8 +142,66 @@ most_recent_bill_stage as (
         FROM stages
     )
     WHERE rn = 1
+),
+
+committees_agg as (
+    SELECT
+        bill_id,
+        committees.leg_id,
+        CONCAT(
+            '=HYPERLINK("',
+            MAX(committee_meetings.link),
+            '", "',
+            STRING_AGG(committees.name, ' | '),
+            '")'
+        ) as committees_link
+    FROM
+        committees
+    left join committee_meetings
+        on lower(trim(committees.name)) = lower(trim(committee_meetings.name))
+        and committees.leg_id = committee_meetings.leg_id
+        and committees.chamber = committee_meetings.chamber
+    where committees.name is not null
+    and committees.name != ''
+    GROUP BY
+        bill_id,
+        committees.leg_id
+),
+
+upcoming_house_committee_meetings as (
+    select 
+        bill_id, 
+        leg_id, 
+        CONCAT(
+            '=HYPERLINK("',
+            meeting_url,
+            '", "',
+            strftime(meeting_datetime, '%m/%d/%Y %I:%M %p'),
+            '")'
+        ) as meeting_datetime
+    from upcoming_committee_meeting_bills
+    where chamber = 'House'
+    qualify row_number() over (PARTITION BY bill_id, leg_id ORDER BY meeting_datetime) = 1
+),
+
+upcoming_senate_committee_meetings as (
+    select 
+        bill_id, 
+        leg_id, 
+        CONCAT(
+            '=HYPERLINK("',
+            meeting_url,
+            '", "',
+            strftime(meeting_datetime, '%m/%d/%Y %I:%M %p'),
+            '")'
+        ) as meeting_datetime
+    from upcoming_committee_meeting_bills
+    where chamber = 'Senate'
+    qualify row_number() over (PARTITION BY bill_id, leg_id ORDER BY meeting_datetime) = 1
 )
+
 ----------------------------------------------------------
+
 
 select
     complete_bills_list.bill_id,
@@ -195,27 +258,24 @@ select
         '", "',
         most_recent_bill_stage.stage_title,
         '")'
-    ) as stages
-    --committee_meetings.committee_name as committee
-
-
-    -- Companions =HYPERLINK("https://capitol.texas.gov/BillLookup/History.aspx?LegSess=89R&Bill=HB3", "HB 3")
-    -- Amendments =HYPERLINK("https://capitol.texas.gov/BillLookup/Amendments.aspx?LegSess=89R&Bill=SB2", "37")
-    -- Sponsors =https://capitol.texas.gov/BillLookup/Sponsors.aspx?LegSess=89R&Bill=SB2
-    -- Bill Stage Hyperlink to current stage
-    -- Committee Hyperlink to current committee
-    -- Current Version =HYPERLINK("https://capitol.texas.gov/BillLookup/Versions.aspx?LegSess=89R&Bill=HB3", "HB 3")
+    ) as stages,
+    committees_agg.committees_link as committees,
+    upcoming_house_committee_meetings.meeting_datetime as upcoming_house_committee_meeting_datetime,
+    upcoming_senate_committee_meetings.meeting_datetime as upcoming_senate_committee_meeting_datetime
     
-from complete_bills_list
+from complete_bills_list -- join on complete bills list so that the list includes Unassigned bills.
 left join bills
     on complete_bills_list.bill_id = bills.bill_id
     and complete_bills_list.leg_id = bills.leg_id
+
 left join links
     on bills.bill_id = links.bill_id
     and bills.leg_id = links.leg_id
+
 left join authors_agg
     on bills.bill_id = authors_agg.bill_id
     and bills.leg_id = authors_agg.leg_id
+
 left join introduced_versions
     on bills.bill_id = introduced_versions.bill_id
     and bills.leg_id = introduced_versions.leg_id
@@ -247,5 +307,17 @@ left join bill_status
 left join most_recent_bill_stage
     on bills.bill_id = most_recent_bill_stage.bill_id
     and bills.leg_id = most_recent_bill_stage.leg_id
+
+left join committees_agg
+    on bills.bill_id = committees_agg.bill_id
+    and bills.leg_id = committees_agg.leg_id
+
+left join upcoming_house_committee_meetings
+    on bills.bill_id = upcoming_house_committee_meetings.bill_id
+    and bills.leg_id = upcoming_house_committee_meetings.leg_id
+
+left join upcoming_senate_committee_meetings
+    on bills.bill_id = upcoming_senate_committee_meetings.bill_id
+    and bills.leg_id = upcoming_senate_committee_meetings.leg_id
 
 order by cast(SUBSTRING(complete_bills_list.bill_id, 3) as INTEGER)

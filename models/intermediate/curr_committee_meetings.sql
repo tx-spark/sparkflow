@@ -5,7 +5,7 @@ with committee_meetings as (
 ranked_committee_meetings AS (
     SELECT
         *,
-        ROW_NUMBER() OVER (PARTITION BY leg_id, name ORDER BY last_seen_at DESC) AS rn
+        ROW_NUMBER() OVER (PARTITION BY leg_id, chamber, name ORDER BY last_seen_at DESC) AS rn
     FROM committee_meetings
 )
 

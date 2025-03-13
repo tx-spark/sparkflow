@@ -1,6 +1,6 @@
 SELECT
     leg_id,
-    name,
+    REPLACE(name, '&', 'and') as name,
     case chamber
         when 'H' then 'House' 
         when 'S' then 'Senate' 
