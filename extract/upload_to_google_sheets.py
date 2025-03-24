@@ -17,6 +17,12 @@ def get_current_table_data(duckdb_conn, table_name, dataset_name, leg_id=None):
             FROM {dataset_name}.{table_name}
             {f"WHERE leg_id = '{leg_id}'" if leg_id else ""}
         """).df()
+
+    if curr_df is not None:
+        # Convert Int32 columns to strings for ease of pasting into google sheets 
+        for col in curr_df.select_dtypes(include=['Int32']).columns:
+            curr_df[col] = curr_df[col].astype('str')
+    
     return curr_df
 
 
@@ -50,6 +56,9 @@ def main():
     # Scrape house bills
     upload_table_to_gsheets(duckdb_conn, 'bills', 'house_tracker', google_sheets_id, 'All House Bills', leg_id=scraper_config['info']['LegSess'], replace_headers=False)
     upload_table_to_gsheets(duckdb_conn, 'bills', 'senate_tracker', google_sheets_id, 'All Senate Bills', leg_id=scraper_config['info']['LegSess'], replace_headers=False)
+    upload_table_to_gsheets(duckdb_conn, 'bills', 'blue_action_data', google_sheets_id, 'Blue Action Data', leg_id=scraper_config['info']['LegSess'], replace_headers=False)
+    upload_table_to_gsheets(duckdb_conn, 'bills', 'house_bills_by_hearing_date', google_sheets_id, 'H Bills By H Hearing Date', leg_id=scraper_config['info']['LegSess'], replace_headers=False)
+    upload_table_to_gsheets(duckdb_conn, 'bills', 'senate_bills_by_hearing_date', google_sheets_id, 'S Bills By S Hearing Date', leg_id=scraper_config['info']['LegSess'], replace_headers=False)
 
 if __name__ == "__main__":
     main()

@@ -192,7 +192,7 @@ if __name__ == "__main__":
 
     base_path = config['sources']['ftp']['base_path']
     leg_session = config['info']['LegSess']
-    #raw_bills_df = get_raw_bills_data(base_path, leg_session, conn)
+    raw_bills_df = get_raw_bills_data(base_path, leg_session, conn)
     
     duckdb_conn = duckdb.connect(f"texas_bills.duckdb")
 
