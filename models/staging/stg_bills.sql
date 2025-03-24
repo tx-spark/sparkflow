@@ -8,7 +8,7 @@ SELECT
         when 'S' then 'Senate'
         when 'J' then 'Joint'
         else 'Unknown' end as last_action_chamber,
-    last_action,
+    replace(last_action, '. . .', last_action_date) as last_action,
     caption_version,
     first_seen_at,
     last_seen_at

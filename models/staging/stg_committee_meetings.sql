@@ -7,6 +7,7 @@ SELECT
     chair,
     meeting_url,
     committee_meetings_link,
+    right(committee_meetings_link,4) as committee_code,
     meeting_url,
     hearing_notice_html,
     hearing_notice_pdf,

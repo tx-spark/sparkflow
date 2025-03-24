@@ -237,6 +237,10 @@ models:
         description: "URL to committee meetings page"
         tests:
           - not_null
+      - name: committee_code
+        description: "Code of the committee"
+        tests:
+          - not_null
       - name: hearing_notice_html
         description: "URL to HTML version of hearing notice"
       - name: hearing_notice_pdf
@@ -256,41 +260,6 @@ models:
       - name: last_seen_at
         description: "Timestamp of when the record was last seen"
       
-  - name: curr_committee_meeting_bills
-    schema: bills
-    description: "Staging table for bills scheduled for committee meetings"
-    columns:
-      - name: bill_id
-        description: "Unique identifier for the bill"
-        tests:
-          - not_null
-      - name: leg_id
-        description: "Unique identifier for the legislative session"
-        tests:
-          - not_null
-      - name: chamber
-        description: "Chamber where the committee meeting is held"
-        tests:
-          - not_null
-          - accepted_values:
-              values: ['House', 'Senate', 'Joint']
-      - name: committee_name
-        description: "Name of the committee"
-        tests:
-          - not_null
-      - name: meeting_datetime
-        description: "Date and time of the meeting"
-        tests:
-          - not_null
-      - name: meeting_url
-        description: "URL to the HTML meeting notice"
-        tests:
-          - not_null
-      - name: first_seen_at
-        description: "Timestamp of when the record was first seen"
-      - name: last_seen_at
-        description: "Timestamp of when the record was last seen"
-
   - name: curr_committee_meeting_bills
     schema: bills
     description: "Staging table for bills scheduled for committee meetings"

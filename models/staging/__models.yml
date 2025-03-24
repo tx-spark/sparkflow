@@ -237,6 +237,10 @@ models:
         description: "URL to committee meetings page"
         tests:
           - not_null
+      - name: committee_code
+        description: "Code of the committee"
+        tests:
+          - not_null
       - name: hearing_notice_html
         description: "URL to HTML version of hearing notice"
       - name: hearing_notice_pdf

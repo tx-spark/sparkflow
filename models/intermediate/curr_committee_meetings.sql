@@ -18,6 +18,7 @@ SELECT
     chair,
     meeting_url,
     committee_meetings_link,
+    committee_code,
     meeting_url,
     hearing_notice_html,
     hearing_notice_pdf,

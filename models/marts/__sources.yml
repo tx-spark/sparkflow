@@ -5,3 +5,5 @@ sources:
       - name: tracker
       - name: house_tracker
       - name: senate_tracker
+      - name: blue_action_data
+      - name: bills_by_hearing_date
