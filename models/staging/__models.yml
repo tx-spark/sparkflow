@@ -217,12 +217,8 @@ models:
         description: "Name of the committee"
         tests:
           - not_null
-      - name: date
-        description: "Date of the committee meeting"
-        tests:
-          - not_null
-      - name: time
-        description: "Time of the committee meeting"
+      - name: meeting_datetime 
+        description: "Date and time of the meeting"
         tests:
           - not_null
       - name: location

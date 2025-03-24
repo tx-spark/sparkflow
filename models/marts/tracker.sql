@@ -150,10 +150,26 @@ committee_links as (
         leg_id,
         chamber,
         committee_name,
-        committee_meetings_link
+        committee_meetings_link,
+        hearing_notice_pdf,
+        minutes_pdf,
+        witness_list_pdf
     from committee_meetings
     QUALIFY
-        row_number() OVER (PARTITION BY leg_id, chamber, committee_name ORDER BY last_seen_at DESC) = 1
+        row_number() OVER (PARTITION BY leg_id, chamber, committee_name ORDER BY meeting_datetime DESC) = 1
+),
+
+committee_meeting_links as (
+    select
+        leg_id,
+        meeting_datetime,
+        chamber,
+        committee_name,
+        committee_meetings_link,
+        hearing_notice_pdf,
+        minutes_pdf,
+        witness_list_pdf
+    from committee_meetings
 ),
 
 committees_agg as (
@@ -180,26 +196,36 @@ committees_agg as (
         committees.leg_id
 ),
 
-committee_meeing_bills_with_videos as (
+committee_meeing_bills_with_links as (
     select
     committee_meeting_bills.*,
+    committee_meeting_links.hearing_notice_pdf,
+    committee_meeting_links.minutes_pdf,
+    committee_meeting_links.witness_list_pdf,
     committee_hearing_videos.video_link
     from
         committee_meeting_bills
     left join 
         committee_hearing_videos
-    on 
-        array_to_string(regexp_extract_all(lower(committee_meeting_bills.committee_name), '[a-z0-9]+'),'') = array_to_string(regexp_extract_all(lower(committee_hearing_videos.program), '[a-z0-9]+'),'')
-        and committee_meeting_bills.leg_id = committee_hearing_videos.leg_id
-        and if(left(committee_meeting_bills.bill_id,1) = 'H', 'House', 'Senate') = committee_hearing_videos.chamber
-        and (
-            strftime(committee_meeting_bills.meeting_datetime, '%-m/%d/%y') = committee_hearing_videos.date
-            or strftime(committee_meeting_bills.meeting_datetime, '%m/%d/%Y') = committee_hearing_videos.date
-        )
-        and (committee_hearing_videos.part = 'I' or committee_hearing_videos.part is null)
+        on 
+            array_to_string(regexp_extract_all(lower(committee_meeting_bills.committee_name), '[a-z0-9]+'),'') = array_to_string(regexp_extract_all(lower(committee_hearing_videos.program), '[a-z0-9]+'),'')
+            and committee_meeting_bills.leg_id = committee_hearing_videos.leg_id
+            and if(left(committee_meeting_bills.bill_id,1) = 'H', 'House', 'Senate') = committee_hearing_videos.chamber
+            and (
+                strftime(committee_meeting_bills.meeting_datetime, '%-m/%d/%y') = committee_hearing_videos.date
+                or strftime(committee_meeting_bills.meeting_datetime, '%m/%d/%Y') = committee_hearing_videos.date
+            )
+            and (committee_hearing_videos.part = 'I' or committee_hearing_videos.part is null)
+    left join 
+        committee_meeting_links
+        on 
+            committee_meeting_bills.leg_id = committee_meeting_links.leg_id
+            and committee_meeting_bills.chamber = committee_meeting_links.chamber
+            and committee_meeting_bills.committee_name = committee_meeting_links.committee_name
+            and committee_meeting_bills.meeting_datetime = committee_meeting_links.meeting_datetime
 ),
 
-first_house_committee_meetings as (
+first_house_committee_meeting_bills as (
     select 
         bill_id, 
         leg_id, 
@@ -210,15 +236,18 @@ first_house_committee_meetings as (
             strftime(meeting_datetime, '%m/%d/%Y %I:%M %p'),
             '")'
         ) as meeting_datetime,
-        video_link
-    from committee_meeing_bills_with_videos
+        video_link,
+        hearing_notice_pdf,
+        minutes_pdf,
+        witness_list_pdf
+    from committee_meeing_bills_with_links
     where chamber = 'House'
     and status != 'deleted'
     -- and meeting_datetime > CURRENT_DATE()
     qualify row_number() over (PARTITION BY bill_id, leg_id ORDER BY meeting_datetime) = 1
 ),
 
-first_senate_committee_meetings as (
+first_senate_committee_meeting_bills as (
     select 
         bill_id, 
         leg_id, 
@@ -229,8 +258,11 @@ first_senate_committee_meetings as (
             strftime(meeting_datetime, '%m/%d/%Y %I:%M %p'),
             '")'
         ) as meeting_datetime,
-        video_link
-    from committee_meeing_bills_with_videos
+        video_link,
+        hearing_notice_pdf,
+        minutes_pdf,
+        witness_list_pdf
+    from committee_meeing_bills_with_links
     where chamber = 'Senate' 
     and status != 'deleted'
     -- and meeting_datetime > CURRENT_DATE()
@@ -298,10 +330,17 @@ select
         '")'
     ), Null) as stages,
     committees_agg.committees_link as committees,
-    first_house_committee_meetings.meeting_datetime as first_house_committee_meeting_datetime,
-    first_senate_committee_meetings.meeting_datetime as first_senate_committee_meeting_datetime,
-    first_house_committee_meetings.video_link as first_house_committee_video_link,
-    first_senate_committee_meetings.video_link as first_senate_committee_video_link
+    first_house_committee_meeting_bills.meeting_datetime as first_house_committee_meeting_datetime,
+    first_senate_committee_meeting_bills.meeting_datetime as first_senate_committee_meeting_datetime,
+    first_house_committee_meeting_bills.video_link as first_house_committee_video_link,
+    first_senate_committee_meeting_bills.video_link as first_senate_committee_video_link,
+    -- first_house_committee_meeting_bills.hearing_notice_pdf as first_house_committee_hearing_notice_pdf,
+    -- first_senate_committee_meeting_bills.hearing_notice_pdf as first_senate_committee_hearing_notice_pdf,
+    -- first_house_committee_meeting_bills.minutes_pdf as first_house_committee_minutes_pdf,
+    -- first_senate_committee_meeting_bills.minutes_pdf as first_senate_committee_minutes_pdf,
+    first_house_committee_meeting_bills.witness_list_pdf as first_house_committee_witness_list_pdf,
+    first_senate_committee_meeting_bills.witness_list_pdf as first_senate_committee_witness_list_pdf,
+
 from complete_bills_list -- join on complete bills list so that the list includes Unassigned bills.
 
 left join bills
@@ -352,12 +391,12 @@ left join committees_agg
     on bills.bill_id = committees_agg.bill_id
     and bills.leg_id = committees_agg.leg_id
 
-left join first_house_committee_meetings
-    on bills.bill_id = first_house_committee_meetings.bill_id
-    and bills.leg_id = first_house_committee_meetings.leg_id
+left join first_house_committee_meeting_bills
+    on bills.bill_id = first_house_committee_meeting_bills.bill_id
+    and bills.leg_id = first_house_committee_meeting_bills.leg_id
 
-left join first_senate_committee_meetings
-    on bills.bill_id = first_senate_committee_meetings.bill_id
-    and bills.leg_id = first_senate_committee_meetings.leg_id
+left join first_senate_committee_meeting_bills
+    on bills.bill_id = first_senate_committee_meeting_bills.bill_id
+    and bills.leg_id = first_senate_committee_meeting_bills.leg_id
 
 order by cast(SUBSTRING(complete_bills_list.bill_id, 3) as INTEGER)
