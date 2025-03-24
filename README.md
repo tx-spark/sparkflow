@@ -1,6 +1,6 @@
 # Texas Legislature Bill Tracker
 
-### [***[Check out the documentation](https://docs.google.com/presentation/d/1P1tJvcrEoZuVvVKXzcQySzcrrrUZRuFbUHUSqihVSms/edit?usp=sharing)]
+### [***[Check out the documentation!]***(https://docs.google.com/presentation/d/1P1tJvcrEoZuVvVKXzcQySzcrrrUZRuFbUHUSqihVSms/edit?usp=sharing)]
 
 This is a scraper for the Texas Legislature website. See the tracker [here!](https://docs.google.com/spreadsheets/d/1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM/edit?usp=sharing). Tracker created and advertised by Ben Weiner, data pipelines created by me. 
 
