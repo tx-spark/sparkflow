@@ -6,7 +6,9 @@ sources:
       - name: curr_authors
       - name: curr_bill_stages
       - name: curr_bills
+      - name: curr_committee_hearing_videos
       - name: curr_committee_meetings
+      - name: curr_committee_meeting_bills
       - name: curr_committees
       - name: curr_companions
       - name: curr_complete_bills_list

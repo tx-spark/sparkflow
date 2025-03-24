@@ -161,6 +161,43 @@ models:
         description: "Timestamp of when the record was first seen"
       - name: last_seen_at
         description: "Timestamp of when the record was last seen"
+
+  - name: stg_committee_hearing_videos
+    schema: bills
+    description: "Staging table for committee hearing video recordings"
+    columns:
+      - name: date
+        description: "Date of the committee hearing"
+        tests:
+          - not_null
+      - name: time
+        description: "Time of the committee hearing"
+        tests:
+          - not_null
+      - name: program
+        description: "Name or title of the hearing program"
+        tests:
+          - not_null
+      - name: part
+        description: "Part of the committee hearing (I, II ...)"
+      - name: video_link
+        description: "URL to access the hearing video recording"
+        tests:
+          - not_null
+      - name: chamber
+        description: "Chamber where the hearing took place"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['House', 'Senate', 'Joint', 'Unknown']
+      - name: leg_id
+        description: "Unique identifier for the legislative session"
+        tests:
+          - not_null
+      - name: first_seen_at
+        description: "Timestamp of when the record was first seen"
+      - name: last_seen_at
+        description: "Timestamp of when the record was last seen"
  
   - name: stg_committee_meetings
     schema: bills
@@ -170,8 +207,69 @@ models:
         description: "Unique identifier for the legislative session"
         tests:
           - not_null
-      - name: name 
-        description: "Name of the committee meeting"
+      - name: chamber
+        description: "Chamber where the committee meeting is held"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['House', 'Senate', 'Joint']
+      - name: committee_name
+        description: "Name of the committee"
+        tests:
+          - not_null
+      - name: date
+        description: "Date of the committee meeting"
+        tests:
+          - not_null
+      - name: time
+        description: "Time of the committee meeting"
+        tests:
+          - not_null
+      - name: location
+        description: "Location where the meeting is held"
+        tests:
+          - not_null
+      - name: chair
+        description: "Name of the committee chair"
+        tests:
+          - not_null
+      - name: meeting_url
+        description: "URL to access the meeting details"
+        tests:
+          - not_null
+      - name: committee_meetings_link
+        description: "URL to committee meetings page"
+        tests:
+          - not_null
+      - name: hearing_notice_html
+        description: "URL to HTML version of hearing notice"
+      - name: hearing_notice_pdf
+        description: "URL to PDF version of hearing notice"
+      - name: minutes_list_html
+        description: "URL to HTML version of minutes list"
+      - name: minutes_list_pdf
+        description: "URL to PDF version of minutes list"
+      - name: witness_list_html
+        description: "URL to HTML version of witness list"
+      - name: witness_list_pdf
+        description: "URL to PDF version of witness list"
+      - name: comments
+        description: "Additional comments about the meeting"
+      - name: first_seen_at
+        description: "Timestamp of when the record was first seen"
+      - name: last_seen_at
+        description: "Timestamp of when the record was last seen"
+      
+  - name: stg_committee_meeting_bills
+    schema: bills
+    description: "Staging table for bills scheduled for committee meetings"
+    columns:
+      - name: bill_id
+        description: "Unique identifier for the bill"
+        tests:
+          - not_null
+      - name: leg_id
+        description: "Unique identifier for the legislative session"
         tests:
           - not_null
       - name: chamber
@@ -180,8 +278,16 @@ models:
           - not_null
           - accepted_values:
               values: ['House', 'Senate', 'Joint']
-      - name: link
-        description: "URL to access committee meeting details"
+      - name: committee_name
+        description: "Name of the committee"
+        tests:
+          - not_null
+      - name: meeting_datetime
+        description: "Date and time of the meeting"
+        tests:
+          - not_null
+      - name: meeting_url
+        description: "URL to the HTML meeting notice"
         tests:
           - not_null
       - name: first_seen_at
@@ -339,8 +445,6 @@ models:
         description: "URL to access meeting details"
         tests:
           - not_null
-      - name: bills
-        description: "List of bills to be discussed in the meeting"
       - name: seen_at
         description: "Timestamp of when the record was last seen"
         tests:

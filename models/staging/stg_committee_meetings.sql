@@ -1,12 +1,21 @@
 SELECT
     leg_id,
-    REPLACE(name, '&', 'and') as name,
-    case chamber
-        when 'H' then 'House' 
-        when 'S' then 'Senate' 
-        when 'J' then 'Joint'
-        else 'Unknown' end as chamber,
-    link,
+    chamber,
+    REPLACE(committee, '&', 'and') as committee_name,
+    date,
+    time,
+    location,
+    chair,
+    meeting_url,
+    committee_meetings_link,
+    meeting_url,
+    hearing_notice_html,
+    hearing_notice_pdf,
+    minutes_html,
+    minutes_pdf,
+    witness_list_html,
+    witness_list_pdf,
+    comments,
     first_seen_at,
     last_seen_at
 FROM {{ source('raw_bills', 'committee_meetings') }}

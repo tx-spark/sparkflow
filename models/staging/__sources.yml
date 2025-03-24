@@ -8,7 +8,9 @@ sources:
       - name: authors
       - name: bill_stages
       - name: bills
+      - name: committee_hearing_videos
       - name: committee_meetings
+      - name: committee_meeting_bills
       - name: committees
       - name: companions
       - name: complete_bills_list
@@ -25,7 +27,9 @@ sources:
       - name: stg_authors
       - name: stg_bill_stages
       - name: stg_bills
+      - name: stg_committee_hearing_videos
       - name: stg_committee_meetings
+      - name: stg_committee_meeting_bills
       - name: stg_committees
       - name: stg_companions
       - name: stg_complete_bills_list

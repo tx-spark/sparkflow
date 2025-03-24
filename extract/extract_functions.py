@@ -5,6 +5,7 @@ import datetime
 import feedparser
 import pandas as pd
 from bs4 import BeautifulSoup
+import json
 
 ################################################################################
 # HELPER FUNCTIONS
@@ -99,6 +100,10 @@ def merge_with_current_data(new_df, curr_df):
     merged = merged.drop(['first_seen_at_x', 'first_seen_at_y', 
                          'last_seen_at_x', 'last_seen_at_y', '_merge'], axis=1)
 
+    # Drop any remaining columns ending with _x or _y
+    x_y_cols = [col for col in merged.columns if col.endswith('_x') or col.endswith('_y')]
+    merged = merged.drop(columns=x_y_cols)
+
     # Replace the placeholder back with null values
     merged = merged.replace(placeholder, pd.NA)
     
@@ -155,7 +160,7 @@ def get_upcoming_from_rss(upcoming_rss_urls:dict):
             entry_dict = {
                 'rss_label': rss_label,
                 'date': current_date,
-                'description': entry.description,
+                'description': entry.get('description', None),
             }
             for key, value in entry.items():
                 if type(value) == feedparser.util.FeedParserDict:
@@ -167,7 +172,7 @@ def get_upcoming_from_rss(upcoming_rss_urls:dict):
             
     return pd.DataFrame(entries)
 
-def get_committee_meetings(rss_config):
+def get_rss_committee_meetings(rss_config):
     """
     Gets all committee meetings from RSS feed and returns a standardized DataFrame.
     
@@ -251,6 +256,143 @@ def get_committee_meetings(rss_config):
 ################################################################################
 # HTML SCRAPING FUNCTIONS
 ################################################################################
+def get_committee_meetings(committee_meetings_url):
+    """
+    Scrapes committee meeting details from a committee's meetings page
+    
+    Args:
+        committee_meetings_url (str): URL of the committee meetings page
+        
+    Returns:
+        dict: Dictionary containing meeting details 
+    """
+    response = requests.get(committee_meetings_url)
+    soup = BeautifulSoup(response.text, 'html.parser')
+
+    # Find the meetings table
+    meetings_table = soup.find('table', id='tblMeetings')
+    if not meetings_table:
+        return []
+    
+    # Extract meeting details
+    meeting_rows = meetings_table.find_all('tr')
+    meetings = []
+    
+    for row in meeting_rows:
+        cells = row.find_all('td')
+        if len(cells) >= 7 and type(cells[1].text) == str and cells[1].text.lower() != 'time':
+            meeting = {
+                'date': cells[0].get_text(strip=True),
+                'time': cells[1].get_text(strip=True), 
+                'subcommittee': cells[2].get_text(strip=True),
+                'hearing_notice_html': 'https://capitol.texas.gov/' + cells[3].find('a', href=lambda x: x and 'html' in x)['href'] if cells[3].find('a', href=lambda x: x and 'html' in x) else None,
+                'hearing_notice_pdf': 'https://capitol.texas.gov/' + cells[3].find('a', href=lambda x: x and 'pdf' in x.lower())['href'] if cells[3].find('a', href=lambda x: x and 'pdf' in x.lower()) else None,
+                'minutes_html': 'https://capitol.texas.gov/' + cells[4].find('a', href=lambda x: x and 'html' in x)['href'] if cells[4].find('a', href=lambda x: x and 'html' in x) else None,
+                'minutes_pdf': 'https://capitol.texas.gov/' + cells[4].find('a', href=lambda x: x and 'pdf' in x.lower())['href'] if cells[4].find('a', href=lambda x: x and 'pdf' in x.lower()) else None,
+                'witness_list_html': 'https://capitol.texas.gov/' + cells[5].find('a', href=lambda x: x and 'html' in x)['href'] if cells[5].find('a', href=lambda x: x and 'html' in x) else None,
+                'witness_list_pdf': 'https://capitol.texas.gov/' + cells[5].find('a', href=lambda x: x and 'pdf' in x.lower())['href'] if cells[5].find('a', href=lambda x: x and 'pdf' in x.lower()) else None,
+                'comments': cells[6].get_text(strip=True)
+            }
+
+            meetings.append(meeting)
+            
+    return meetings
+
+def get_html_committee_meetings(config):
+    """
+    Gets all committee meetings from committee pages and returns a standardized DataFrame.
+    
+    Args:
+        config (dict): Dictionary containing configuration including URLs and session info
+        
+    Returns:
+        DataFrame with standardized meeting details including bills
+    """
+    # Get committee links with chamber info
+    committee_links = get_committee_meetings_links(config)
+    
+    # Get meetings for each committee
+    meetings = []
+    for _, committee in committee_links.iterrows():
+        committee_meetings = get_committee_meetings(committee['link'])
+        # Add chamber info to each meeting
+        for meeting in committee_meetings:
+            meeting['chamber'] = 'Joint' if committee['chamber'] == 'J' else (
+                'Senate' if committee['chamber'] == 'S' else 'House'
+            )
+            meeting['committee_link'] = committee['link']   
+            meeting['leg_id'] = committee['leg_id']
+        meetings.extend(committee_meetings)
+    committee_meetings_df = pd.DataFrame(meetings)
+    
+    # Get detailed bill info for each meeting
+    committee_bills = []
+    for committee in committee_meetings_df['hearing_notice_html']:
+        committee_bills.append(read_committee_meeting(committee))
+    committee_bills_df = pd.DataFrame(committee_bills)
+    
+    # Create standardized output
+    result = []
+    for i, meeting in committee_bills_df.iterrows():
+        # Extract time from original meetings dataframe
+        meeting_time = committee_meetings_df.iloc[i]['time'].split(' ')[0] + ' ' + committee_meetings_df.iloc[i]['time'].split(' ')[1]
+        
+        meeting_info = {
+            'committee': meeting['committee'],
+            'chamber': committee_meetings_df.iloc[i]['chamber'],
+            'committee_meetings_link': committee_meetings_df.iloc[i]['committee_link'],
+            'leg_id': committee_meetings_df.iloc[i]['leg_id'],
+            'date': committee_meetings_df.iloc[i]['date'],
+            'time': meeting_time,
+            'location': meeting['place'],
+            'chair': meeting['chair'],
+            'meeting_url': meeting['meeting_url'],
+            'bills': [],
+            'subcommittee': committee_meetings_df.iloc[i]['subcommittee'],
+            'hearing_notice_html': committee_meetings_df.iloc[i]['hearing_notice_html'],
+            'hearing_notice_pdf': committee_meetings_df.iloc[i]['hearing_notice_pdf'],
+            'minutes_html': committee_meetings_df.iloc[i]['minutes_html'],
+            'minutes_pdf' : committee_meetings_df.iloc[i]['minutes_pdf'],
+            'witness_list_html': committee_meetings_df.iloc[i]['witness_list_html'],
+            'witness_list_pdf': committee_meetings_df.iloc[i]['witness_list_pdf'],
+            'comments' : committee_meetings_df.iloc[i]['comments']
+        }
+        
+        if type(meeting['bills']) != list or len(meeting['bills']) < 1:
+            continue
+
+        # Add regular bills
+        for bill in meeting['bills']:
+            bill_info = {
+                'bill_id': bill['bill_id'],
+                'link': bill['bill_link'],
+                'author': bill.get('author', ''),
+                'description': bill.get('description', ''),
+                'status': 'scheduled'
+            }
+            meeting_info['bills'].append(bill_info)
+
+        # Add deleted bills
+        for bill in meeting['deleted_bills']:
+            bill_info = {
+                'bill_id': bill['bill_id'],
+                'link': bill['bill_link'],
+                'status': 'deleted'
+            }
+            meeting_info['bills'].append(bill_info)
+
+        # Add added bills  
+        for bill in meeting['added_bills']:
+            bill_info = {
+                'bill_id': bill['bill_id'],
+                'link': bill['bill_link'],
+                'status': 'added'
+            }
+            meeting_info['bills'].append(bill_info)
+
+        result.append(meeting_info)
+
+    return pd.DataFrame(result)
 
 
 def extract_committee_meetings_links(committees_page_url, leg_id):
@@ -291,7 +433,8 @@ def extract_committee_meetings_links(committees_page_url, leg_id):
 
     return committees
 
-def get_committee_meetings_data(config):
+
+def get_committee_meetings_links(config):
 
     committees_list_url = config['sources']['static_html']['committees_list']
     committees_url = config['sources']['static_html']['committees']
@@ -310,6 +453,73 @@ def get_committee_meetings_data(config):
                 'leg_id': config['info']['LegSess']
             })
     return pd.DataFrame(committee_meetings)
+
+def get_house_hearing_videos_data(house_videos_url, leg_id):
+    leg_num = leg_id[:-1]  # Get all but last character
+    leg_letter = leg_id[-1]
+    house_videos_url = house_videos_url.replace("{leg_id}", f"{leg_num}/{leg_letter}") 
+    headers = {}#'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0'}
+    response = requests.get(house_videos_url, headers=headers)
+
+    videos_list = json.loads(response.text)
+    videos_df = pd.DataFrame(videos_list)
+    return videos_df
+
+def get_senate_hearing_videos_data(senate_videos_url, leg_id):
+    leg_num = leg_id[:-1]  # Get all but last character
+    senate_videos_url = senate_videos_url.replace("{leg_id}", f"{leg_num}") 
+    response = requests.get(senate_videos_url)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    videos_table = soup.find('table')
+    videos_rows = videos_table.find_all('tr')
+    videos_list = []
+    for row in videos_rows:
+        # Skip header row
+        if row.find('th'):
+            continue
+            
+        cells = row.find_all('td')
+        if cells:
+            date = cells[0].text
+            program = cells[1].text
+            
+            # Get video link if it exists
+            video_link = None
+            play_cell = cells[2].find('a')
+            if play_cell:
+                video_link = play_cell['href']
+                
+            video_data = {
+                'date': date,
+                'program': program,
+                'video_link': 'https://senate.texas.gov/' + video_link
+            }
+            
+            # Add to list
+            videos_list.append(video_data)
+    return pd.DataFrame(videos_list)
+
+
+def get_committee_hearing_videos_data(config):
+    house_videos = config['sources']['videos']['house']
+    senate_videos = config['sources']['videos']['senate']
+
+    house_videos_df = get_house_hearing_videos_data(house_videos, config['info']['LegSess']) ## has lots of columns: id	date	time	name	type	status_id	status	liveUrl	channel	noTime	textTime	room	notes	sponsors	publicNote	url	EventUrl
+    senate_videos_df = get_senate_hearing_videos_data(senate_videos, config['info']['LegSess'])
+
+    house_videos_df = house_videos_df[['date', 'time', 'name', 'EventUrl']]
+
+    house_videos_df.rename(columns={'EventUrl': 'video_link', 'name': 'program'}, inplace=True)
+
+    house_videos_df['chamber'] = 'House'
+    senate_videos_df['chamber'] = 'Senate'
+    house_videos_df['leg_id'] = config['info']['LegSess']
+    senate_videos_df['leg_id'] = config['info']['LegSess']
+
+    # date, program, video_link
+
+    return pd.concat([house_videos_df, senate_videos_df])
+
     
 def get_indv_bill_stages(bill_stages_url, bill_id, leg_id):
     """
@@ -517,6 +727,7 @@ def parse_bill_xml(ftp_connection, url):
                 }
             }
             bill_data['committees'].append(committee_data)
+    
     # Actions
     bill_data['actions'] = []
     for action in soup.find_all('action'):
@@ -992,11 +1203,11 @@ def get_complete_bills_list(raw_bills_df):
     return pd.concat(new_rows, ignore_index=True)
 
 def get_upcoming_committee_meetings(config):
-    upcoming_meetings_df = get_committee_meetings(config['sources']['rss']['upcoming'])
+    upcoming_meetings_df = get_rss_committee_meetings(config['sources']['rss']['upcoming'])
     return upcoming_meetings_df[['committee', 'chamber', 'date', 'time', 'location', 'chair', 'meeting_url']]
 
 def get_upcoming_committee_meeting_bills(config):
-    upcoming_meetings_df = get_committee_meetings(config['sources']['rss']['upcoming'])
+    upcoming_meetings_df = get_rss_committee_meetings(config['sources']['rss']['upcoming'])
 
     # Create list to store flattened bill records
     bills_list = []
@@ -1014,18 +1225,68 @@ def get_upcoming_committee_meeting_bills(config):
         
         # Add each bill with meeting details
         for bill in meeting['bills']:
-            bill_record = meeting_details.copy()
-            # Extract leg_id from link using regex
-            leg_id = re.search(r'/tlodocs/(\w+)/', meeting['meeting_url']).group(1)
-            bill_record.update({
-                'bill_id': bill['bill_id'],
-                'leg_id': leg_id,
-                'link': bill['link'], 
-                'author': bill.get('author', None),
-                'description': bill.get('description', None),
-                'status': bill.get('status', None)
-            })
-            bills_list.append(bill_record)
+            try:
+                bill_record = meeting_details.copy()
+                # Extract leg_id from link using regex
+                leg_id = re.search(r'/tlodocs/(\w+)/', meeting['meeting_url']).group(1)
+                bill_record.update({
+                    'bill_id': bill['bill_id'],
+                    'leg_id': leg_id,
+                    'link': bill['link'], 
+                    'author': bill.get('author', None),
+                    'description': bill.get('description', None),
+                    'status': bill.get('status', None)
+                })
+                bills_list.append(bill_record)
+            except Exception as e:
+                print(f"Error processing upcoming meeting bill {bill['bill_id']}: {e}")
+            
+    # Convert to DataFrame
+    bills_df = pd.DataFrame(bills_list)
+    return bills_df
+
+
+def get_committee_meetings_data(config):
+    upcoming_meetings_df = get_html_committee_meetings(config)
+    return upcoming_meetings_df[['committee', 'chamber', 'committee_meetings_link', 'leg_id', 'date',
+       'time', 'location', 'chair', 'meeting_url', 'subcommittee',
+       'hearing_notice_html', 'hearing_notice_pdf', 'minutes_html',
+       'minutes_pdf', 'witness_list_html', 'witness_list_pdf', 'comments']]
+
+def get_committee_meeting_bills_data(config):
+    upcoming_meetings_df = get_html_committee_meetings(config)
+
+    # Create list to store flattened bill records 
+    bills_list = []
+    
+    # Iterate through meetings and their bills
+    for _, meeting in upcoming_meetings_df.iterrows():
+        # Get meeting details
+        meeting_details = {
+            'committee': meeting['committee'],
+            'chamber': meeting['chamber'],
+            'date': meeting['date'], 
+            'time': meeting['time'],
+            'meeting_url': meeting['meeting_url']
+        }
+        
+        # Add each bill with meeting details
+        for bill in meeting['bills']:
+            try:
+                bill_record = meeting_details.copy()
+                # Extract leg_id from link using regex
+                leg_id = re.search(r'/tlodocs/(\w+)/', meeting['meeting_url']).group(1)
+                bill_record.update({
+                    'bill_id': bill['bill_id'],
+                    'leg_id': leg_id,
+                    'link': bill['link'],
+                    'author': bill.get('author', None), 
+                    'description': bill.get('description', None),
+                    'status': bill.get('status', None)
+                })
+                bills_list.append(bill_record)
+            except Exception as e:
+                print(f"Error processing upcoming meeting bill {bill['bill_id']}: {e}")
             
     # Convert to DataFrame
     bills_df = pd.DataFrame(bills_list)

@@ -24,7 +24,7 @@ def upload_table_to_gsheets(duckdb_conn,dataset_name, table_name, google_sheets_
     curr_df = get_current_table_data(duckdb_conn, table_name, dataset_name, leg_id)
 
     if curr_df is not None:
-        write_df_to_gsheets(curr_df, google_sheets_id, worksheet_name, minimize_to_rows=True, minimize_to_cols=True, replace_headers=replace_headers)
+        write_df_to_gsheets(curr_df, google_sheets_id, worksheet_name, minimize_to_rows=True, minimize_to_cols=False, replace_headers=replace_headers)
 
 
 ################################################################################

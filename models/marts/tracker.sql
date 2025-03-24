@@ -37,9 +37,14 @@ committees as (
     select * from {{ source('bills', 'curr_committees') }}
 ),
 
-upcoming_committee_meeting_bills as (
-    select * from {{ source('bills', 'curr_upcoming_committee_meeting_bills') }}
+committee_meeting_bills as (
+    select * from {{ source('bills', 'curr_committee_meeting_bills') }}
 ),
+
+committee_hearing_videos as (
+    select * from {{ source('bills', 'curr_committee_hearing_videos') }}
+),
+
 ----------------------------------------------------------
 
 authors_agg as (
@@ -125,13 +130,9 @@ bill_status as (
     SELECT 
         bill_id,
         leg_id,
-        IF(stage_num = 7 and status = 'Alive', 'Law', status) as status
-    FROM (
-        SELECT *,
-               ROW_NUMBER() OVER (PARTITION BY bill_id, leg_id ORDER BY stage_num DESC) as rn
-        FROM stages
-    ) 
-    WHERE rn = 1
+        IF(stage_num = 7 and stages.status = 'Alive', 'Law', stages.status) as bill_status
+    from stages
+    qualify ROW_NUMBER() OVER (PARTITION BY bill_id, leg_id ORDER BY stage_num DESC) = 1
 ),
 
 most_recent_bill_stage as (
@@ -144,23 +145,34 @@ most_recent_bill_stage as (
     WHERE rn = 1
 ),
 
+committee_links as (
+    select
+        leg_id,
+        chamber,
+        committee_name,
+        committee_meetings_link
+    from committee_meetings
+    QUALIFY
+        row_number() OVER (PARTITION BY leg_id, chamber, committee_name ORDER BY last_seen_at DESC) = 1
+),
+
 committees_agg as (
     SELECT
         bill_id,
         committees.leg_id,
         CONCAT(
             '=HYPERLINK("',
-            MAX(committee_meetings.link),
+            ANY_VALUE(committee_links.committee_meetings_link),
             '", "',
             STRING_AGG(committees.name, ' | '),
             '")'
         ) as committees_link
     FROM
         committees
-    left join committee_meetings
-        on lower(trim(committees.name)) = lower(trim(committee_meetings.name))
-        and committees.leg_id = committee_meetings.leg_id
-        and committees.chamber = committee_meetings.chamber
+    left join committee_links
+        on lower(trim(committees.name)) = lower(trim(committee_links.committee_name))
+        and committees.leg_id = committee_links.leg_id
+        and committees.chamber = committee_links.chamber
     where committees.name is not null
     and committees.name != ''
     GROUP BY
@@ -168,7 +180,26 @@ committees_agg as (
         committees.leg_id
 ),
 
-upcoming_house_committee_meetings as (
+committee_meeing_bills_with_videos as (
+    select
+    committee_meeting_bills.*,
+    committee_hearing_videos.video_link
+    from
+        committee_meeting_bills
+    left join 
+        committee_hearing_videos
+    on 
+        array_to_string(regexp_extract_all(lower(committee_meeting_bills.committee_name), '[a-z0-9]+'),'') = array_to_string(regexp_extract_all(lower(committee_hearing_videos.program), '[a-z0-9]+'),'')
+        and committee_meeting_bills.leg_id = committee_hearing_videos.leg_id
+        and if(left(committee_meeting_bills.bill_id,1) = 'H', 'House', 'Senate') = committee_hearing_videos.chamber
+        and (
+            strftime(committee_meeting_bills.meeting_datetime, '%-m/%d/%y') = committee_hearing_videos.date
+            or strftime(committee_meeting_bills.meeting_datetime, '%m/%d/%Y') = committee_hearing_videos.date
+        )
+        and (committee_hearing_videos.part = 'I' or committee_hearing_videos.part is null)
+),
+
+first_house_committee_meetings as (
     select 
         bill_id, 
         leg_id, 
@@ -178,13 +209,16 @@ upcoming_house_committee_meetings as (
             '", "',
             strftime(meeting_datetime, '%m/%d/%Y %I:%M %p'),
             '")'
-        ) as meeting_datetime
-    from upcoming_committee_meeting_bills
+        ) as meeting_datetime,
+        video_link
+    from committee_meeing_bills_with_videos
     where chamber = 'House'
+    and status != 'deleted'
+    -- and meeting_datetime > CURRENT_DATE()
     qualify row_number() over (PARTITION BY bill_id, leg_id ORDER BY meeting_datetime) = 1
 ),
 
-upcoming_senate_committee_meetings as (
+first_senate_committee_meetings as (
     select 
         bill_id, 
         leg_id, 
@@ -194,14 +228,16 @@ upcoming_senate_committee_meetings as (
             '", "',
             strftime(meeting_datetime, '%m/%d/%Y %I:%M %p'),
             '")'
-        ) as meeting_datetime
-    from upcoming_committee_meeting_bills
-    where chamber = 'Senate'
+        ) as meeting_datetime,
+        video_link
+    from committee_meeing_bills_with_videos
+    where chamber = 'Senate' 
+    and status != 'deleted'
+    -- and meeting_datetime > CURRENT_DATE()
     qualify row_number() over (PARTITION BY bill_id, leg_id ORDER BY meeting_datetime) = 1
 )
 
 ----------------------------------------------------------
-
 
 select
     complete_bills_list.bill_id,
@@ -211,7 +247,7 @@ select
         '=HYPERLINK("',
         links.history,
         '", "',
-        most_recent_bill_stage.stage_title,
+        bills.last_action,
         '")'
     ) as bill_history,  
     CONCAT(
@@ -222,7 +258,7 @@ select
         '")'
     ) as authors,   
     links.captions, -- caption link
-    IFNULL(bill_status.status, 'Unassigned') as status, --Bill History/Status
+    IFNULL(bill_status.bill_status, 'Unassigned') as status,
     bills.last_action_date, -- last action date
     bills.last_action_chamber, -- last action chamber
     CONCAT(
@@ -252,18 +288,22 @@ select
     ) as companions,
     links.amendments as amendments,
     links.sponsors as sponsors,
-    CONCAT(
+    if(most_recent_bill_stage.stage_title is not null, CONCAT(
         '=HYPERLINK("',
         links.bill_stages,
-        '", "',
+        '", "Stage ',
+        most_recent_bill_stage.stage_num,
+        ': ',
         most_recent_bill_stage.stage_title,
         '")'
-    ) as stages,
+    ), Null) as stages,
     committees_agg.committees_link as committees,
-    upcoming_house_committee_meetings.meeting_datetime as upcoming_house_committee_meeting_datetime,
-    upcoming_senate_committee_meetings.meeting_datetime as upcoming_senate_committee_meeting_datetime
-    
+    first_house_committee_meetings.meeting_datetime as first_house_committee_meeting_datetime,
+    first_senate_committee_meetings.meeting_datetime as first_senate_committee_meeting_datetime,
+    first_house_committee_meetings.video_link as first_house_committee_video_link,
+    first_senate_committee_meetings.video_link as first_senate_committee_video_link
 from complete_bills_list -- join on complete bills list so that the list includes Unassigned bills.
+
 left join bills
     on complete_bills_list.bill_id = bills.bill_id
     and complete_bills_list.leg_id = bills.leg_id
@@ -312,12 +352,12 @@ left join committees_agg
     on bills.bill_id = committees_agg.bill_id
     and bills.leg_id = committees_agg.leg_id
 
-left join upcoming_house_committee_meetings
-    on bills.bill_id = upcoming_house_committee_meetings.bill_id
-    and bills.leg_id = upcoming_house_committee_meetings.leg_id
+left join first_house_committee_meetings
+    on bills.bill_id = first_house_committee_meetings.bill_id
+    and bills.leg_id = first_house_committee_meetings.leg_id
 
-left join upcoming_senate_committee_meetings
-    on bills.bill_id = upcoming_senate_committee_meetings.bill_id
-    and bills.leg_id = upcoming_senate_committee_meetings.leg_id
+left join first_senate_committee_meetings
+    on bills.bill_id = first_senate_committee_meetings.bill_id
+    and bills.leg_id = first_senate_committee_meetings.leg_id
 
 order by cast(SUBSTRING(complete_bills_list.bill_id, 3) as INTEGER)
