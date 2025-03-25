@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 import io
 import atexit
 import gspread
+import pandas as pd
 
 
 ################################################################################
@@ -171,3 +172,43 @@ def write_df_to_gsheets(df, google_sheets_id, worksheet_name, minimize_to_rows=F
         worksheet.update('A1', data, value_input_option="USER_ENTERED")
     else:
         worksheet.update('A2', data, value_input_option="USER_ENTERED")
+
+def read_gsheets_to_df(google_sheets_id, worksheet_name, header=0):
+    """
+    Reads a Google Sheets worksheet into a pandas DataFrame.
+
+    Args:
+        google_sheets_id: ID of the Google Sheet.
+        worksheet_name: Name of the worksheet to read.
+        header: Row number(s) to use as the column names, and the start of the data. 
+                Defaults to 0 (first row).
+
+    Returns:
+        pandas DataFrame containing the data from the Google Sheet.
+        Returns None if an error occurs.
+    """
+    try:
+        gc = gspread.service_account()
+        sh = gc.open_by_key(google_sheets_id)
+        worksheet = sh.worksheet(worksheet_name)
+
+        # Get all values from the worksheet
+        data = worksheet.get_all_values()
+
+        if not data:
+            return pd.DataFrame()  # Return an empty DataFrame if the sheet is empty
+
+        if header is not None:
+            # Use the specified row(s) as headers
+            headers = data[header]
+            values = data[header + 1:]
+            df = pd.DataFrame(values, columns=headers)
+        else:
+            # No headers, use default integer index
+            df = pd.DataFrame(data)
+
+        return df
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
