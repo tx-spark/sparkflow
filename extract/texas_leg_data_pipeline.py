@@ -207,7 +207,7 @@ if __name__ == "__main__":
 
     base_path = config['sources']['ftp']['base_path']
     leg_session = config['info']['LegSess']
-    # raw_bills_df = get_raw_bills_data(base_path, leg_session, conn)
+    raw_bills_df = get_raw_bills_data(base_path, leg_session, conn)
     
     duckdb_conn = duckdb.connect(f"{PIPELINE_NAME}.duckdb")
 
@@ -227,21 +227,21 @@ if __name__ == "__main__":
     curr_committee_hearing_videos_df = get_current_table_data(duckdb_conn, 'committee_hearing_videos', OUT_DATASET_NAME)
 
     pipeline.run([
-        # bills(raw_bills_df, curr_bills_df),
-        # authors(raw_bills_df, curr_authors_df),
-        # subjects(raw_bills_df, curr_subjects_df),
-        # committees(raw_bills_df, curr_committees_df),
-        # versions(raw_bills_df, curr_versions_df),
-        # actions(raw_bills_df, curr_actions_df),
-        # companions(raw_bills_df, curr_companions_df),
-        # links(raw_bills_df, config, curr_links_df),
-        # committee_meetings(config, curr_committee_meetings_df),
-        # committee_meeting_bills(config, curr_committee_meeting_bills_df),
-        # bill_stages(raw_bills_df, config, curr_bill_stages_df),
-        # complete_bills_list(raw_bills_df, curr_complete_bills_list_df),
-        # upcoming_committee_meetings(config),
-        # upcoming_committee_meeting_bills(config),
-        # committee_hearing_videos(config, curr_committee_hearing_videos_df),
+        bills(raw_bills_df, curr_bills_df),
+        authors(raw_bills_df, curr_authors_df),
+        subjects(raw_bills_df, curr_subjects_df),
+        committees(raw_bills_df, curr_committees_df),
+        versions(raw_bills_df, curr_versions_df),
+        actions(raw_bills_df, curr_actions_df),
+        companions(raw_bills_df, curr_companions_df),
+        links(raw_bills_df, config, curr_links_df),
+        committee_meetings(config, curr_committee_meetings_df),
+        committee_meeting_bills(config, curr_committee_meeting_bills_df),
+        bill_stages(raw_bills_df, config, curr_bill_stages_df),
+        complete_bills_list(raw_bills_df, curr_complete_bills_list_df),
+        upcoming_committee_meetings(config),
+        upcoming_committee_meeting_bills(config),
+        committee_hearing_videos(config, curr_committee_hearing_videos_df),
         bill_texts(duckdb_conn, conn),
         # rss_feeds(config, curr_rss_df),
         run_logs(start_time, datetime.datetime.now(), "")
