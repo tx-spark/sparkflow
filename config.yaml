@@ -1,7 +1,17 @@
 info:
   LegSess: 89R
+  pipeline_name: 'texas_bills'
+
+uploads:
+  - name: "Ben's Tracker - All House Bills"
+    google_sheets_id: 1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM
+    worksheet_name: "All House Bills"
+    table_name: bills.house_tracker
+    filters: leg_id = {LegSess}
+
 config:
-  google_sheets_id: 1mB-wBoFKuu4kS482Yc2FQn6kByDJi6uIgm7l09V_8PQ
+  google_sheets_id: 1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM #1mB-wBoFKuu4kS482Yc2FQn6kByDJi6uIgm7l09V_8PQ
+
 sources:
   rss:
     daily:
@@ -29,6 +39,7 @@ sources:
   static_html:
     committees_list: https://capitol.texas.gov/Committees/Committees.aspx
     committees: https://capitol.texas.gov/Committees/
+    commitee_membership: https://capitol.texas.gov/Committees/MembershipCmteHist.aspx
   ftp:
     host: ftp.legis.state.tx.us
     base_path: ftp://ftp.legis.state.tx.us/bills/{LegSess}
@@ -39,7 +50,10 @@ sources:
       documents: documents
       fiscalnotes: fiscalnotes
       reports: reports
-      witlistbill: witlistbill
+      witlistbill: witlistbil
+  videos: 
+    house: https://house.texas.gov/api/GetVideoEvents/{leg_id}/published/committee
+    senate: https://senate.texas.gov/av-archive.php?sess={leg_id}
   election_results:
     districts: https://results.texas-election.com/static/data/election/49664/1012/Districted.json
     statewide: https://results.texas-election.com/static/data/election/49664/1012/StateWide.json

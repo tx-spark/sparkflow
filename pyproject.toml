@@ -20,6 +20,8 @@ dbt-duckdb = "^1.9.2"
 dlt = {extras = ["duckdb"], version = "^1.8.0"}
 streamlit = "^1.43.0"
 dotenv = "^0.9.9"
+pypdf2 = "^3.0.1"
+pdfplumber = "^0.11.6"
 
 
 [build-system]

@@ -346,5 +346,5 @@ left join next_committee_meeting_bills
     on bills.bill_id = next_committee_meeting_bills.bill_id
     and bills.leg_id = next_committee_meeting_bills.leg_id
 
-order by left(bills.bill_id,2), cast(SUBSTRING(bills.bill_id, 3) as INTEGER)
+order by regexp_replace(bills.bill_id, '[0-9]+', ''), cast(regexp_replace(bills.bill_id, '[^0-9]+', '') as INTEGER)
 

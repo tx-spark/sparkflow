@@ -7,6 +7,7 @@ sources:
       - name: actions
       - name: authors
       - name: bill_stages
+      - name: bill_texts
       - name: bills
       - name: committee_hearing_videos
       - name: committee_meetings

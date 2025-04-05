@@ -47,6 +47,9 @@ def merge_with_current_data(new_df, curr_df):
         DataFrame with first_seen_at and last_seen_at columns properly set
     """
 
+    if len(new_df) == 0:
+        return curr_df
+
     # Get current timestamp truncated to minute
     curr_time = pd.Timestamp.now().floor('min')
 
@@ -95,6 +98,8 @@ def merge_with_current_data(new_df, curr_df):
     curr_only_mask = merged['_merge'] == 'right_only'
     merged.loc[curr_only_mask, 'first_seen_at'] = merged.loc[curr_only_mask, 'first_seen_at_y']
     merged.loc[curr_only_mask, 'last_seen_at'] = merged.loc[curr_only_mask, 'last_seen_at_y']
+
+    print(merged)
 
     # Clean up merge artifacts
     merged = merged.drop(['first_seen_at_x', 'first_seen_at_y', 
@@ -193,6 +198,7 @@ def get_rss_committee_meetings(rss_config):
     
     # Get detailed meeting data
     meetings_df = pd.DataFrame(map(read_committee_meeting, meetings_links))
+    meetings_df = meetings_df[meetings_df['bills'].notna()]
     
     # Convert bills columns from string to list if needed
     if isinstance(meetings_df['bills'].iloc[0], str):
@@ -221,6 +227,7 @@ def get_rss_committee_meetings(rss_config):
         }
 
         # Add regular bills
+
         for bill in meeting['bills']:
             bill_info = {
                 'bill_id': bill['bill_id'],
@@ -329,7 +336,9 @@ def get_html_committee_meetings(config):
     committee_bills = []
     for committee in committee_meetings_df['hearing_notice_html']:
         committee_bills.append(read_committee_meeting(committee))
+
     committee_bills_df = pd.DataFrame(committee_bills)
+    committee_bills_df = committee_bills_df[committee_bills_df['bills'].notna()]
     
     # Create standardized output
     result = []
@@ -359,7 +368,7 @@ def get_html_committee_meetings(config):
         }
         
         if type(meeting['bills']) != list or len(meeting['bills']) < 1:
-            continue
+            result.append(meeting_info)
 
         # Add regular bills
         for bill in meeting['bills']:
@@ -527,6 +536,7 @@ def get_indv_bill_stages(bill_stages_url, bill_id, leg_id):
     """
     print(f'Getting bill stages for {bill_id} in {leg_id}')
     bill_text_url = f'{bill_stages_url}?LegSess={leg_id}&Bill={bill_id}'
+    print(bill_text_url)
 
     site_html = requests.get(bill_text_url,timeout=30).text
     soup = BeautifulSoup(site_html, 'html.parser')
@@ -539,7 +549,7 @@ def get_indv_bill_stages(bill_stages_url, bill_id, leg_id):
     stage = {'bill_id': bill_id, 'leg_id': leg_id}
     if stages_div:
         # Find all stage boxes and continuations
-        stage_boxes = stages_div.find_all('div')
+        stage_boxes = stages_div.find_all('div', recursive=False)
 
         # Process each stage
         for box in stage_boxes:
@@ -556,6 +566,13 @@ def get_indv_bill_stages(bill_stages_url, bill_id, leg_id):
                     'stage_title': text.split('\n')[1],
                     'stage_date': ''.join(text.split('\n')[2:]),
                     'div_class': div_class.split('-')[-1]
+                })
+            elif len(text.split('\n')) == 2:
+                stage.update({
+                    'stage': text.split('\n')[0],
+                    'stage_title': text.split('\n')[1],
+                    'div_class': div_class.split('-')[-1],
+                    'stage_date': None
                 })
             elif img_src is not None:
                 stage.update({
@@ -587,7 +604,7 @@ def get_indv_bill_stages(bill_stages_url, bill_id, leg_id):
         stage_details.append(stage_detail)
 
     for i in range(len(stages)):
-        stages[i].update(stage_details[i])
+        stages[i].update(stage_details[i]) 
 
     return stages
 
@@ -627,7 +644,10 @@ def get_bill_urls(base_path, leg_session, ftp_connection):
     bill_urls = []
     
     # Process both house and senate bills
-    for chamber in ['house_bills', 'senate_bills']:
+    for chamber in ['house_bills', 'senate_bills', 
+                    'house_joint_resolutions', 'senate_joint_resolutions', 
+                    'house_concurrent_resolutions', 'senate_concurrent_resolutions', 
+                    'house_resolutions', 'senate_resolutions']: 
         # Build URL for this chamber
         chamber_url = f"{base_url}/billhistory/{chamber}"
         
@@ -638,7 +658,7 @@ def get_bill_urls(base_path, leg_session, ftp_connection):
         for folder_url in range_folders:
             bill_xmls = ftp_connection.ls(folder_url)
             bill_urls.extend(bill_xmls)
-            
+
     return bill_urls
 
 def parse_bill_xml(ftp_connection, url):
@@ -1292,11 +1312,57 @@ def get_committee_meeting_bills_data(config):
     bills_df = pd.DataFrame(bills_list)
     return bills_df
 
+def get_bill_texts(duckdb_conn, ftp_conn):
+    # Check if curr_bill_texts table exists
+    meta_tables = duckdb_conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='bills'").fetchall()
+    raw_tables = duckdb_conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='raw_bills'").fetchall()
+    meta_table_names = [t[0] for t in meta_tables]
+    raw_table_names = [t[0] for t in raw_tables]
+
+    if 'bill_texts' in raw_table_names and 'curr_versions' in meta_table_names:
+        # Get PDF URLs that are in curr_bill_texts but not in curr_versions
+        query = """
+        SELECT DISTINCT versions.ftp_pdf_url 
+        FROM bills.curr_versions versions 
+        LEFT JOIN raw_bills.bill_texts bill_texts 
+            ON bill_texts.ftp_pdf_url = versions.ftp_pdf_url
+        WHERE bill_texts.ftp_pdf_url IS NULL
+        """
+        
+    elif 'curr_versions' in meta_table_names:
+        # Get all PDF URLs from curr_versions
+        query = """
+        SELECT DISTINCT ftp_pdf_url 
+        FROM bills.curr_versions
+        """
+    else:
+        raise ValueError("No table found in raw_bills.bill_texts or bills.curr_versions")
+
+    pdf_urls = duckdb_conn.execute(query).fetchall()
+    pdf_urls = [url[0] for url in pdf_urls]
+
+    print(f"Downloading  {len(pdf_urls)} PDF URLs")
+
+    pdf_texts = []
+    for url in pdf_urls:
+        print(url)
+        try:
+            pdf_text = ftp_conn.get_pdf_text(url)
+        except Exception as e:
+            print(f"Error getting PDF text for {url}: {e}")
+            continue
+
+        pdf_texts.append({
+            'ftp_pdf_url': url,
+            'text': pdf_text
+        })
+    return pd.DataFrame(pdf_texts)
+
 def get_raw_bills_data(base_path, leg_session, ftp_connection):
     print("Getting raw bills data")
     bill_urls = get_bill_urls(base_path, leg_session, ftp_connection)
     raw_bills = []
-    for url in bill_urls:
+    for url in bill_urls[:5]:
         print(url)
         try:
             bill_data = parse_bill_xml(ftp_connection, url)

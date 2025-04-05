@@ -1,8 +1,10 @@
 import yaml
 import os
+import duckdb
 import requests
 import pandas as pd
 from dotenv import load_dotenv
+from bs4 import BeautifulSoup
 
 ################################################################################
 # CONFIGURATION
@@ -107,6 +109,63 @@ def get_election_results(config):
             })
     return pd.DataFrame(election_results_list)
 
+def get_committee_membership(leg_id, committee_code):
+    committee_membership_data_url = f'https://capitol.texas.gov/Committees/MembershipCmteHist.aspx?LegSess={leg_id}&CmteCode={committee_code}'
+
+    # Get the committee membership page
+    response = requests.get(committee_membership_data_url)
+
+    # Parse with BeautifulSoup
+    soup = BeautifulSoup(response.text, 'html.parser')
+
+    if len(soup.find_all('table')) < 7:
+        return pd.DataFrame(columns=['leg_id', 'committee_code', 'position', 'member', 'start_date', 'end_date'])
+    # Print the parsed HTML
+    committee_table = soup.find_all('table')[6]
+
+    committee_membership_data = []
+    for row in committee_table.find_all('tr')[1:]:
+        cells = row.find_all('td')
+        if len(cells) <= 2:
+            continue
+        committee_membership_data.append({
+            'leg_id': leg_id,
+            'committee_code': committee_code,
+            'position': cells[0].text.strip().replace('Chair:', 'Chair').replace('Vice Chair:', 'Vice Chair') or 'Member',
+            'member': cells[1].text.strip(),
+            'start_date': cells[2].text.strip(),
+            'end_date': cells[3].text.strip()
+        })
+ 
+    return pd.DataFrame(committee_membership_data)
+
+def get_all_committee_memberships(db_path):
+    try:
+        conn = duckdb.connect(db_path)
+        try:
+            committee_codes = conn.sql('select committee_code from bills.curr_committee_meetings group by 1 order by 1').df()['committee_code'].tolist()
+            conn.close()
+        except Exception as e:
+            print(f"Error querying committee codes: {e}")
+            committee_codes = []
+    except Exception as e:
+        print(f"Error connecting to database: {e}")
+        committee_codes = []
+
+    committee_membership_df = pd.DataFrame(columns=['leg_id', 'committee_code', 'position', 'member', 'start_date', 'end_date'])    
+    for committee_code in committee_codes:
+        try:
+            membership_data = get_committee_membership('89R', committee_code)
+            if not membership_data.empty:
+                committee_membership_df = pd.concat([committee_membership_df, membership_data])
+            else:
+                print(f"No membership data found for committee {committee_code}")
+        except Exception as e:
+            print(f"Error processing committee {committee_code}: {e}")
+            continue
+            
+    return committee_membership_df
+
 ################################################################################
 # MAIN
 ################################################################################
@@ -122,7 +181,11 @@ if __name__ == "__main__":
     
     # Get election results
     election_results_df = get_election_results(config)
+
+    # Committees results
+    committee_membership_df = get_all_committee_memberships(f'{config['info']['pipeline_name']}.duckdb')
     
     # Save to seeds folder
     legislators_df.to_csv('seeds/legislators.csv', index=False)
     election_results_df.to_csv('seeds/election_results.csv', index=False)
+    committee_membership_df.to_csv('seeds/committee_membership.csv', index=False)

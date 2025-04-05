@@ -17,6 +17,8 @@ def get_current_table_data(duckdb_conn, table_name, dataset_name, leg_id=None):
             FROM {dataset_name}.{table_name}
             {f"WHERE leg_id = '{leg_id}'" if leg_id else ""}
         """).df()
+    else:
+        raise ValueError(f"Table `{table_name}` does not exist in dataset `{dataset_name}`")
 
     if curr_df is not None:
         # Convert Int32 columns to strings for ease of pasting into google sheets 
@@ -56,9 +58,17 @@ def main():
     # Scrape house bills
     upload_table_to_gsheets(duckdb_conn, 'bills', 'house_tracker', google_sheets_id, 'All House Bills', leg_id=scraper_config['info']['LegSess'], replace_headers=False)
     upload_table_to_gsheets(duckdb_conn, 'bills', 'senate_tracker', google_sheets_id, 'All Senate Bills', leg_id=scraper_config['info']['LegSess'], replace_headers=False)
-    upload_table_to_gsheets(duckdb_conn, 'bills', 'blue_action_data', google_sheets_id, 'Blue Action Data', leg_id=scraper_config['info']['LegSess'], replace_headers=False)
+    upload_table_to_gsheets(duckdb_conn, 'bills', 'house_joint_resolution_tracker', google_sheets_id, 'All HJRs', leg_id=scraper_config['info']['LegSess'], replace_headers=False)
+    upload_table_to_gsheets(duckdb_conn, 'bills', 'senate_joint_resolution_tracker', google_sheets_id, 'All SJRs', leg_id=scraper_config['info']['LegSess'], replace_headers=False)
+    upload_table_to_gsheets(duckdb_conn, 'bills', 'house_bills_past_committee', google_sheets_id, 'House Bills Past Committee', leg_id=scraper_config['info']['LegSess'], replace_headers=False)
     upload_table_to_gsheets(duckdb_conn, 'bills', 'house_bills_by_hearing_date', google_sheets_id, 'H Bills By H Hearing Date', leg_id=scraper_config['info']['LegSess'], replace_headers=False)
     upload_table_to_gsheets(duckdb_conn, 'bills', 'senate_bills_by_hearing_date', google_sheets_id, 'S Bills By S Hearing Date', leg_id=scraper_config['info']['LegSess'], replace_headers=False)
+    upload_table_to_gsheets(duckdb_conn, 'bills', 'house_bills_past_committee', google_sheets_id, 'House Bills Past Committee', leg_id=scraper_config['info']['LegSess'], replace_headers=False)
+
+    # Blue Action Data
+    blue_action_master_data_spreadsheet_id = '1Wr0OIVbsquKTxGlnluSteBb1164JEUa1rlC-9C760jQ'
+    upload_table_to_gsheets(duckdb_conn, 'bills', 'blue_action_data', blue_action_master_data_spreadsheet_id, 'Bills Data', leg_id=scraper_config['info']['LegSess'], replace_headers=False)
+    # upload_table_to_gsheets(duckdb_conn, 'bills', 'committee_membership', blue_action_master_data_spreadsheet_id, 'Committee Members', leg_id=scraper_config['info']['LegSess'], replace_headers=False)
 
 if __name__ == "__main__":
     main()

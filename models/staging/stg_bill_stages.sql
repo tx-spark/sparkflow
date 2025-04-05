@@ -12,3 +12,4 @@ SELECT
     first_seen_at,
     last_seen_at
 FROM {{ source('raw_bills', 'bill_stages') }}
+where stage_text not like '%Not reached%'

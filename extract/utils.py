@@ -4,14 +4,16 @@ import io
 import atexit
 import gspread
 import pandas as pd
-
+import pdfplumber
+import warnings
+import logging
 
 ################################################################################
 # UTILITY CLASSES
 ################################################################################
 
 class FtpConnection:
-    def __init__(self, host, username=None, password=None, timeout=30):
+    def __init__(self, host, username=None, password=None, timeout=120):
         """
         Initialize FTP connection to specified host.
         
@@ -116,6 +118,61 @@ class FtpConnection:
             
         result = self._retry_on_disconnect(list_dir)
         return result if result is not None else []
+
+    def get_pdf_text(self, pdf_url):
+        """
+        Download and extract text from a PDF on the FTP server.
+        
+        Args:
+            pdf_url: URL of the PDF on the FTP server
+            
+        Returns:
+            Extracted text from the PDF as a string, or None if extraction fails
+        """
+        
+        # Suppress all warnings and logging
+        warnings.filterwarnings('ignore')
+        logging.getLogger('pdfminer').setLevel(logging.ERROR)
+        
+        parsed = urlparse(pdf_url)
+        
+        def retrieve():
+            buffer = io.BytesIO()
+            try:
+                # Get raw bytes instead of trying to decode as text
+                self.ftp.retrbinary(f'RETR {parsed.path}', buffer.write, rest=0)
+                
+                # Check if we actually got any data
+                if buffer.getbuffer().nbytes == 0:
+                    print(f"Error: No data received from {pdf_url}")
+                    return None
+                
+                buffer.seek(0)
+                
+                # Read PDF with pdfplumber
+                with pdfplumber.open(buffer) as pdf:
+                    text = []
+                    for page in pdf.pages:
+                        try:
+                            page_text = page.extract_text()
+                            if page_text:
+                                text.append(page_text)
+                        except Exception as e:
+                            print(f"Warning: Could not extract text from page: {e}")
+                            continue
+                
+                return '\n'.join(text) if text else None
+                
+            except (TimeoutError, EOFError) as e:
+                print(f"Connection timeout while downloading PDF: {e}")
+                return None
+            except Exception as e:
+                print(f"Error extracting PDF text: {e}")
+                return None
+            finally:
+                buffer.close()
+                
+        return self._retry_on_disconnect(retrieve)
     
     def close(self):
         """Close the FTP connection"""

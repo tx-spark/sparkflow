@@ -7,6 +7,7 @@ SELECT
         when 'H' then 'House' 
         when 'S' then 'Senate'
         when 'J' then 'Joint'
+        when 'E' then 'Executive'
         else 'Unknown' end as last_action_chamber,
     replace(last_action, '. . .', last_action_date) as last_action,
     caption_version,

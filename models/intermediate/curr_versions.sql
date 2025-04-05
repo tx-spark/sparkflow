@@ -28,6 +28,7 @@ select
     pdf_url,
     ftp_html_url,
     ftp_pdf_url,
+    text,
     first_seen_at,
     last_seen_at
 from current_versions

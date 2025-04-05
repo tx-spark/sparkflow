@@ -221,6 +221,10 @@ models:
         description: "Date and time of the meeting"
         tests:
           - not_null
+      - name: meeting_datetime_text
+        description: "Date and time of the meeting in text format. May include extra information."
+        tests:
+          - not_null
       - name: location
         description: "Location where the meeting is held"
         tests:
@@ -284,6 +288,10 @@ models:
           - not_null
       - name: meeting_datetime
         description: "Date and time of the meeting"
+        tests:
+          - not_null
+      - name: meeting_datetime_text
+        description: "Date and time of the meeting in text format. May include extra information."
         tests:
           - not_null
       - name: meeting_url

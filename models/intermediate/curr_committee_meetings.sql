@@ -14,6 +14,7 @@ SELECT
     chamber,
     committee_name,
     meeting_datetime,
+    meeting_datetime_text,
     location,
     chair,
     meeting_url,
