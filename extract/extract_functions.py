@@ -1362,7 +1362,7 @@ def get_raw_bills_data(base_path, leg_session, ftp_connection):
     print("Getting raw bills data")
     bill_urls = get_bill_urls(base_path, leg_session, ftp_connection)
     raw_bills = []
-    for url in bill_urls[:5]:
+    for url in bill_urls:
         print(url)
         try:
             bill_data = parse_bill_xml(ftp_connection, url)
