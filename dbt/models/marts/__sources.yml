@@ -1,6 +1,6 @@
 sources:
   - name: bills
-    schema: bills
+    schema: dev_tx_leg_bills
     tables:
       - name: tracker
       - name: house_tracker

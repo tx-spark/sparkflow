@@ -1,48 +1,52 @@
 with complete_bills_list as (
-    select * from {{ source('bills', 'curr_complete_bills_list') }}
+    select * from {{ source('bills', 'complete_bills_list') }}
 ),
 bills as (
-    select * from {{ source('bills', 'curr_bills') }}
+    select * from {{ source('bills', 'bills') }}
 ),
 
 links as (
-    select * from {{ source('bills', 'curr_links') }}
+    select * from {{ source('bills', 'links') }}
 ),
 
 authors as (
-    select * from {{ source('bills', 'curr_authors') }}
+    select * from {{ source('bills', 'authors') }}
 ),
 
 actions as (
-    select * from {{ source('bills', 'curr_actions') }}
+    select * from {{ source('bills', 'actions') }}
 ),
 
 versions as (
-    select * from {{ source('bills', 'curr_versions') }}
+    select * from {{ source('bills', 'versions') }}
 ),
 
 companions as (
-    select * from {{ source('bills', 'curr_companions') }}
+    select * from {{ source('bills', 'companions') }}
 ),
 
 committee_meetings as (
-    select * from {{ source('bills', 'curr_committee_meetings') }}
+    select * from {{ source('bills', 'committee_meetings') }}
 ),
 
 stages as (
-    select * from {{ source('bills', 'curr_bill_stages') }}
+    select * from {{ source('bills', 'bill_stages') }}
 ),
 
 committees as (
-    select * from {{ source('bills', 'curr_committees') }}
+    select * from {{ source('bills', 'committee_status') }}
 ),
 
 committee_meeting_bills as (
-    select * from {{ source('bills', 'curr_committee_meeting_bills') }}
+    select * from {{ source('bills', 'committee_meeting_bills') }}
 ),
 
 committee_hearing_videos as (
-    select * from {{ source('bills', 'curr_committee_hearing_videos') }}
+    select * from {{ source('bills', 'committee_hearing_videos') }}
+),
+
+rep_sen_contact_sheet as (
+    select * from {{ source('bills', 'rep_sen_contact_sheet') }}
 ),
 
 ----------------------------------------------------------
@@ -67,7 +71,7 @@ introduced_versions as (
 
 -- Get the most recent version for each bill
 most_recent_versions as (
-    SELECT * exclude (rn)
+    SELECT * EXCEPT (rn)
     FROM (
         SELECT *,
                ROW_NUMBER() OVER (PARTITION BY bill_id, leg_id, type ORDER BY text_order DESC) as rn
@@ -78,7 +82,7 @@ most_recent_versions as (
 ),
 
 most_recent_fiscal_note as (
-    SELECT * exclude (rn)
+    SELECT * EXCEPT (rn)
     FROM (
         SELECT *,
                ROW_NUMBER() OVER (PARTITION BY bill_id, leg_id, type ORDER BY text_order DESC) as rn
@@ -89,7 +93,7 @@ most_recent_fiscal_note as (
 ),
 
 most_recent_analysis as (
-    SELECT * exclude (rn)
+    SELECT * EXCEPT (rn)
     FROM (
         SELECT *,
                ROW_NUMBER() OVER (PARTITION BY bill_id, leg_id, type ORDER BY text_order DESC) as rn
@@ -113,7 +117,7 @@ companions_agg as (
 ),
     
 most_recent_companion as (
-    SELECT c.* exclude (rn), 
+    SELECT c.* EXCEPT (rn), 
     links.history as companion_history
     FROM (
         SELECT *,
@@ -147,10 +151,10 @@ bill_status as (
 ),
 
 most_recent_bill_stage as (
-    SELECT * exclude (rn)
+    SELECT * EXCEPT (rn)
     FROM (
         SELECT *,
-               ROW_NUMBER() OVER (PARTITION BY bill_id, leg_id ORDER BY IFNULL(stage_date, strptime('12/12/9999', '%m/%d/%Y')) DESC) as rn
+               ROW_NUMBER() OVER (PARTITION BY bill_id, leg_id ORDER BY IFNULL(stage_date, PARSE_TIMESTAMP('%m/%d/%Y', '12/12/9999')) DESC) as rn
         FROM stages
     )
     WHERE rn = 1
@@ -271,8 +275,8 @@ committee_meeing_bills_with_links as (
             and committee_meeting_bills.leg_id = committee_hearing_videos.leg_id
             and if(left(committee_meeting_bills.bill_id,1) = 'H', 'House', 'Senate') = committee_hearing_videos.chamber
             and (
-                strftime(committee_meeting_bills.meeting_datetime, '%-m/%d/%y') = committee_hearing_videos.date
-                or strftime(committee_meeting_bills.meeting_datetime, '%m/%d/%Y') = committee_hearing_videos.date
+                FORMAT_TIMESTAMP('%m/%d/%Y', committee_meeting_bills.meeting_datetime) = committee_hearing_videos.date
+                or FORMAT_TIMESTAMP('%m/%d/%Y', committee_meeting_bills.meeting_datetime) = committee_hearing_videos.date
             )
             and (committee_hearing_videos.part = 'I' or committee_hearing_videos.part is null)
     left join 
@@ -292,7 +296,7 @@ first_house_committee_meeting_bills as (
             '=HYPERLINK("',
             meeting_url,
             '", "',
-            strftime(meeting_datetime, '%m/%d/%Y %I:%M %p'),
+            FORMAT_TIMESTAMP('%m/%d/%Y %I:%M %p', meeting_datetime),
             '")'
         ) as meeting_datetime,
         video_link,
@@ -314,7 +318,7 @@ first_senate_committee_meeting_bills as (
             '=HYPERLINK("',
             meeting_url,
             '", "',
-            strftime(meeting_datetime, '%m/%d/%Y %I:%M %p'),
+            FORMAT_TIMESTAMP('%m/%d/%Y %I:%M %p', meeting_datetime),
             '")'
         ) as meeting_datetime,
         video_link,
@@ -326,6 +330,19 @@ first_senate_committee_meeting_bills as (
     and status != 'deleted'
     -- and meeting_datetime > CURRENT_DATE()
     qualify row_number() over (PARTITION BY bill_id, leg_id ORDER BY meeting_datetime) = 1
+),
+
+bill_party as (
+    select 
+    authors.bill_id, 
+    authors.leg_id,
+    avg(if(rep_sen_contact_sheet.Party = 'D', 1,0)) as p_dem
+    from authors
+    left join rep_sen_contact_sheet
+        on left(authors.bill_id,1) = left(rep_sen_contact_sheet.district_type,1)
+        and authors.leg_id = rep_sen_contact_sheet.leg_id
+        and authors.author = rep_sen_contact_sheet.author_id
+    group by 1,2
 )
 
 ----------------------------------------------------------
@@ -347,7 +364,8 @@ select
         '", "',
         REPLACE(authors_agg.authors_list, '"', '""'),
         '")'
-    ) as authors,   
+    ) as authors,
+    bill_party.p_dem,
     links.captions, -- caption link
     IFNULL(bill_status.bill_status, 'Unassigned') as status,
     bills.last_action_date, -- last action date
@@ -467,5 +485,9 @@ left join first_house_committee_meeting_bills
 left join first_senate_committee_meeting_bills
     on bills.bill_id = first_senate_committee_meeting_bills.bill_id
     and bills.leg_id = first_senate_committee_meeting_bills.leg_id
+
+left join bill_party
+    on bills.bill_id = bill_party.bill_id
+    and bills.leg_id = bill_party.leg_id
 
 order by cast(regexp_replace(complete_bills_list.bill_id, '[^0-9]+', '') as INTEGER)

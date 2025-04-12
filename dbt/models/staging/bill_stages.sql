@@ -1,5 +1,19 @@
 with bill_stages as (
-    select * from {{ source('bills', 'stg_bill_stages') }}
+    SELECT 
+        bill_id,
+        leg_id,
+        SAFE_CAST(RIGHT(stage, 1) AS INTEGER) AS stage_num, -- IF there's a point where the tx leg changes and there are over 10 stages, we'll need to change this
+        stage_title,
+        stage_text,
+        IF(stage_date = '*See below.', NULL, PARSE_TIMESTAMP('%m/%d/%Y', stage_date)) as stage_date,
+        if (
+            div_class = 'complete' and after_status = 'fail', 'Dead', 
+            if (div_class = 'failed', 'Dead','Alive')
+        ) as status,
+        PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S',  first_seen_at) as first_seen_at,
+        PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S',  last_seen_at) as last_seen_at
+    FROM {{ source('raw_bills', 'bill_stages') }}
+    where stage_text not like '%Not reached%'
 ),
 
 -- get the most recent timestamp seen for each bill,

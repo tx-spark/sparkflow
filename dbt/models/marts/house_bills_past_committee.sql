@@ -4,14 +4,14 @@ with tracker as (
 ),
 
 stages as (
-    select * from {{ source('bills','curr_bill_stages')}}
+    select * from {{ source('bills','bill_stages')}}
 ),
 
 most_recent_bill_stage as (
-    SELECT * exclude (rn)
+    SELECT * EXCEPT (rn)
     FROM (
         SELECT *,
-               ROW_NUMBER() OVER (PARTITION BY bill_id, leg_id ORDER BY IFNULL(stage_date, strptime('12/12/9999', '%m/%d/%Y')) DESC) as rn
+               ROW_NUMBER() OVER (PARTITION BY bill_id, leg_id ORDER BY IFNULL(stage_date, PARSE_TIMESTAMP('%m/%d/%Y', '12/12/9999')) DESC) as rn
         FROM stages
     )
     WHERE rn = 1

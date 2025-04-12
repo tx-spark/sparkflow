@@ -3,11 +3,11 @@ select
     leg_id,
     committee,
     chamber,
-    strptime(date || ' ' || time, '%m/%d/%Y %I:%M %p') as meeting_datetime,
+    PARSE_TIMESTAMP('%m/%d/%Y %I:%M %p', CONCAT(date, ' ', time)) as meeting_datetime,
     meeting_url,
     link,
     author,
     description,
     status,
-    seen_at
+    PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S',  seen_at) as seen_at
 from {{ source('raw_bills', 'upcoming_committee_meeting_bills') }}

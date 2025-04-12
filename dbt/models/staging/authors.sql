@@ -1,5 +1,12 @@
 with authors as (
-    select * from {{ source('bills', 'stg_authors') }}
+    SELECT 
+        bill_id,
+        leg_id,
+        author,
+        author_type,
+        PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S',  first_seen_at) as first_seen_at,
+        PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S',  last_seen_at) as last_seen_at
+    FROM {{ source('raw_bills', 'authors') }}
 ),
 
 -- get the most recent timestamp seen for each bill,

@@ -1,5 +1,12 @@
 with companions as (
-    select * from {{ source('bills', 'stg_companions') }}
+    SELECT
+        bill_id,
+        leg_id,
+        REPLACE(companion_bill_id,' ','') as companion_bill_id,
+        relationship,
+        PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S',  first_seen_at) as first_seen_at,
+        PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S',  last_seen_at) as last_seen_at
+    FROM {{ source('raw_bills', 'companions') }}
 ),
 
 -- get the most recent timestamp seen for each bill,

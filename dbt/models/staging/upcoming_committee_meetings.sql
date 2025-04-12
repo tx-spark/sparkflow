@@ -1,5 +1,14 @@
 with upcoming_committee_meetings as (
-    select * from {{ source('bills', 'stg_upcoming_committee_meetings') }}
+    SELECT
+        committee,
+        chamber,
+        date,
+        time,
+        location,
+        chair,
+        meeting_url,
+        PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S',  seen_at) as seen_at
+    FROM {{ source('raw_bills', 'upcoming_committee_meetings') }}
 ),
 
 -- get the most recent timestamp seen for each meeting

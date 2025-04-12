@@ -1,5 +1,10 @@
 with complete_bills_list as (
-    select * from {{ source('bills', 'stg_complete_bills_list') }}
+    SELECT
+        bill_id,
+        leg_id,
+        PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S',  first_seen_at) as first_seen_at,
+        PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S',  last_seen_at) as last_seen_at
+    FROM {{ source('raw_bills', 'complete_bills_list') }}
 ),
 
 ranked_complete_bills_list AS (

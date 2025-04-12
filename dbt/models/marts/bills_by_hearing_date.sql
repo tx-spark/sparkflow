@@ -1,21 +1,21 @@
 with committee_meeting_bills as (
-    select * from {{ source('bills', 'curr_committee_meeting_bills') }}
+    select * from {{ source('bills', 'committee_meeting_bills') }}
 ),
 
 committee_meetings as (
-    select * from {{ source('bills', 'curr_committee_meetings') }}
+    select * from {{ source('bills', 'committee_meetings') }}
 ),
 
 links as (
-    select * from {{ source('bills', 'curr_links') }}
+    select * from {{ source('bills', 'links') }}
 ),
 
 bills as (
-    select * from {{ source('bills', 'curr_bills') }}
+    select * from {{ source('bills', 'bills') }}
 ),
 
 committee_hearing_videos as (
-    select * from {{ source('bills', 'curr_committee_hearing_videos') }}
+    select * from {{ source('bills', 'committee_hearing_videos') }}
 )
 
 --------------------------------------
@@ -43,7 +43,7 @@ CONCAT(
     '=HYPERLINK("',
     committee_meeting_bills.meeting_url,
     '", "',
-    strftime(committee_meeting_bills.meeting_datetime, '%m/%d/%Y %I:%M %p'),
+    FORMAT_TIMESTAMP('%m/%d/%Y %I:%M %p', committee_meeting_bills.meeting_datetime),
     '")'
 ) as hearing_datetime,
 -- committee_meetings.hearing_notice_pdf,
@@ -69,8 +69,8 @@ left join
         and committee_meeting_bills.leg_id = committee_hearing_videos.leg_id
         and if(left(committee_meeting_bills.bill_id,1) = 'H', 'House', 'Senate') = committee_hearing_videos.chamber
         and (
-            strftime(committee_meeting_bills.meeting_datetime, '%-m/%d/%y') = committee_hearing_videos.date
-            or strftime(committee_meeting_bills.meeting_datetime, '%m/%d/%Y') = committee_hearing_videos.date
+            (FORMAT_TIMESTAMP('%m/%d/%Y', committee_meeting_bills.meeting_datetime) = committee_hearing_videos.date)
+            or (FORMAT_TIMESTAMP('%m/%d/%Y', committee_meeting_bills.meeting_datetime) = committee_hearing_videos.date)
         )
         and (committee_hearing_videos.part = 'I' or committee_hearing_videos.part is null)
 order by committee_meeting_bills.meeting_datetime desc

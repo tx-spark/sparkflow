@@ -2,7 +2,7 @@ version: 2
 
 sources:
   - name: raw_bills
-    schema: raw_bills
+    schema: dev_tx_leg_raw_bills
     tables:
       - name: actions
       - name: authors
@@ -22,20 +22,20 @@ sources:
       - name: versions
 
   - name: bills
-    schema: bills
+    schema: dev_tx_leg_bills
     tables:
-      - name: stg_actions
-      - name: stg_authors
-      - name: stg_bill_stages
-      - name: stg_bills
-      - name: stg_committee_hearing_videos
-      - name: stg_committee_meetings
-      - name: stg_committee_meeting_bills
-      - name: stg_committees
-      - name: stg_companions
-      - name: stg_complete_bills_list
-      - name: stg_links
-      - name: stg_subjects
-      - name: stg_upcoming_committee_meetings
-      - name: stg_upcoming_committee_meeting_bills
-      - name: stg_versions
+      - name: actions
+      - name: authors
+      - name: bill_stages
+      - name: bills
+      - name: committee_hearing_videos
+      - name: committee_meetings
+      - name: committee_meeting_bills
+      - name: committee_status
+      - name: companions
+      - name: complete_bills_list
+      - name: links
+      - name: subjects
+      - name: upcoming_committee_meetings
+      - name: upcoming_committee_meeting_bills
+      - name: versions
