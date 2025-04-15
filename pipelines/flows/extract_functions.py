@@ -1406,9 +1406,6 @@ def get_bill_texts(duckdb_conn, ftp_conn, dataset_id, env, max_errors=5):
     curr_bill_texts_df = get_current_table_data(duckdb_conn, 'lgover', dataset_id, 'bill_texts', env)
     curr_versions_df = get_current_table_data(duckdb_conn, 'lgover', dataset_id, 'versions', env)
 
-    print(curr_bill_texts_df)
-    print(curr_versions_df)
-
     if curr_bill_texts_df is None and curr_versions_df is None:
         logger.error(f"No table found in {dataset_id}.bill_texts or {dataset_id}.versions")
         raise ValueError(f"No table found in {dataset_id}.bill_texts or {dataset_id}.versions")

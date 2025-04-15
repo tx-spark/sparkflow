@@ -197,17 +197,6 @@ def versions(raw_bills_df, curr_versions_df=None, duckdb_conn = None):
     log_bq_load('lgover', OUT_DATASET_NAME, 'versions', ENV, 'drop', duckdb_conn)
     logger.info("Versions data pipeline complete")
 
-def run_logs(start_time, end_time, notes, duckdb_conn = None):
-    run_logs_df = pd.DataFrame({
-        "start_time": [start_time],
-        "end_time": [end_time],
-        "notes": [notes]
-    })
-    dataframe_to_bigquery(run_logs_df, 'lgover', OUT_DATASET_NAME, 'run_logs', ENV, 'append')
-    dataframe_to_duckdb(run_logs_df, duckdb_conn, OUT_DATASET_NAME, 'run_logs', ENV, 'append')
-    log_bq_load('lgover', OUT_DATASET_NAME, 'run_logs', ENV, 'append', duckdb_conn)
-    logger.info("Run logs data pipeline complete")
-
 ################################################################################
 # MAIN
 ################################################################################
@@ -245,39 +234,38 @@ def tx_leg_pipeline():
         logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to connect to DuckDB: {e}")
         raise e
 
-    # curr_bills_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'bills', ENV)
-    # curr_authors_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'authors', ENV) 
-    # curr_subjects_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'subjects', ENV)
-    # curr_committee_status_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'committee_status', ENV)
-    # curr_versions_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'versions', ENV)
-    # curr_actions_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'actions', ENV)
-    # curr_companions_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'companions', ENV)
-    # curr_links_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'links', ENV)
-    # curr_committee_meetings_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'committee_meetings', ENV)
-    # curr_committee_meeting_bills_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'committee_meeting_bills', ENV)
-    # curr_bill_stages_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'bill_stages', ENV)
-    # curr_complete_bills_list_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'complete_bills_list', ENV)
+    curr_bills_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'bills', ENV)
+    curr_authors_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'authors', ENV) 
+    curr_subjects_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'subjects', ENV)
+    curr_committee_status_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'committee_status', ENV)
+    curr_versions_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'versions', ENV)
+    curr_actions_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'actions', ENV)
+    curr_companions_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'companions', ENV)
+    curr_links_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'links', ENV)
+    curr_committee_meetings_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'committee_meetings', ENV)
+    curr_committee_meeting_bills_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'committee_meeting_bills', ENV)
+    curr_bill_stages_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'bill_stages', ENV)
+    curr_complete_bills_list_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'complete_bills_list', ENV)
     # curr_rss_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'rss_feeds', ENV)
-    # curr_committee_hearing_videos_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'committee_hearing_videos', ENV)
+    curr_committee_hearing_videos_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'committee_hearing_videos', ENV)
 
-    # bills(raw_bills_df, curr_bills_df, duckdb_conn),
-    # authors(raw_bills_df, curr_authors_df, duckdb_conn),
-    # subjects(raw_bills_df, curr_subjects_df, duckdb_conn),
-    # committee_status(raw_bills_df, curr_committee_status_df, duckdb_conn),
-    # versions(raw_bills_df, curr_versions_df, duckdb_conn),
-    # actions(raw_bills_df, curr_actions_df, duckdb_conn),
-    # companions(raw_bills_df, curr_companions_df, duckdb_conn),
-    # links(raw_bills_df, config, curr_links_df, duckdb_conn),
-    # committee_meetings(config, curr_committee_meetings_df, duckdb_conn),
-    # committee_meeting_bills(config, curr_committee_meeting_bills_df, duckdb_conn),
-    # bill_stages(raw_bills_df, config, curr_bill_stages_df, duckdb_conn),
-    # complete_bills_list(raw_bills_df, curr_complete_bills_list_df, duckdb_conn),
-    # upcoming_committee_meetings(config, duckdb_conn),
-    # upcoming_committee_meeting_bills(config, duckdb_conn),
-    # committee_hearing_videos(config, curr_committee_hearing_videos_df, duckdb_conn),
+    bills(raw_bills_df, curr_bills_df, duckdb_conn),
+    authors(raw_bills_df, curr_authors_df, duckdb_conn),
+    subjects(raw_bills_df, curr_subjects_df, duckdb_conn),
+    committee_status(raw_bills_df, curr_committee_status_df, duckdb_conn),
+    versions(raw_bills_df, curr_versions_df, duckdb_conn),
+    actions(raw_bills_df, curr_actions_df, duckdb_conn),
+    companions(raw_bills_df, curr_companions_df, duckdb_conn),
+    links(raw_bills_df, config, curr_links_df, duckdb_conn),
+    committee_meetings(config, curr_committee_meetings_df, duckdb_conn),
+    committee_meeting_bills(config, curr_committee_meeting_bills_df, duckdb_conn),
+    bill_stages(raw_bills_df, config, curr_bill_stages_df, duckdb_conn),
+    complete_bills_list(raw_bills_df, curr_complete_bills_list_df, duckdb_conn),
+    upcoming_committee_meetings(config, duckdb_conn),
+    upcoming_committee_meeting_bills(config, duckdb_conn),
+    committee_hearing_videos(config, curr_committee_hearing_videos_df, duckdb_conn),
     bill_texts(duckdb_conn, conn)
     # rss_feeds(config, curr_rss_df),
-    run_logs(start_time, datetime.datetime.now(), "")
 
     duckdb_conn.close()
 

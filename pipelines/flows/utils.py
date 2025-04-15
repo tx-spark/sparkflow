@@ -82,7 +82,7 @@ class FtpConnection:
         """
         parsed = urlparse(url)
         if parsed.netloc != self.host:
-            print(f"Warning: URL {url} is for different host than connection")
+            logger.warning(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Warning: URL {url} is for different host than connection")
             return None
             
         def retrieve():
@@ -105,7 +105,7 @@ class FtpConnection:
         """
         parsed = urlparse(url)
         if parsed.netloc != self.host:
-            print(f"Warning: URL {url} is for different host than connection")
+            logger.warning(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Warning: URL {url} is for different host than connection")
             return []
             
         def list_dir():
@@ -155,7 +155,7 @@ class FtpConnection:
                 
                 # Check if we actually got any data
                 if buffer.getbuffer().nbytes == 0:
-                    print(f"Error: No data received from {pdf_url}")
+                    logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Error: No data received from {pdf_url}")
                     return None
                 
                 buffer.seek(0)
@@ -169,16 +169,16 @@ class FtpConnection:
                             if page_text:
                                 text.append(page_text)
                         except Exception as e:
-                            print(f"Warning: Could not extract text from page: {e}")
+                            logger.warning(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Warning: Could not extract text from page: {e}")
                             continue
                 
                 return '\n'.join(text) if text else None
                 
             except (TimeoutError, EOFError) as e:
-                print(f"Connection timeout while downloading PDF: {e}")
+                logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Connection timeout while downloading PDF: {e}")
                 return None
             except Exception as e:
-                print(f"Error extracting PDF text: {e}")
+                logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Error extracting PDF text: {e}")
                 return None
             finally:
                 buffer.close()
