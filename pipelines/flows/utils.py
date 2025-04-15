@@ -474,7 +474,7 @@ def get_current_table_data(duckdb_conn, project_id, dataset_id, table_id, env, l
         return None
     if bq_log_df is None: # TO DO: Create better logic for this in cases where logging hasn't been done yet
         return None
-    elif duckdb_log_df is None or bq_log_df['upload_time'].iloc[0] == duckdb_log_df['upload_time'].iloc[0] and bq_log_df['write_disposition'].iloc[0] == duckdb_log_df['write_disposition'].iloc[0]: ## If they match, get the data from DuckDB
+    elif duckdb_log_df is not None and bq_log_df['upload_time'].iloc[0] == duckdb_log_df['upload_time'].iloc[0] and bq_log_df['write_disposition'].iloc[0] == duckdb_log_df['write_disposition'].iloc[0] and duckdb_log_df['write_disposition'].iloc[0] != 'append': ## If they match, get the data from DuckDB. If there was an append, we don't know if there is the same history in BigQuery, so we don't know if the data is the same.
         try:
             duckdb_df = duckdb_conn.sql(f"SELECT * FROM {dataset_id}.{table_id}").df()
         except Exception as e:
