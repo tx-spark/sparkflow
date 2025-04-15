@@ -65,7 +65,7 @@ def bill_stages(raw_bills_df, config, curr_bill_stages_df=None, duckdb_conn = No
 
 def bill_texts(duckdb_conn, ftp_conn):
     first_seen_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
-    bill_texts_df = get_bill_texts(duckdb_conn, ftp_conn)
+    bill_texts_df = get_bill_texts(duckdb_conn, ftp_conn, OUT_DATASET_NAME, ENV)
     bill_texts_df['seen_at'] = first_seen_at
     dataframe_to_bigquery(bill_texts_df, 'lgover', OUT_DATASET_NAME, 'bill_texts', ENV, 'append')
     dataframe_to_duckdb(bill_texts_df, duckdb_conn, OUT_DATASET_NAME, 'bill_texts', ENV, 'append')
