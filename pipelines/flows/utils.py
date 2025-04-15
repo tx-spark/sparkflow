@@ -468,9 +468,9 @@ def get_current_table_data(duckdb_conn, project_id, dataset_id, table_id, env, l
 
     except Exception as e:
         logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Error querying DuckDB logs: {e}")
-        duckdb_df = None
+        duckdb_logdf = None
 
-    if bq_log_df is None and duckdb_df is None:
+    if bq_log_df is None and duckdb_log_df is None:
         return None
     elif bq_log_df == duckdb_log_df:
         ## If they match, get the data from DuckDB
