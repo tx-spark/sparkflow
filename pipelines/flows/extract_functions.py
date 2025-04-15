@@ -120,11 +120,11 @@ def merge_with_current_data(new_df, curr_df):
     
     return merged
 
-def get_current_table_data(duckdb_conn, table_name, dataset_name):
-    curr_df = None
-    if duckdb_conn.sql(f"SELECT count(*) FROM information_schema.tables WHERE table_name = '{table_name}' AND table_schema = '{dataset_name}'").fetchone()[0] > 0:
-        curr_df = duckdb_conn.table(f"{dataset_name}.{table_name}").df()
-    return curr_df
+# def get_current_table_data(duckdb_conn, table_name, dataset_name):
+#     curr_df = None
+#     if duckdb_conn.sql(f"SELECT count(*) FROM information_schema.tables WHERE table_name = '{table_name}' AND table_schema = '{dataset_name}'").fetchone()[0] > 0:
+#         curr_df = duckdb_conn.table(f"{dataset_name}.{table_name}").df()
+#     return curr_df
 
 
 
@@ -1399,35 +1399,23 @@ def get_committee_meeting_bills_data(config):
     return bills_df
 
 @task(retries=0, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
-def get_bill_texts(duckdb_conn, ftp_conn, max_errors=5):
+def get_bill_texts(duckdb_conn, ftp_conn, dataset_id, env, max_errors=5):
     # Check if curr_bill_texts table exists
-    meta_tables = duckdb_conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='bills'").fetchall()
-    raw_tables = duckdb_conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='raw_bills'").fetchall()
-    meta_table_names = [t[0] for t in meta_tables]
-    raw_table_names = [t[0] for t in raw_tables]
+    curr_bill_texts_df = get_current_table_data(duckdb_conn, 'lgover', dataset_id, 'bill_texts', env)
+    curr_versions_df = get_current_table_data(duckdb_conn, 'lgover', dataset_id, 'versions', env)
 
-    if 'bill_texts' in raw_table_names and 'curr_versions' in meta_table_names:
-        # Get PDF URLs that are in curr_bill_texts but not in curr_versions
-        query = """
-        SELECT DISTINCT versions.ftp_pdf_url 
-        FROM bills.curr_versions versions 
-        LEFT JOIN raw_bills.bill_texts bill_texts 
-            ON bill_texts.ftp_pdf_url = versions.ftp_pdf_url
-        WHERE bill_texts.ftp_pdf_url IS NULL
-        """
-        
-    elif 'curr_versions' in meta_table_names:
-        # Get all PDF URLs from curr_versions
-        query = """
-        SELECT DISTINCT ftp_pdf_url 
-        FROM bills.curr_versions
-        """
+    if curr_bill_texts_df is None and curr_versions_df is None:
+        logger.error(f"No table found in {dataset_id}.bill_texts or {dataset_id}.curr_versions")
+        raise ValueError(f"No table found in {dataset_id}.bill_texts or {dataset_id}.curr_versions")
+    elif curr_versions_df is None:
+        logger.error(f"No table found in {dataset_id}.versions. Unable to get urls for bill texts")
+        raise ValueError(f"No table found in {dataset_id}.versions. Unable to get urls for bill texts")
+    elif curr_bill_texts_df is None:
+        pdf_urls = duckdb_conn.sql(f'select ftp_pdf_url from curr_versions_df group by 1;')
     else:
-        logger.error("No table found in raw_bills.bill_texts or bills.curr_versions")
-        raise ValueError("No table found in raw_bills.bill_texts or bills.curr_versions")
-
-    pdf_urls = duckdb_conn.execute(query).fetchall()
-    pdf_urls = [url[0] for url in pdf_urls]
+        pdf_urls = duckdb_conn.sql(f'select ftp_pdf_url from curr_versions_df where ftp_pdf_url not in (select ftp_pdf_url from curr_bill_texts_df) group by 1;')
+    
+    pdf_urls = pdf_urls['ftp_pdf_url'].tolist()
 
     pdf_texts = []
     error_count = 0
