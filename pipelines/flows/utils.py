@@ -434,6 +434,10 @@ def get_current_table_data(duckdb_conn, project_id, dataset_id, table_id, env, l
     If the table doesn't exist in either, return None
     """
 
+    env_dataset_id = dataset_id
+    if env == "dev":
+        env_dataset_id = f"dev_{dataset_id}"
+
     if not use_cache:
         try:
             bq_df = bigquery_to_df(project_id, dataset_id, table_id, env)
@@ -445,8 +449,8 @@ def get_current_table_data(duckdb_conn, project_id, dataset_id, table_id, env, l
     # check if logs for this table match duckdb table
     try:
         bq_query = f"""
-        SELECT * FROM `{project_id}.{dataset_id}.{log_table_id}`
-        where project_id = '{project_id}' and dataset_id = '{dataset_id}' and table_id = '{table_id}'
+        SELECT * FROM `{project_id}.{env_dataset_id}.{log_table_id}`
+        where project_id = '{project_id}' and dataset_id = '{env_dataset_id}' and table_id = '{table_id}'
         order by PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S', upload_time) desc
         limit 1
         """
@@ -457,8 +461,8 @@ def get_current_table_data(duckdb_conn, project_id, dataset_id, table_id, env, l
 
     try:
         duckdb_query = f"""
-        select * from {dataset_id}.{log_table_id}
-        where project_id = '{project_id}' and dataset_id = '{dataset_id}' and table_id = '{table_id}'
+        select * from {env_dataset_id}.{log_table_id}
+        where project_id = '{project_id}' and dataset_id = '{env_dataset_id}' and table_id = '{table_id}'
         order by strftime('%Y-%m-%d %H:%M:%S', upload_time) desc
         """
         duckdb_log_df = duckdb_conn.sql(duckdb_query).df()
