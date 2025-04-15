@@ -1,6 +1,5 @@
 import yaml
 import datetime
-import dlt
 import duckdb
 import logging
 import pandas as pd
