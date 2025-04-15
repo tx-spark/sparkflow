@@ -472,8 +472,7 @@ def get_current_table_data(duckdb_conn, project_id, dataset_id, table_id, env, l
 
     if bq_log_df is None and duckdb_log_df is None:
         return None
-    elif bq_log_df == duckdb_log_df:
-        ## If they match, get the data from DuckDB
+    elif bq_log_df['upload_time'].iloc[0] == duckdb_log_df['upload_time'].iloc[0] and bq_log_df['write_disposition'].iloc[0] == duckdb_log_df['write_disposition'].iloc[0]: ## If they match, get the data from DuckDB
         try:
             duckdb_df = duckdb_conn.sql(f"SELECT * FROM {dataset_id}.{table_id}").df()
         except Exception as e:
