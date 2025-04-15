@@ -1418,7 +1418,7 @@ def get_bill_texts(duckdb_conn, ftp_conn, dataset_id, env, max_errors=5):
     elif curr_bill_texts_df is None:
         pdf_urls = duckdb_conn.sql(f'select ftp_pdf_url from curr_versions_df group by 1;').df()
     else:
-        pdf_urls = duckdb_conn.sql(f'select ftp_pdf_url from curr_versions_df where ftp_pdf_url not in (select ftp_pdf_url from curr_bill_texts_df) group by 1;').df()
+        pdf_urls = duckdb_conn.sql(f'select ftp_pdf_url from curr_versions_df where ftp_pdf_url not in (select ftp_pdf_url from curr_bill_texts_df where text is not null) group by 1;').df()
     
     pdf_urls = pdf_urls['ftp_pdf_url'].tolist()
 

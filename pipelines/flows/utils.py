@@ -446,7 +446,6 @@ def get_current_table_data(duckdb_conn, project_id, dataset_id, table_id, env, l
         return bq_df
 
     # check if logs for this table match duckdb table
-    log_table_id = f"{dataset_id}.{log_table_id}"
     try:
         bq_query = f"""
         SELECT * FROM `{project_id}.{dataset_id}.{log_table_id}`
@@ -461,7 +460,7 @@ def get_current_table_data(duckdb_conn, project_id, dataset_id, table_id, env, l
 
     try:
         duckdb_query = f"""
-        select * from {dataset_id}.{table_id}
+        select * from {dataset_id}.{log_table_id}
         where project_id = '{project_id}' and dataset_id = '{dataset_id}' and table_id = '{table_id}'
         order by strftime('%Y-%m-%d %H:%M:%S', upload_time) desc
         """
