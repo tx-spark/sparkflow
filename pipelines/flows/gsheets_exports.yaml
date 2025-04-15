@@ -1,0 +1,98 @@
+- name: "Ben's Tracker - All House Bills"
+  google_sheets_id: 1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM
+  worksheet_name: "All House Bills"
+  table_name: bills.house_tracker
+  filters: leg_id = {LegSess}
+  config:
+    LegSess: 89R
+    replace_headers: false
+  drop_cols:
+    - leg_id
+
+- name: "Ben's Tracker - All Senate Bills"
+  google_sheets_id: 1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM
+  worksheet_name: "All Senate Bills"
+  table_name: bills.senate_tracker
+  filters: leg_id = {LegSess}
+  config:
+    LegSess: 89R
+    replace_headers: false
+  drop_cols:
+    - leg_id
+
+- name: "Ben's Tracker - All HJRs"
+  google_sheets_id: 1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM
+  worksheet_name: "All HJRs"
+  table_name: bills.house_joint_resolution_tracker
+  filters: leg_id = {LegSess}
+  config:
+    LegSess: 89R
+    replace_headers: false
+  drop_cols:
+    - leg_id
+
+- name: "Ben's Tracker - All SJRs"
+  google_sheets_id: 1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM
+  worksheet_name: "All SJRs"
+  table_name: bills.senate_joint_resolution_tracker
+  filters: leg_id = {LegSess}
+  config:
+    LegSess: 89R
+    replace_headers: false
+  drop_cols:
+    - leg_id
+
+- name: "Ben's Tracker - House Bills Past Committee"
+  google_sheets_id: 1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM
+  worksheet_name: "House Bills Past Committee"
+  table_name: bills.house_bills_past_committee
+  filters: leg_id = {LegSess}
+  config:
+    LegSess: 89R
+    replace_headers: false
+  drop_cols:
+    - leg_id
+
+- name: "Ben's Tracker - H Bills By H Hearing Date"
+  google_sheets_id: 1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM
+  worksheet_name: "H Bills By H Hearing Date"
+  table_name: bills.house_bills_by_hearing_date
+  filters: leg_id = {LegSess}
+  config:
+    LegSess: 89R
+    replace_headers: false
+  drop_cols:
+    - leg_id
+
+- name: "Ben's Tracker - S Bills By S Hearing Date"
+  google_sheets_id: 1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM
+  worksheet_name: "S Bills By S Hearing Date"
+  table_name: bills.senate_bills_by_hearing_date
+  filters: leg_id = {LegSess}
+  config:
+    LegSess: 89R
+    replace_headers: false
+  drop_cols:
+    - leg_id
+
+- name: "Ben's Tracker - House Bills Past Committee"
+  google_sheets_id: 1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM
+  worksheet_name: "House Bills Past Committee"
+  table_name: bills.house_bills_past_committee
+  filters: leg_id = {LegSess}
+  config:
+    LegSess: 89R
+    replace_headers: false
+  drop_cols:
+    - leg_id
+
+- name: "Blue Action Master Data - Bills Data"
+  google_sheets_id: 1Wr0OIVbsquKTxGlnluSteBb1164JEUa1rlC-9C760jQ
+  worksheet_name: "Bills Data"
+  table_name: bills.blue_action_data
+  filters: leg_id = {LegSess}
+  config:
+    LegSess: 89R
+    replace_headers: false
+  drop_cols:
+    - leg_id

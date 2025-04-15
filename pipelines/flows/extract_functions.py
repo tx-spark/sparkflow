@@ -8,6 +8,9 @@ from bs4 import BeautifulSoup
 import json
 import logging
 
+from prefect import task
+from prefect.cache_policies import NO_CACHE
+
 logger = logging.getLogger(__name__)
 
 ################################################################################
@@ -148,6 +151,7 @@ def get_rss_data(config):
                 entries.append(entry_dict)
     return pd.DataFrame(entries)
 
+@task(retries=3, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
 def get_upcoming_from_rss(upcoming_rss_urls:dict):
     """
     Gets RSS feed data from the configured URLs and returns a DataFrame.
@@ -179,6 +183,7 @@ def get_upcoming_from_rss(upcoming_rss_urls:dict):
             
     return pd.DataFrame(entries)
 
+@task(retries=3, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
 def get_rss_committee_meetings(rss_config):
     """
     Gets all committee meetings from RSS feed and returns a standardized DataFrame.
@@ -265,6 +270,7 @@ def get_rss_committee_meetings(rss_config):
 ################################################################################
 # HTML SCRAPING FUNCTIONS
 ################################################################################
+
 def get_committee_meetings(committee_meetings_url):
     """
     Scrapes committee meeting details from a committee's meetings page
@@ -306,6 +312,7 @@ def get_committee_meetings(committee_meetings_url):
             meetings.append(meeting)
             
     return meetings
+
 
 def get_html_committee_meetings(config):
     """
@@ -405,7 +412,7 @@ def get_html_committee_meetings(config):
 
     return pd.DataFrame(result)
 
-
+@task(retries=3, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
 def extract_committee_meetings_links(committees_page_url, leg_id):
     session = requests.Session()
 
@@ -444,26 +451,36 @@ def extract_committee_meetings_links(committees_page_url, leg_id):
 
     return committees
 
-def get_committee_meetings_links(config):
+@task(retries=0, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
+def get_committee_meetings_links(config, max_errors=5):
 
     committees_list_url = config['sources']['static_html']['committees_list']
     committees_url = config['sources']['static_html']['committees']
     leg_id = ''.join(filter(lambda i: i.isdigit(), config['info']['LegSess']))
 
     committee_meetings = []
+    error_count = 0
     for chamber in ['H', 'J', 'S']:
-        committees_page_url = f"{committees_list_url}?Chamber={chamber}"
-        committees = extract_committee_meetings_links(committees_page_url, leg_id)
-        
-        for committee in committees:
-            committee_meetings.append({
-                'name': committee['name'],
-                'link': committees_url + committee['href'],
-                'chamber': chamber,
-                'leg_id': config['info']['LegSess']
-            })
+        try:
+            committees_page_url = f"{committees_list_url}?Chamber={chamber}"
+            committees = extract_committee_meetings_links(committees_page_url, leg_id)
+            
+            for committee in committees:
+                committee_meetings.append({
+                    'name': committee['name'],
+                    'link': committees_url + committee['href'],
+                    'chamber': chamber,
+                    'leg_id': config['info']['LegSess']
+                    })
+        except Exception as e:
+            logger.debug(f"Failed to get committee meetings links for {chamber}: {e}")
+            error_count += 1
+        if error_count > max_errors:
+            logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to get committee meetings links for {error_count} chambers")
+            raise Exception(f"Failed to get committee meetings links for {error_count} chambers")
     return pd.DataFrame(committee_meetings)
 
+@task(retries=3, retry_delay_seconds=10, log_prints=False)
 def get_house_hearing_videos_data(house_videos_url, leg_id):
     leg_num = leg_id[:-1]  # Get all but last character
     leg_letter = leg_id[-1]
@@ -475,6 +492,7 @@ def get_house_hearing_videos_data(house_videos_url, leg_id):
     videos_df = pd.DataFrame(videos_list)
     return videos_df
 
+@task(retries=3, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
 def get_senate_hearing_videos_data(senate_videos_url, leg_id):
     leg_num = leg_id[:-1]  # Get all but last character
     senate_videos_url = senate_videos_url.replace("{leg_id}", f"{leg_num}") 
@@ -530,15 +548,11 @@ def get_committee_hearing_videos_data(config):
 
     return pd.concat([house_videos_df, senate_videos_df])
 
-    
 def get_indv_bill_stages(bill_stages_url, bill_id, leg_id):
     """
     TO DO: WRITE DESCRIPTION
     """
-    print(f'Getting bill stages for {bill_id} in {leg_id}')
     bill_text_url = f'{bill_stages_url}?LegSess={leg_id}&Bill={bill_id}'
-    print(bill_text_url)
-
     site_html = requests.get(bill_text_url,timeout=30).text
     soup = BeautifulSoup(site_html, 'html.parser')
 
@@ -609,8 +623,9 @@ def get_indv_bill_stages(bill_stages_url, bill_id, leg_id):
 
     return stages
 
-def get_bill_stages(bill_stages_url, raw_bills_df):
+def get_bill_stages(bill_stages_url, raw_bills_df, max_errors=5):
     bill_stages = []
+    error_count = 0
     for _, row in raw_bills_df.iterrows():
         bill_id, leg_id = clean_bill_id(row['bill_id'])
         print(bill_id)
@@ -618,6 +633,10 @@ def get_bill_stages(bill_stages_url, raw_bills_df):
             bill_stages.extend(get_indv_bill_stages(bill_stages_url, bill_id, leg_id))
         except Exception as e:
             print(f"Error getting bill stages for {bill_id}: {e}")
+            error_count += 1
+    if error_count > max_errors:
+        logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to get bill stages for {error_count} bills")
+        raise Exception(f"Failed to get bill stages for {error_count} bills")
     return pd.DataFrame(bill_stages)
 
     
@@ -625,7 +644,8 @@ def get_bill_stages(bill_stages_url, raw_bills_df):
 # FTP SCRAPING FUNCTIONS
 ################################################################################
 
-def get_bill_urls(base_path, leg_session, ftp_connection):
+@task(retries=3, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
+def get_bill_urls(base_path, leg_session, ftp_connection, max_errors=5):
     """
     Get list of URLs for all bill XML files in house_bills and senate_bills directories.
     
@@ -645,6 +665,7 @@ def get_bill_urls(base_path, leg_session, ftp_connection):
     bill_urls = []
     
     # Process both house and senate bills
+    error_count = 0
     for chamber in ['house_bills', 'senate_bills', 
                     'house_joint_resolutions', 'senate_joint_resolutions', 
                     'house_concurrent_resolutions', 'senate_concurrent_resolutions', 
@@ -656,7 +677,7 @@ def get_bill_urls(base_path, leg_session, ftp_connection):
         try:
             range_folders = ftp_connection.ls(chamber_url)
         except Exception as e:
-            logger.error(f"ERROR -- Error getting folders for {chamber_url}: {e}")
+            logger.debug(f"Error getting folders for {chamber_url}: {e}")
             continue
         
         # Get bill XML files from each range folder
@@ -665,9 +686,14 @@ def get_bill_urls(base_path, leg_session, ftp_connection):
                 bill_xmls = ftp_connection.ls(folder_url)
                 bill_urls.extend(bill_xmls)
             except Exception as e:
-                logger.error(f"ERROR -- Error getting bill XML files list for {folder_url}: {e}")
+                logger.debug(f"Error getting bill XML files list for {folder_url}: {e}")
+                error_count += 1
                 continue
 
+        if error_count > max_errors:
+            logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to get bill URLs for {error_count} chambers")
+            raise Exception(f"Failed to get bill URLs for {error_count} chambers. Stopping process.")
+        
     return bill_urls
 
 def parse_bill_xml(ftp_connection, url):
@@ -685,11 +711,11 @@ def parse_bill_xml(ftp_connection, url):
     try:
         xml_str = ftp_connection.get_data(url=url)
     except Exception as e:
-        logger.error(f"ERROR -- Failed to retrieve data from {url}: {e}")
+        logger.debug(f"Failed to retrieve data from {url}: {e}")
         return None
         
     if not xml_str:
-        logger.error(f"ERROR -- Recieved no data from {url}")
+        logger.debug(f"Recieved no data from {url}")
         return None
         
     soup = BeautifulSoup(xml_str, 'xml')
@@ -980,7 +1006,7 @@ def get_bills_data(raw_bills_df):
                 'caption_version': row['caption_version']
             })
         except Exception as e:
-            logger.error(f"ERROR -- Failed to get clean bill data for {row['bill_id']}: {e}")
+            logger.debug(f"Failed to get clean bill data for {row['bill_id']}: {e}")
             continue
 
     return pd.DataFrame(bills_data, columns=['bill_id', 'leg_id', 'caption', 'last_action', 'last_action_date', 'last_action_chamber', 'caption_version'])
@@ -1015,7 +1041,7 @@ def get_actions_data(raw_bills_df):
                         'action_timestamp': action.get('timestamp', None)
                     })
         except Exception as e:
-            logger.error(f"ERROR -- Failed to get clean action data for {row['bill_id']}: {e}")
+            logger.debug(f"Failed to get clean action data for {row['bill_id']}: {e}")
             continue
             
     return pd.DataFrame(actions_data, columns=['bill_id', 'leg_id', 'action_number', 'action_date', 
@@ -1042,7 +1068,7 @@ def get_authors_data(raw_bills_df):
                     'author_type': 'Coauthor'
                 })
         except Exception as e:
-            logger.error(f"ERROR -- Failed to get clean author data for {row['bill_id']}: {e}")
+            logger.debug(f"Failed to get clean author data for {row['bill_id']}: {e}")
             continue
 
     return pd.DataFrame(authors_data, columns=['bill_id', 'leg_id', 'author', 'author_type'])
@@ -1077,7 +1103,7 @@ def get_sponsors_data(raw_bills_df):
                     'sponsor_type': 'cosponsor'
                 })
         except Exception as e:
-            logger.error(f"ERROR -- Failed to get clean sponsor data for {row['bill_id']}: {e}")
+            logger.debug(f"Failed to get clean sponsor data for {row['bill_id']}: {e}")
             continue
 
     return pd.DataFrame(sponsors_data, columns=['bill_id', 'leg_id', 'sponsor', 'sponsor_type'])
@@ -1110,7 +1136,7 @@ def get_subjects_data(raw_bills_df):
                     'subject_id': subject_id
                 })
         except Exception as e:
-            logger.error(f"ERROR -- Failed to get clean subject data for {row['bill_id']}: {e}")
+            logger.debug(f"Failed to get clean subject data for {row['bill_id']}: {e}")
             continue
 
     return pd.DataFrame(subjects_data, columns=['bill_id', 'leg_id', 'subject_title', 'subject_id'])
@@ -1142,14 +1168,14 @@ def get_companions_data(raw_bills_df):
                     'relationship': companion['relationship']
                 })
         except Exception as e: 
-            logger.error(f"ERROR -- Failed to get clean companion data for {row['bill_id']}: {e}")
+            logger.debug(f"Failed to get clean companion data for {row['bill_id']}: {e}")
             continue
             
     return pd.DataFrame(companions_data, columns=['bill_id', 'leg_id', 'companion_bill_id', 'relationship'])
 
-def get_committee_votes_data(raw_bills_df):
+def get_committee_status_data(raw_bills_df):
     """
-    Extract committee votes data from raw bills dataframe into standardized format.
+    Extract committee status data from raw bills dataframe into standardized format.
     
     Args:
         raw_bills_df (pd.DataFrame): DataFrame containing raw bill data
@@ -1184,7 +1210,7 @@ def get_committee_votes_data(raw_bills_df):
                 });
         
         except Exception as e:
-            logger.error(f"ERROR -- Failed to get clean committee votes data for {row['bill_id']}: {e}")
+            logger.debug(f"Failed to get clean committee votes data for {row['bill_id']}: {e}")
             continue
                 
     return pd.DataFrame(committees_data, columns=['bill_id', 'leg_id', 'chamber', 'name',
@@ -1217,7 +1243,7 @@ def get_versions_data(raw_bills_df):
                     'ftp_pdf_url': urls.get('ftp_pdf')
                 })
         except Exception as e:
-            logger.error(f"ERROR -- Failed to get clean version data for {row['bill_id']}: {e}")
+            logger.debug(f"Failed to get clean version data for {row['bill_id']}: {e}")
             continue
             
     return pd.DataFrame(versions_data, columns=['bill_id', 'leg_id', 'type', 'text_order', 'description',
@@ -1242,7 +1268,7 @@ def get_links_data(raw_bills_df, config):
                 
             links_data.append(links)
         except Exception as e:
-            logger.error(f"ERROR -- Failed to create clean links data for {row['bill_id']}: {e}")
+            logger.debug(f"Failed to create clean links data for {row['bill_id']}: {e}")
             continue
 
     return pd.DataFrame(links_data, columns=['bill_id', 'leg_id'] + list(config['sources']['html'].keys()))
@@ -1282,7 +1308,7 @@ def get_upcoming_committee_meetings(config):
         upcoming_meetings_df = get_rss_committee_meetings(config['sources']['rss']['upcoming'])
         return upcoming_meetings_df[['committee', 'chamber', 'date', 'time', 'location', 'chair', 'meeting_url']]
     except Exception as e:
-        logger.error(f"ERROR -- Failed to get upcoming committee meetings data: {e}")
+        logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to get upcoming committee meetings data: {e}")
         return pd.DataFrame()
 
 def get_upcoming_committee_meeting_bills(config):
@@ -1321,7 +1347,7 @@ def get_upcoming_committee_meeting_bills(config):
                 except Exception as e:
                     print(f"Error processing upcoming meeting bill {bill['bill_id']}: {e}")
         except Exception as e:
-            logger.error(f"ERROR -- Failed to get clean upcoming committee meeting bills data from RSS for {meeting['meeting_url']}: {e}")
+            logger.debug(f"Failed to get clean upcoming committee meeting bills data from RSS for {meeting['meeting_url']}: {e}")
             continue
             
     # Convert to DataFrame
@@ -1369,13 +1395,14 @@ def get_committee_meeting_bills_data(config):
                 })
                 bills_list.append(bill_record)
             except Exception as e:
-                logger.error(f"ERROR -- Failed to get upcoming committee meeting bills data from HTML for {meeting['meeting_url']}: {e}")
+                logger.debug(f"Failed to get upcoming committee meeting bills data from HTML for {meeting['meeting_url']}: {e}")
             
     # Convert to DataFrame
     bills_df = pd.DataFrame(bills_list)
     return bills_df
 
-def get_bill_texts(duckdb_conn, ftp_conn):
+@task(retries=0, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
+def get_bill_texts(duckdb_conn, ftp_conn, max_errors=5):
     # Check if curr_bill_texts table exists
     meta_tables = duckdb_conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='bills'").fetchall()
     raw_tables = duckdb_conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='raw_bills'").fetchall()
@@ -1399,36 +1426,50 @@ def get_bill_texts(duckdb_conn, ftp_conn):
         FROM bills.curr_versions
         """
     else:
-        logger.error("ERROR -- No table found in raw_bills.bill_texts or bills.curr_versions")
+        logger.error("No table found in raw_bills.bill_texts or bills.curr_versions")
         raise ValueError("No table found in raw_bills.bill_texts or bills.curr_versions")
 
     pdf_urls = duckdb_conn.execute(query).fetchall()
     pdf_urls = [url[0] for url in pdf_urls]
 
     pdf_texts = []
+    error_count = 0
     for url in pdf_urls:
         try:
             pdf_text = ftp_conn.get_pdf_text(url)
         except Exception as e:
-            logger.error(f"ERROR -- Failed to get PDF text for {url}: {e}")
+            logger.debug(f"Failed to get PDF text for {url}: {e}")
+            error_count += 1
             continue
 
         pdf_texts.append({
             'ftp_pdf_url': url,
             'text': pdf_text
         })
+    if error_count > max_errors:
+        logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to get PDF text for {error_count} bills")
+        raise Exception(f"Failed to get PDF text for {error_count} bills")
     return pd.DataFrame(pdf_texts)
 
-def get_raw_bills_data(base_path, leg_session, ftp_connection):
-    print("Getting raw bills data")
-    bill_urls = get_bill_urls(base_path, leg_session, ftp_connection)
+@task(retries=0, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
+def get_raw_bills_data(base_path, leg_session, ftp_connection, max_errors=5):
+    try:
+        bill_urls = get_bill_urls(base_path, leg_session, ftp_connection)
+    except Exception as e:
+        logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to get bill URLs: {e}")
+        raise Exception(f"Failed to get bill URLs: {e}")
     raw_bills = []
-    for url in bill_urls:
+    error_count = 0
+    for url in bill_urls[:10]:
         try:
             bill_data = parse_bill_xml(ftp_connection, url)
             if bill_data:
                 raw_bills.append(bill_data)
         except Exception as e:
-            logger.error(f"ERROR -- Error getting bill data for {url}: {e}")
+            logger.debug(f"Error getting bill data for {url}: {e}")
+            error_count += 1
+    if error_count > max_errors:
+        logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to get bill data for {error_count} bills")
+        raise Exception(f"Failed to get bill data for {error_count} bills")
     return pd.DataFrame(raw_bills)
 

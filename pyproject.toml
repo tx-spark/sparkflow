@@ -1,29 +1,39 @@
-[tool.poetry]
-name = "texas-leg-scraper"
+[project]
+name = "texas_leg_scraper"  # Change to your project name
 version = "0.1.0"
-description = ""
-authors = ["lwgover <lucasgover@gmail.com>"]
+description = "Texas Legislature Data Pipeline"
 readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "google-cloud-secret-manager>=2.23.2",
+    "google-cloud-bigquery>=3.11.4",
+    "pandas>=2.0.0",
+    "parsons",
+    "prefect>=3.2.15",
+    "prefect-gcp>=0.6.4",
+    "pydantic-core>=2.33.0",
+    "python-dotenv>=1.1.0",
+]
 
-[tool.poetry.dependencies]
-python = "3.13.2"
-feedparser = "^6.0.11"
-requests = "^2.32.3"
-pandas = "^2.2.3"
-bs4 = "^0.0.2"
-pyyaml = "^6.0.2"
-ipykernel = "^6.29.5"
-gspread = "^6.2.0"
-lxml = "^5.3.1"
-dbt-core = "^1.9.2"
-dbt-duckdb = "^1.9.2"
-dlt = {extras = ["duckdb"], version = "^1.8.0"}
-streamlit = "^1.43.0"
-dotenv = "^0.9.9"
-pypdf2 = "^3.0.1"
-pdfplumber = "^0.11.6"
+[dependency-groups]
+dev = [
+    "pre-commit>=4.2.0",
+    "pytest>=8.3.5",
+    "pytest-cov>=4.1.0",
+    "uv>=0.6.10",
+]
+lint = [
+    "ruff>=0.11.2",
+]
 
+[tool.uv.sources]
+parsons = { git = "https://github.com/move-coop/parsons.git", rev = "main" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"

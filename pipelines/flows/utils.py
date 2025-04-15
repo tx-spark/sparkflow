@@ -7,6 +7,7 @@ import pandas as pd
 import pdfplumber
 import warnings
 import logging
+import datetime
 from parsons import GoogleBigQuery, Table
 
 import os
@@ -15,7 +16,7 @@ from google.cloud import secretmanager
 import dotenv
 
 from prefect import task
-
+from prefect.cache_policies import NO_CACHE
 logger = logging.getLogger(__name__)
 
 ################################################################################
@@ -198,7 +199,7 @@ class FtpConnection:
 # UTILITY FUNCTIONS
 ################################################################################
 
-@task(retries=3, retry_delay_seconds=10, log_prints=True)
+@task(retries=3, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
 def write_df_to_gsheets(df, google_sheets_id, worksheet_name, minimize_to_rows=False, minimize_to_cols=False, replace_headers=True):
     """
     Write a pandas DataFrame to a Google Sheets worksheet.
@@ -241,7 +242,7 @@ def write_df_to_gsheets(df, google_sheets_id, worksheet_name, minimize_to_rows=F
     else:
         worksheet.update('A2', data, value_input_option="USER_ENTERED")
 
-@task(retries=3, retry_delay_seconds=10, log_prints=True)
+@task(retries=3, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
 def read_gsheets_to_df(google_sheets_id, worksheet_name, header=0):
     """
     Reads a Google Sheets worksheet into a pandas DataFrame.
@@ -282,12 +283,16 @@ def read_gsheets_to_df(google_sheets_id, worksheet_name, header=0):
         print(f"An error occurred: {e}")
         return None
 
-@task(retries=3, retry_delay_seconds=10, log_prints=True)
+@task(retries=3, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
 def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_disposition):
     """
     Load data to destination using Parsons BigQuery connector.
     Replace with your actual data loading logic.
     """
+
+    if df is None:
+        logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- DataFrame is None")
+        raise ValueError("DataFrame is None")
 
     # Add environment prefix for dev
     table_name = table_id
@@ -297,7 +302,7 @@ def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_dispo
 
     destination = f"{dataset_name}.{table_name}"
     table_name = f"{project_id}.{dataset_name}.{table_name}"
-    logger.info(f"INFO -- Loading data to {destination} using Parsons")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loading data to {destination} using Parsons")
 
     # Initialize Parsons BigQuery connector
 
@@ -323,10 +328,43 @@ def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_dispo
         tmp_gcs_bucket=os.getenv("GCS_TEMP_BUCKET"),  # Replace with your GCS bucket
     )
 
-    logger.info(f"INFO -- Loaded {tbl.num_rows} rows to {destination}")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loaded {tbl.num_rows} rows to {destination}")
 
+def bigquery_to_df(project_id, dataset_id, table_id, env):
+    gcp_creds = get_secret(secret_id="google_application_credentials")
+    bq = GoogleBigQuery(app_creds=gcp_creds)
 
-@task(retries=1, retry_delay_seconds=10, log_prints=True)
+    if env == "dev":
+        dataset_id = f"dev_{dataset_id}"
+
+    query = f"""
+    SELECT * FROM `{project_id}.{dataset_id}.{table_id}`
+    """
+
+    # Check if table exists
+    try:
+        bq_df = pd.DataFrame(bq.query(query))
+        return bq_df
+    except Exception as e:
+        if "Not found: Table" in str(e):
+            raise ValueError(f"Table {project_id}.{dataset_id}.{table_id} does not exist")
+        else:
+            raise e
+        
+def query_bq(query):
+    gcp_creds = get_secret(secret_id="google_application_credentials")
+    bq = GoogleBigQuery(app_creds=gcp_creds)
+    # Check if table exists
+    try:
+        bq_df = pd.DataFrame(bq.query(query))
+        return bq_df
+    except Exception as e:
+        if "Not found: Table" in str(e):
+            raise ValueError(f"One or more of the tables queried do not exist.")
+        else:
+            raise e
+
+@task(retries=1, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
 def dataframe_to_duckdb(df, duckdb_conn, dataset_id, table_id, env,write_disposition):
     """
     Load data to destination using Parsons BigQuery connector.
@@ -340,8 +378,7 @@ def dataframe_to_duckdb(df, duckdb_conn, dataset_id, table_id, env,write_disposi
         dataset_name = f"dev_{dataset_name}"
 
     destination = f"{dataset_name}.{table_name}"
-    table_name = f"{dataset_name}.{table_name}"
-    logger.info(f"INFO -- Loading data to {destination} using DuckDB")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loading data to {destination} using DuckDB")
 
     # convert datetime columns to ISO format strings for BigQuery compatibility -- annoying, but I can't figure out how to get Parsons to read it in properly
     # Doing this in DuckDB too, so the tables are consistent
@@ -352,18 +389,107 @@ def dataframe_to_duckdb(df, duckdb_conn, dataset_id, table_id, env,write_disposi
 
 
     # Load data to DuckDB
-    if write_disposition == "drop":
+    duckdb_conn.sql(f"CREATE SCHEMA IF NOT EXISTS {dataset_name}")
+    if write_disposition.lower() == "drop":
         duckdb_conn.sql(f"DROP TABLE IF EXISTS {destination}")
         duckdb_conn.sql(f"CREATE TABLE {destination} AS SELECT * FROM df")
-    elif write_disposition == "append":
-        duckdb_conn.sql(f"INSERT INTO {destination} SELECT * FROM df")
-    elif write_disposition == "fail":
+    elif write_disposition.lower() == "append":
+        # check if table exists
+        if duckdb_conn.sql(f"SELECT * FROM information_schema.tables WHERE table_schema = '{dataset_name}' AND table_name = '{table_name}'").df().empty:
+            duckdb_conn.sql(f"CREATE TABLE {destination} AS SELECT * FROM df")
+        else:
+            duckdb_conn.sql(f"INSERT INTO {destination} SELECT * FROM df")
+    elif write_disposition.lower() == "fail":
         raise ValueError(f"Table {destination} already exists")
     else:
         raise ValueError(f"Invalid write disposition: {write_disposition}")
-    logger.info(f"INFO -- Loaded {len(df)} rows to {destination}")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loaded {len(df)} rows to {destination}")
+
+def log_bq_load(project_id, dataset_id, table_id, env, write_disposition, duckdb_conn, log_table_id = '_log_bq_load'):
+    """
+    Log the BigQuery load to a table in DuckDB and BigQuery.
+    """
+    current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    upload_desc = [
+        {
+            'project_id':project_id,
+            'dataset_id':dataset_id,
+            'table_id':table_id,
+            'write_disposition':write_disposition
+        }
+    ]
 
 
+    upload_desc_df = pd.DataFrame(upload_desc)
+    upload_desc_df['upload_time'] = current_time
+
+    dataframe_to_duckdb(upload_desc_df, duckdb_conn, dataset_id, log_table_id, env, 'append')
+    dataframe_to_bigquery(upload_desc_df, project_id, dataset_id, log_table_id, env, 'append')
+
+def get_current_table_data(duckdb_conn, project_id, dataset_id, table_id, env, log_table_id = '_log_bq_load', use_cache = True):
+    """
+    Intution here is that I'm caching the data in DuckDB. First check the logs to see if the most recent loads match up.
+    If they do, return the data from DuckDB. If they don't, return the table from BigQuery.
+
+    If the table doesn't exist in either, return None
+    """
+
+    if env == "dev":
+        dataset_id = f"dev_{dataset_id}"
+
+    if not use_cache:
+        try:
+            bq_df = bigquery_to_df(project_id, dataset_id, table_id, env)
+        except Exception as e:
+            logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Error querying BigQuery table {project_id}.{dataset_id}.{table_id}: {e}")
+            return None
+        return bq_df
+
+    # check if logs for this table match duckdb table
+    log_table_id = f"{dataset_id}.{log_table_id}"
+    try:
+        bq_query = f"""
+        SELECT * FROM `{project_id}.{dataset_id}.{log_table_id}`
+        where project_id = '{project_id}' and dataset_id = '{dataset_id}' and table_id = '{table_id}'
+        order by PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S', upload_time) desc
+        limit 1
+        """
+        bq_log_df = query_bq(bq_query)
+    except Exception as e:
+        logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Error querying BigQuery logs: {e}")
+        bq_log_df = None
+
+    try:
+        duckdb_query = f"""
+        select * from {dataset_id}.{table_id}
+        where project_id = '{project_id}' and dataset_id = '{dataset_id}' and table_id = '{table_id}'
+        order by strftime('%Y-%m-%d %H:%M:%S', upload_time) desc
+        """
+        duckdb_log_df = duckdb_conn.sql(duckdb_query).df()
+
+    except Exception as e:
+        logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Error querying DuckDB logs: {e}")
+        duckdb_df = None
+
+    if bq_log_df is None and duckdb_df is None:
+        return None
+    elif bq_log_df == duckdb_log_df:
+        ## If they match, get the data from DuckDB
+        try:
+            duckdb_df = duckdb_conn.sql(f"SELECT * FROM {dataset_id}.{table_id}").df()
+        except Exception as e:
+            logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Error querying DuckDB table: {e}")
+            return None
+        return duckdb_df
+    else:
+        ## If they don't match, get the data from BigQuery
+        try:
+            bq_df = bigquery_to_df(project_id, dataset_id, table_id, env)
+        except Exception as e:
+            logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Error querying BigQuery table {project_id}.{dataset_id}.{table_id}: {e}")
+            return None
+        return bq_df
+        
 ################################################################################
 # FROM https://github.com/matthewkrausse/parsons-prefect-dbt-cloud-tutorial
 ################################################################################
