@@ -434,9 +434,6 @@ def get_current_table_data(duckdb_conn, project_id, dataset_id, table_id, env, l
     If the table doesn't exist in either, return None
     """
 
-    if env == "dev":
-        dataset_id = f"dev_{dataset_id}"
-
     if not use_cache:
         try:
             bq_df = bigquery_to_df(project_id, dataset_id, table_id, env)
