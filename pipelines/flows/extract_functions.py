@@ -412,7 +412,6 @@ def get_html_committee_meetings(config):
 
     return pd.DataFrame(result)
 
-@task(retries=3, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
 def extract_committee_meetings_links(committees_page_url, leg_id):
     session = requests.Session()
 
@@ -451,7 +450,6 @@ def extract_committee_meetings_links(committees_page_url, leg_id):
 
     return committees
 
-@task(retries=0, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
 def get_committee_meetings_links(config, max_errors=5):
 
     committees_list_url = config['sources']['static_html']['committees_list']
@@ -480,7 +478,6 @@ def get_committee_meetings_links(config, max_errors=5):
             raise Exception(f"Failed to get committee meetings links for {error_count} chambers")
     return pd.DataFrame(committee_meetings)
 
-@task(retries=3, retry_delay_seconds=10, log_prints=False)
 def get_house_hearing_videos_data(house_videos_url, leg_id):
     leg_num = leg_id[:-1]  # Get all but last character
     leg_letter = leg_id[-1]
@@ -492,7 +489,6 @@ def get_house_hearing_videos_data(house_videos_url, leg_id):
     videos_df = pd.DataFrame(videos_list)
     return videos_df
 
-@task(retries=3, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
 def get_senate_hearing_videos_data(senate_videos_url, leg_id):
     leg_num = leg_id[:-1]  # Get all but last character
     senate_videos_url = senate_videos_url.replace("{leg_id}", f"{leg_num}") 
@@ -1355,6 +1351,7 @@ def get_upcoming_committee_meeting_bills(config):
     return bills_df
 
 
+@task(retries=3, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
 def get_committee_meetings_data(config):
     upcoming_meetings_df = get_html_committee_meetings(config)
     return upcoming_meetings_df[['committee', 'chamber', 'committee_meetings_link', 'leg_id', 'date',

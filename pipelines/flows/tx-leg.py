@@ -4,7 +4,7 @@ import duckdb
 import logging
 import pandas as pd
 
-# from prefect import flow
+from prefect import flow
 from utils import FtpConnection, dataframe_to_bigquery, dataframe_to_duckdb, log_bq_load
 from extract_functions import *
 
