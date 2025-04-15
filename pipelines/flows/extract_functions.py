@@ -1440,6 +1440,7 @@ def get_bill_texts(duckdb_conn, ftp_conn, dataset_id, env, max_errors=5):
 
 @task(retries=0, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
 def get_raw_bills_data(base_path, leg_session, ftp_connection, max_errors=5):
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting raw bills data extraction")
     try:
         bill_urls = get_bill_urls(base_path, leg_session, ftp_connection)
     except Exception as e:
@@ -1458,5 +1459,6 @@ def get_raw_bills_data(base_path, leg_session, ftp_connection, max_errors=5):
     if error_count > max_errors:
         logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to get bill data for {error_count} bills")
         raise Exception(f"Failed to get bill data for {error_count} bills")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Finished raw bills data extraction")
     return pd.DataFrame(raw_bills)
 

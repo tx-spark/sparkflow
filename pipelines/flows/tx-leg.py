@@ -27,15 +27,17 @@ logging.basicConfig(filename=LOG_PATH, level=logging.DEBUG)
 
 
 def bills(raw_bills_df, curr_bills_df=None, duckdb_conn = None):
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process bills data")
     bills_df = get_bills_data(raw_bills_df)
     
     result_df = merge_with_current_data(bills_df, curr_bills_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'bills', ENV, 'drop')
     dataframe_to_duckdb(result_df, duckdb_conn, OUT_DATASET_NAME, 'bills', ENV, 'drop')
     log_bq_load('lgover', OUT_DATASET_NAME, 'bills', ENV, 'drop', duckdb_conn)
-    logger.info("Bills data pipeline complete")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Bills data processing complete")
 
 def actions(raw_bills_df, curr_actions_df=None, duckdb_conn = None):
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process actions data")
     actions_df = get_actions_data(raw_bills_df)
     result_df = merge_with_current_data(actions_df, curr_actions_df)
 
@@ -43,159 +45,174 @@ def actions(raw_bills_df, curr_actions_df=None, duckdb_conn = None):
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'actions', ENV, 'drop')
     dataframe_to_duckdb(result_df, duckdb_conn, OUT_DATASET_NAME, 'actions', ENV, 'drop')
     log_bq_load('lgover', OUT_DATASET_NAME, 'actions', ENV, 'drop', duckdb_conn)
-    logger.info("Actions data pipeline complete")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Actions data processing complete")
 
 def authors(raw_bills_df, curr_authors_df=None, duckdb_conn = None):
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process authors data")
     authors_df = get_authors_data(raw_bills_df)
     
     result_df = merge_with_current_data(authors_df, curr_authors_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'authors', ENV, 'drop')
     dataframe_to_duckdb(result_df, duckdb_conn, OUT_DATASET_NAME, 'authors', ENV, 'drop')
     log_bq_load('lgover', OUT_DATASET_NAME, 'authors', ENV, 'drop', duckdb_conn)
-    logger.info("Authors data pipeline complete")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Authors data processing complete")
 
 def bill_stages(raw_bills_df, config, curr_bill_stages_df=None, duckdb_conn = None):
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process bill stages data")
     bill_stages_df = get_bill_stages(config['sources']['html']['bill_stages'], raw_bills_df)
     
     result_df = merge_with_current_data(bill_stages_df, curr_bill_stages_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'bill_stages', ENV, 'drop')
     dataframe_to_duckdb(result_df, duckdb_conn, OUT_DATASET_NAME, 'bill_stages', ENV, 'drop')
     log_bq_load('lgover', OUT_DATASET_NAME, 'bill_stages', ENV, 'drop', duckdb_conn)
-    logger.info("Bill stages data pipeline complete")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Bill stages data processing complete")
 
 def bill_texts(duckdb_conn, ftp_conn):
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process bill texts data")
     first_seen_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
     bill_texts_df = get_bill_texts(duckdb_conn, ftp_conn, OUT_DATASET_NAME, ENV)
     bill_texts_df['seen_at'] = first_seen_at
     dataframe_to_bigquery(bill_texts_df, 'lgover', OUT_DATASET_NAME, 'bill_texts', ENV, 'append')
     dataframe_to_duckdb(bill_texts_df, duckdb_conn, OUT_DATASET_NAME, 'bill_texts', ENV, 'append')
     log_bq_load('lgover', OUT_DATASET_NAME, 'bill_texts', ENV, 'append', duckdb_conn)
-    logger.info("Bill texts data pipeline complete")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Bill texts data processing complete")
 
 def committee_status(raw_bills_df, curr_committees_df=None, duckdb_conn = None):
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process committee status data")
     committees_df = get_committee_status_data(raw_bills_df)
     
     result_df = merge_with_current_data(committees_df, curr_committees_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'committee_status', ENV, 'drop')
     dataframe_to_duckdb(result_df, duckdb_conn, OUT_DATASET_NAME, 'committee_status', ENV, 'drop')
     log_bq_load('lgover', OUT_DATASET_NAME, 'committees', ENV, 'drop', duckdb_conn)
-    logger.info("Committees data pipeline complete")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Committees data processing complete")
 
 def committee_hearing_videos(config, curr_committee_hearing_videos_df=None, duckdb_conn = None):
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process committee hearing videos data")
     committee_hearing_videos_df = get_committee_hearing_videos_data(config)
     
     result_df = merge_with_current_data(committee_hearing_videos_df, curr_committee_hearing_videos_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'committee_hearing_videos', ENV, 'drop')
     dataframe_to_duckdb(result_df, duckdb_conn, OUT_DATASET_NAME, 'committee_hearing_videos', ENV, 'drop')
     log_bq_load('lgover', OUT_DATASET_NAME, 'committee_hearing_videos', ENV, 'drop', duckdb_conn)
-    logger.info("Committee hearing videos data pipeline complete")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Committee hearing videos data processing complete")
 
 def committee_meetings(config, curr_committee_meetings_df=None, duckdb_conn = None):
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process committee meetings data")
     committee_meetings_df = get_committee_meetings_data(config)
     result_df = merge_with_current_data(committee_meetings_df, curr_committee_meetings_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'committee_meetings', ENV, 'drop')
     dataframe_to_duckdb(result_df, duckdb_conn, OUT_DATASET_NAME, 'committee_meetings', ENV, 'drop')
     log_bq_load('lgover', OUT_DATASET_NAME, 'committee_meetings', ENV, 'drop', duckdb_conn)
-    logger.info("Committee meetings data pipeline complete")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Committee meetings data processing complete")
 
 def committee_meeting_bills(config, curr_committee_meeting_bills_df=None, duckdb_conn = None):
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process committee meeting bills data")
     committee_meeting_bills_df = get_committee_meeting_bills_data(config)
     
     result_df = merge_with_current_data(committee_meeting_bills_df, curr_committee_meeting_bills_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'committee_meeting_bills', ENV, 'drop')
     dataframe_to_duckdb(result_df, duckdb_conn, OUT_DATASET_NAME, 'committee_meeting_bills', ENV, 'drop')
     log_bq_load('lgover', OUT_DATASET_NAME, 'committee_meeting_bills', ENV, 'drop', duckdb_conn)
-    logger.info("Committee meeting bills data pipeline complete")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Committee meeting bills data processing complete")
 
 def committee_meetings_links(config, curr_committee_meetings_df=None, duckdb_conn = None):
-
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process committee meetings links data")
     committee_meetings_df = get_committee_meetings_data(config)
     
     result_df = merge_with_current_data(committee_meetings_df, curr_committee_meetings_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'committee_meetings_links', ENV, 'drop')
     dataframe_to_duckdb(result_df, duckdb_conn, OUT_DATASET_NAME, 'committee_meetings_links', ENV, 'drop')
     log_bq_load('lgover', OUT_DATASET_NAME, 'committee_meetings_links', ENV, 'drop', duckdb_conn)
-    logger.info("Committee meetings links data pipeline complete")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Committee meetings links data processing complete")
 
 def companions(raw_bills_df, curr_companions_df=None, duckdb_conn = None):
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process companions data")
     companions_df = get_companions_data(raw_bills_df)
     result_df = merge_with_current_data(companions_df, curr_companions_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'companions', ENV, 'drop')
     dataframe_to_duckdb(result_df, duckdb_conn, OUT_DATASET_NAME, 'companions', ENV, 'drop')
     log_bq_load('lgover', OUT_DATASET_NAME, 'companions', ENV, 'drop', duckdb_conn)
-    logger.info("Companions data pipeline complete")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Companions data processing complete")
 
 def complete_bills_list(raw_bills_df, curr_complete_bills_list_df=None, duckdb_conn = None):
-
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process complete bills list data")
     complete_bills_list_df = get_complete_bills_list(raw_bills_df)
     
     result_df = merge_with_current_data(complete_bills_list_df, curr_complete_bills_list_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'complete_bills_list', ENV, 'drop')
     dataframe_to_duckdb(result_df, duckdb_conn, OUT_DATASET_NAME, 'complete_bills_list', ENV, 'drop')
     log_bq_load('lgover', OUT_DATASET_NAME, 'complete_bills_list', ENV, 'drop', duckdb_conn)
-    logger.info("Complete bills list data pipeline complete")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Complete bills list data processing complete")
 
 def links(raw_bills_df, config, curr_links_df=None, duckdb_conn = None):
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process links data")
     links_df = get_links_data(raw_bills_df,config)
     
     result_df = merge_with_current_data(links_df, curr_links_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'links', ENV, 'drop')
     dataframe_to_duckdb(result_df, duckdb_conn, OUT_DATASET_NAME, 'links', ENV, 'drop')
     log_bq_load('lgover', OUT_DATASET_NAME, 'links', ENV, 'drop', duckdb_conn)
-    logger.info("Links data pipeline complete")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Links data processing complete")
 
 def sponsors(raw_bills_df, curr_sponsors_df=None, duckdb_conn = None):
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process sponsors data")
     sponsors_df = get_sponsors_data(raw_bills_df)
     
     result_df = merge_with_current_data(sponsors_df, curr_sponsors_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'sponsors', ENV, 'drop')
     dataframe_to_duckdb(result_df, duckdb_conn, OUT_DATASET_NAME, 'sponsors', ENV, 'drop')
     log_bq_load('lgover', OUT_DATASET_NAME, 'sponsors', ENV, 'drop', duckdb_conn)
-    logger.info("Sponsors data pipeline complete")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Sponsors data processing complete")
 
 def subjects(raw_bills_df, curr_subjects_df=None, duckdb_conn = None):
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process subjects data")
     subjects_df = get_subjects_data(raw_bills_df)
     
     result_df = merge_with_current_data(subjects_df, curr_subjects_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'subjects', ENV, 'drop')
     dataframe_to_duckdb(result_df, duckdb_conn, OUT_DATASET_NAME, 'subjects', ENV, 'drop')
     log_bq_load('lgover', OUT_DATASET_NAME, 'subjects', ENV, 'drop', duckdb_conn)
-    logger.info("Subjects data pipeline complete")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Subjects data processing complete")
 
 
 def rss_feeds(config, curr_rss_df=None, duckdb_conn = None):
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process RSS feeds data")
     rss_df = get_rss_data(config)
     
     result_df = merge_with_current_data(rss_df, curr_rss_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'rss_feeds', ENV, 'drop')
     dataframe_to_duckdb(result_df, duckdb_conn, OUT_DATASET_NAME, 'rss_feeds', ENV, 'drop')
     log_bq_load('lgover', OUT_DATASET_NAME, 'rss_feeds', ENV, 'drop', duckdb_conn)
-    logger.info("RSS feeds data pipeline complete")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- RSS feeds data processing complete")
 
 def upcoming_committee_meetings(config, duckdb_conn):
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process upcoming committee meetings data")
     upcoming_meetings_df = get_upcoming_committee_meetings(config)
     upcoming_meetings_df['seen_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
     dataframe_to_bigquery(upcoming_meetings_df, 'lgover', OUT_DATASET_NAME, 'upcoming_committee_meetings', ENV, 'append')
     dataframe_to_duckdb(upcoming_meetings_df, duckdb_conn, OUT_DATASET_NAME, 'upcoming_committee_meetings', ENV, 'append')
     log_bq_load('lgover', OUT_DATASET_NAME, 'upcoming_committee_meetings', ENV, 'append', duckdb_conn)
-    logger.info("Upcoming committee meetings data pipeline complete")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Upcoming committee meetings data processing complete")
 
 def upcoming_committee_meeting_bills(config, duckdb_conn):
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process upcoming committee meeting bills data")
     upcoming_meeting_bills_df = get_upcoming_committee_meeting_bills(config)
     upcoming_meeting_bills_df['seen_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
     dataframe_to_bigquery(upcoming_meeting_bills_df, 'lgover', OUT_DATASET_NAME, 'upcoming_committee_meeting_bills', ENV, 'append')
     dataframe_to_duckdb(upcoming_meeting_bills_df, duckdb_conn, OUT_DATASET_NAME, 'upcoming_committee_meeting_bills', ENV, 'append')
     log_bq_load('lgover', OUT_DATASET_NAME, 'upcoming_committee_meeting_bills', ENV, 'append', duckdb_conn)
-    logger.info("Upcoming committee meeting bills data pipeline complete")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Upcoming committee meeting bills data processing complete")
 
 def versions(raw_bills_df, curr_versions_df=None, duckdb_conn = None):
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process versions data")
     versions_df = get_versions_data(raw_bills_df)
     
     result_df = merge_with_current_data(versions_df, curr_versions_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'versions', ENV, 'drop')
     dataframe_to_duckdb(result_df, duckdb_conn, OUT_DATASET_NAME, 'versions', ENV, 'drop')
     log_bq_load('lgover', OUT_DATASET_NAME, 'versions', ENV, 'drop', duckdb_conn)
-    logger.info("Versions data pipeline complete")
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Versions data processing complete")
 
 ################################################################################
 # MAIN
