@@ -1400,22 +1400,25 @@ def get_committee_meeting_bills_data(config):
     bills_df = pd.DataFrame(bills_list)
     return bills_df
 
-@task(retries=0, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
+@task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
 def get_bill_texts(duckdb_conn, ftp_conn, dataset_id, env, max_errors=5):
     # Check if curr_bill_texts table exists
     curr_bill_texts_df = get_current_table_data(duckdb_conn, 'lgover', dataset_id, 'bill_texts', env)
     curr_versions_df = get_current_table_data(duckdb_conn, 'lgover', dataset_id, 'versions', env)
 
+    print(curr_bill_texts_df)
+    print(curr_versions_df)
+
     if curr_bill_texts_df is None and curr_versions_df is None:
-        logger.error(f"No table found in {dataset_id}.bill_texts or {dataset_id}.curr_versions")
-        raise ValueError(f"No table found in {dataset_id}.bill_texts or {dataset_id}.curr_versions")
+        logger.error(f"No table found in {dataset_id}.bill_texts or {dataset_id}.versions")
+        raise ValueError(f"No table found in {dataset_id}.bill_texts or {dataset_id}.versions")
     elif curr_versions_df is None:
         logger.error(f"No table found in {dataset_id}.versions. Unable to get urls for bill texts")
         raise ValueError(f"No table found in {dataset_id}.versions. Unable to get urls for bill texts")
     elif curr_bill_texts_df is None:
-        pdf_urls = duckdb_conn.sql(f'select ftp_pdf_url from curr_versions_df group by 1;')
+        pdf_urls = duckdb_conn.sql(f'select ftp_pdf_url from curr_versions_df group by 1;').df()
     else:
-        pdf_urls = duckdb_conn.sql(f'select ftp_pdf_url from curr_versions_df where ftp_pdf_url not in (select ftp_pdf_url from curr_bill_texts_df) group by 1;')
+        pdf_urls = duckdb_conn.sql(f'select ftp_pdf_url from curr_versions_df where ftp_pdf_url not in (select ftp_pdf_url from curr_bill_texts_df) group by 1;').df()
     
     pdf_urls = pdf_urls['ftp_pdf_url'].tolist()
 
