@@ -11,6 +11,8 @@ import logging
 from prefect import task
 from prefect.cache_policies import NO_CACHE
 
+from utils import get_current_table_data
+
 logger = logging.getLogger(__name__)
 
 ################################################################################

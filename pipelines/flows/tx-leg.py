@@ -5,7 +5,7 @@ import logging
 import pandas as pd
 
 from prefect import flow
-from utils import FtpConnection, dataframe_to_bigquery, dataframe_to_duckdb, log_bq_load
+from utils import FtpConnection, dataframe_to_bigquery, dataframe_to_duckdb, log_bq_load, get_current_table_data
 from extract_functions import *
 
 ################################################################################
@@ -245,20 +245,20 @@ def tx_leg_pipeline():
         logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to connect to DuckDB: {e}")
         raise e
 
-    curr_bills_df = get_current_table_data(duckdb_conn, 'bills', OUT_DATASET_NAME)
-    curr_authors_df = get_current_table_data(duckdb_conn, 'authors', OUT_DATASET_NAME) 
-    curr_subjects_df = get_current_table_data(duckdb_conn, 'subjects', OUT_DATASET_NAME)
-    curr_committee_status_df = get_current_table_data(duckdb_conn, 'committee_status', OUT_DATASET_NAME)
-    curr_versions_df = get_current_table_data(duckdb_conn, 'versions', OUT_DATASET_NAME)
-    curr_actions_df = get_current_table_data(duckdb_conn, 'actions', OUT_DATASET_NAME)
-    curr_companions_df = get_current_table_data(duckdb_conn, 'companions', OUT_DATASET_NAME)
+    curr_bills_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'bills', ENV)
+    curr_authors_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'authors', ENV) 
+    curr_subjects_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'subjects', ENV)
+    curr_committee_status_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'committee_status', ENV)
+    curr_versions_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'versions', ENV)
+    curr_actions_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'actions', ENV)
+    curr_companions_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'companions', ENV)
     curr_links_df = get_current_table_data(duckdb_conn, 'links', OUT_DATASET_NAME)
-    curr_committee_meetings_df = get_current_table_data(duckdb_conn, 'committee_meetings', OUT_DATASET_NAME)
-    curr_committee_meeting_bills_df = get_current_table_data(duckdb_conn, 'committee_meeting_bills', OUT_DATASET_NAME)
-    curr_bill_stages_df = get_current_table_data(duckdb_conn, 'bill_stages', OUT_DATASET_NAME)
-    curr_complete_bills_list_df = get_current_table_data(duckdb_conn, 'complete_bills_list', OUT_DATASET_NAME)
-    curr_rss_df = get_current_table_data(duckdb_conn, 'rss_feeds', OUT_DATASET_NAME)
-    curr_committee_hearing_videos_df = get_current_table_data(duckdb_conn, 'committee_hearing_videos', OUT_DATASET_NAME)
+    curr_committee_meetings_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'committee_meetings', ENV)
+    curr_committee_meeting_bills_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'committee_meeting_bills', ENV)
+    curr_bill_stages_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'bill_stages', ENV)
+    curr_complete_bills_list_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'complete_bills_list', ENV)
+    curr_rss_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'rss_feeds', ENV)
+    curr_committee_hearing_videos_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'committee_hearing_videos', ENV)
 
     # bills(raw_bills_df, curr_bills_df, duckdb_conn),
     # authors(raw_bills_df, curr_authors_df, duckdb_conn),
