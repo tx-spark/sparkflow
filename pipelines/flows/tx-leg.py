@@ -252,7 +252,7 @@ def tx_leg_pipeline():
     curr_versions_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'versions', ENV)
     curr_actions_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'actions', ENV)
     curr_companions_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'companions', ENV)
-    curr_links_df = get_current_table_data(duckdb_conn, 'links', OUT_DATASET_NAME)
+    curr_links_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'links', ENV)
     curr_committee_meetings_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'committee_meetings', ENV)
     curr_committee_meeting_bills_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'committee_meeting_bills', ENV)
     curr_bill_stages_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'bill_stages', ENV)
