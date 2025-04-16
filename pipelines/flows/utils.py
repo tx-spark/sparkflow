@@ -149,39 +149,29 @@ class FtpConnection:
         
         def retrieve():
             buffer = io.BytesIO()
-            try:
-                # Get raw bytes instead of trying to decode as text
-                self.ftp.retrbinary(f'RETR {parsed.path}', buffer.write, rest=0)
-                
-                # Check if we actually got any data
-                if buffer.getbuffer().nbytes == 0:
-                    logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Error: No data received from {pdf_url}")
-                    return None
-                
-                buffer.seek(0)
-                
-                # Read PDF with pdfplumber
-                with pdfplumber.open(buffer) as pdf:
-                    text = []
-                    for page in pdf.pages:
-                        try:
-                            page_text = page.extract_text()
-                            if page_text:
-                                text.append(page_text)
-                        except Exception as e:
-                            logger.warning(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Warning: Could not extract text from page: {e}")
-                            continue
-                
-                return '\n'.join(text) if text else None
-                
-            except (TimeoutError, EOFError) as e:
-                logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Connection timeout while downloading PDF: {e}")
+            # Get raw bytes instead of trying to decode as text
+            self.ftp.retrbinary(f'RETR {parsed.path}', buffer.write, rest=0)
+            
+            # Check if we actually got any data
+            if buffer.getbuffer().nbytes == 0:
+                logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Error: No data received from {pdf_url}")
                 return None
-            except Exception as e:
-                logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Error extracting PDF text: {e}")
-                return None
-            finally:
-                buffer.close()
+            
+            buffer.seek(0)
+            
+            # Read PDF with pdfplumber
+            with pdfplumber.open(buffer) as pdf:
+                text = []
+                for page in pdf.pages:
+                    try:
+                        page_text = page.extract_text()
+                        if page_text:
+                            text.append(page_text)
+                    except Exception as e:
+                        logger.warning(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Warning: Could not extract text from page: {e}")
+                        continue
+            
+            return '\n'.join(text) if text else None
                 
         return self._retry_on_disconnect(retrieve)
     
@@ -280,7 +270,7 @@ def read_gsheets_to_df(google_sheets_id, worksheet_name, header=0):
         return df
 
     except Exception as e:
-        print(f"An error occurred: {e}")
+        logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- An error occurred: {e}")
         return None
 
 @task(retries=3, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
