@@ -37,12 +37,12 @@ def download_google_sheet(google_sheets_id, worksheet_name, output_table_id, duc
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- {output_table_id} data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
-def download_google_sheets(gsheets_config_path, env):
+def download_google_sheets(gsheets_config_path, duckdb_conn):
     with open(gsheets_config_path, 'r') as file:
         gsheets_config = yaml.safe_load(file)
 
     for download in gsheets_config['downloads']:
-        download_google_sheet(download['google_sheets_id'], download['worksheet_name'], download['table_id'], env)
+        download_google_sheet(download['google_sheets_id'], download['worksheet_name'], download['table_id'], duckdb_conn)
 
 ################################################################################
 # DATA PIPELINE
@@ -323,11 +323,12 @@ def tx_leg_pipeline():
     upcoming_committee_meeting_bills(config, duckdb_conn)
     committee_hearing_videos(config, curr_committee_hearing_videos_df, duckdb_conn)
     bill_texts(duckdb_conn, conn)
-    download_google_sheets(GSHEETS_CONFIG_PATH, ENV)
+    download_google_sheets(GSHEETS_CONFIG_PATH, duckdb_conn)
     # rss_feeds(config, curr_rss_df),
+
+    upload_google_sheets(GSHEETS_CONFIG_PATH, CONFIG_PATH, ENV)
 
     duckdb_conn.close()
 
 if __name__ == "__main__":
     tx_leg_pipeline()
-    upload_google_sheets(GSHEETS_CONFIG_PATH, CONFIG_PATH, ENV)

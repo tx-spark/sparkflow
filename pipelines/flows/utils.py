@@ -304,6 +304,8 @@ def upload_google_sheets(gsheets_config_path, config_path, env):
         if env == 'dev':
             upload['dataset_id'] = 'dev_' + upload['dataset_id']
 
+        # TO DO: Add logic to handle the case where the table doesn't exist in BigQuery
+        # TO DO: ADD DUCKDB
         query = f""" select * except({','.join(upload['drop_cols'])})
         from `{upload['project_id']}.{upload['dataset_id']}.{upload['table_id']}` 
         where {' AND '.join(upload['filters'])}
