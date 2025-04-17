@@ -111,5 +111,4 @@ downloads:
   - name: "Bill Tags"
     google_sheets_id: 1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM
     worksheet_name: "Bill Tags"
-    dataset_id: tx_leg_raw_bills
     table_id: bill_tags
