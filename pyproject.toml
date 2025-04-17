@@ -13,6 +13,9 @@ dependencies = [
     "prefect-gcp>=0.6.4",
     "pydantic-core>=2.33.0",
     "python-dotenv>=1.1.0",
+    "duckdb>=1.2.2",
+    "pdfplumber>=0.11.6",
+    "feedparser>=6.0.11",
 ]
 
 [dependency-groups]
