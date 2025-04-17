@@ -2,15 +2,7 @@ info:
   LegSess: 89R
   pipeline_name: 'texas_bills'
 
-uploads:
-  - name: "Ben's Tracker - All House Bills"
-    google_sheets_id: 1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM
-    worksheet_name: "All House Bills"
-    table_name: bills.house_tracker
-    filters: leg_id = {LegSess}
-
-config:
-  google_sheets_id: 1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM #1mB-wBoFKuu4kS482Yc2FQn6kByDJi6uIgm7l09V_8PQ
+dev_google_sheets_id: 1mB-wBoFKuu4kS482Yc2FQn6kByDJi6uIgm7l09V_8PQ
 
 sources:
   rss:
