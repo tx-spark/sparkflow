@@ -42,7 +42,7 @@ def download_google_sheets(gsheets_config_path, env):
         gsheets_config = yaml.safe_load(file)
 
     for download in gsheets_config['downloads']:
-        download_google_sheet(download['google_sheets_id'], download['worksheet_name'], download['output_table_id'], env)
+        download_google_sheet(download['google_sheets_id'], download['worksheet_name'], download['table_id'], env)
 
 ################################################################################
 # DATA PIPELINE
