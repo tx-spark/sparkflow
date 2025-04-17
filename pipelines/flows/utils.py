@@ -391,7 +391,7 @@ def bigquery_to_df(project_id, dataset_id, table_id, env):
     # Check if table exists
     try:
         bq_df = pd.DataFrame(bq.query(query))
-        bq_df.replace('<NA>',pd.NA, inplace=True)
+        df.replace('<NA>',pd.NA, inplace=True)
         return bq_df
     except Exception as e:
         if "Not found: Table" in str(e):
@@ -458,6 +458,10 @@ def log_bq_load(project_id, dataset_id, table_id, env, write_disposition, duckdb
     """
     Log the BigQuery load to a table in DuckDB and BigQuery.
     """
+
+    if env == 'dev':
+        dataset_id = f"dev_{dataset_id}"
+
     current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     upload_desc = [
         {
