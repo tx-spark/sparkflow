@@ -467,6 +467,9 @@ def log_bq_load(project_id, dataset_id, table_id, env, write_disposition, duckdb
     upload_desc_df = pd.DataFrame(upload_desc)
     upload_desc_df['upload_time'] = current_time
 
+    if env == 'dev':
+        dataset_id = f"dev_{dataset_id}"
+
     dataframe_to_duckdb(upload_desc_df, duckdb_conn, dataset_id, log_table_id, env, 'append')
     dataframe_to_bigquery(upload_desc_df, project_id, dataset_id, log_table_id, env, 'append')
 
@@ -517,9 +520,9 @@ def get_current_table_data(duckdb_conn, project_id, dataset_id, table_id, env, l
 
     if bq_log_df is None and duckdb_log_df is None:
         return None
-    if bq_log_df is None: # TO DO: Create better logic for this in cases where logging hasn't been done yet
+    if bq_log_df is None or len(bq_log_df) == 0: # TO DO: Create better logic for this in cases where logging hasn't been done yet
         return None
-    elif duckdb_log_df is not None and bq_log_df['upload_time'].iloc[0] == duckdb_log_df['upload_time'].iloc[0] and bq_log_df['write_disposition'].iloc[0] == duckdb_log_df['write_disposition'].iloc[0] and duckdb_log_df['write_disposition'].iloc[0] != 'append': ## If they match, get the data from DuckDB. If there was an append, we don't know if there is the same history in BigQuery, so we don't know if the data is the same.
+    elif duckdb_log_df is not None and len(duckdb_log_df) > 0 and bq_log_df['upload_time'].iloc[0] == duckdb_log_df['upload_time'].iloc[0] and bq_log_df['write_disposition'].iloc[0] == duckdb_log_df['write_disposition'].iloc[0] and duckdb_log_df['write_disposition'].iloc[0] != 'append': ## If they match, get the data from DuckDB. If there was an append, we don't know if there is the same history in BigQuery, so we don't know if the data is the same.
         try:
             duckdb_df = duckdb_conn.sql(f"SELECT * FROM {dataset_id}.{table_id}").df()
         except Exception as e:
