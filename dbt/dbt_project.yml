@@ -37,5 +37,3 @@ models:
       +materialized: view
     marts:
       +materialized: table
-    bills_passed:
-      +materialized: table
