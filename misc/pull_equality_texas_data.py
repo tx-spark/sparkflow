@@ -40,5 +40,6 @@ pro_lgbt_bills_df['stance'] = 'Pro LGBT'
 anti_lgbt_bills_df['stance'] = 'Anti LGBT'
 
 all_bills_df = pd.concat([pro_lgbt_bills_df, anti_lgbt_bills_df])
+all_bills_df.drop_duplicates(inplace=True)
 
 all_bills_df.to_csv('equality_texas_bills.csv', index=False, sep='\t')

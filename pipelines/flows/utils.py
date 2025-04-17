@@ -14,6 +14,7 @@ import os
 import subprocess
 from google.cloud import secretmanager
 import dotenv
+import yaml
 
 from prefect import task
 from prefect.cache_policies import NO_CACHE
@@ -256,7 +257,7 @@ def read_gsheets_to_df(google_sheets_id, worksheet_name, header=0):
         data = worksheet.get_all_values()
 
         if not data:
-            return pd.DataFrame()  # Return an empty DataFrame if the sheet is empty
+            return None  # Return an empty DataFrame if the sheet is empty
 
         if header is not None:
             # Use the specified row(s) as headers
@@ -272,8 +273,61 @@ def read_gsheets_to_df(google_sheets_id, worksheet_name, header=0):
     except Exception as e:
         logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- An error occurred: {e}")
         return None
+    
+@task(retries=1, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
+def upload_google_sheets(gsheets_config_path, config_path, env):
 
-@task(retries=3, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
+    with open(gsheets_config_path, 'r') as file:
+        gsheets_config = yaml.safe_load(file)
+
+    with open(config_path, 'r') as file:
+        config = yaml.safe_load(file)
+
+    # Validate required fields are present in config
+    required_fields = ['name', 'google_sheets_id', 'worksheet_name', 'project_id', 'dataset_id', 'table_id', 'filters', 'drop_cols']
+    for upload in gsheets_config['uploads']:
+        missing_fields = [field for field in required_fields if field not in upload]
+        if missing_fields:
+            raise ValueError(f"Missing required fields in config: {missing_fields}")
+        
+        # Validate filters and drop_cols are lists
+        if not isinstance(upload['filters'], list):
+            raise ValueError(f"'filters' must be a list for {upload['name']}")
+        if not isinstance(upload['drop_cols'], list):
+            raise ValueError(f"'drop_cols' must be a list for {upload['name']}")
+            
+        # Validate google_sheets_id exists
+        if not upload['google_sheets_id']:
+            raise ValueError(f"google_sheets_id cannot be empty for {upload['name']}")
+
+    for upload in gsheets_config['uploads']:
+        if env == 'dev':
+            upload['dataset_id'] = 'dev_' + upload['dataset_id']
+
+        query = f""" select * except({','.join(upload['drop_cols'])})
+        from `{upload['project_id']}.{upload['dataset_id']}.{upload['table_id']}` 
+        where {' AND '.join(upload['filters'])}
+        """
+        
+        for var in config['info']:
+            query = query.replace(f'{{{var}}}', config['info'][var])
+
+        # TO DO: check if there are any {variables} in the query that are not in the config['info']
+
+        df = query_bq(query)
+
+        if df is not None:
+            if env == 'dev':
+                gc = gspread.service_account()
+                sh = gc.open_by_key(config['dev_google_sheets_id'])
+                worksheets = sh.worksheets()
+                worksheet_names = [worksheet.title for worksheet in worksheets]
+                if upload['worksheet_name'] not in worksheet_names:
+                    sh.add_worksheet(upload['worksheet_name'], rows = 1, cols = 1)
+                
+            write_df_to_gsheets(df, config['dev_google_sheets_id'] if env == 'dev' else upload['google_sheets_id'], upload['worksheet_name'], minimize_to_rows=True, minimize_to_cols=False, replace_headers=upload['replace_headers'])
+
+@task(retries=3, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
 def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_disposition):
     """
     Load data to destination using Parsons BigQuery connector.
@@ -453,7 +507,7 @@ def get_current_table_data(duckdb_conn, project_id, dataset_id, table_id, env, l
         duckdb_query = f"""
         select * from {env_dataset_id}.{log_table_id}
         where project_id = '{project_id}' and dataset_id = '{env_dataset_id}' and table_id = '{table_id}'
-        order by strftime('%Y-%m-%d %H:%M:%S', upload_time) desc
+        order by strptime(upload_time, '%Y-%m-%d %H:%M:%S') desc
         """
         duckdb_log_df = duckdb_conn.sql(duckdb_query).df()
 

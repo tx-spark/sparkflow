@@ -626,7 +626,6 @@ def get_bill_stages(bill_stages_url, raw_bills_df, max_errors=5):
     error_count = 0
     for _, row in raw_bills_df.iterrows():
         bill_id, leg_id = clean_bill_id(row['bill_id'])
-        print(bill_id)
         try:
             bill_stages.extend(get_indv_bill_stages(bill_stages_url, bill_id, leg_id))
         except Exception as e:

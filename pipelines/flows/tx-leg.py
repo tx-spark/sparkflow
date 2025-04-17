@@ -4,8 +4,8 @@ import duckdb
 import logging
 import pandas as pd
 
-from prefect import flow
-from utils import FtpConnection, dataframe_to_bigquery, dataframe_to_duckdb, log_bq_load, get_current_table_data, determine_git_environment
+from prefect import flow, task
+from utils import FtpConnection, dataframe_to_bigquery, dataframe_to_duckdb, log_bq_load, get_current_table_data, determine_git_environment, read_gsheets_to_df, upload_google_sheets
 from extract_functions import *
 
 ################################################################################
@@ -13,6 +13,7 @@ from extract_functions import *
 ################################################################################
 
 CONFIG_PATH = 'config.yaml'
+GSHEETS_CONFIG_PATH = 'gsheets_runs.yaml'
 DUCKDB_NAME = "texas_bills"
 LOG_PATH = 'tx-leg.log'
 OUT_DATASET_NAME = 'tx_leg_raw_bills'
@@ -20,6 +21,28 @@ ENV = determine_git_environment()
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename=LOG_PATH, level=logging.DEBUG)
+
+
+################################################################################
+# Google Sheets
+################################################################################
+
+@task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
+def download_google_sheet(google_sheets_id, worksheet_name, output_table_id, duckdb_conn):
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process {output_table_id} data")
+    google_sheets_df = read_gsheets_to_df(google_sheets_id, worksheet_name)
+    dataframe_to_bigquery(google_sheets_df, 'lgover', OUT_DATASET_NAME, output_table_id, ENV, 'drop')
+    dataframe_to_duckdb(google_sheets_df, duckdb_conn, OUT_DATASET_NAME, output_table_id, ENV, 'drop')
+    log_bq_load('lgover', OUT_DATASET_NAME, output_table_id, ENV, 'drop', duckdb_conn)
+    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- {output_table_id} data processing complete")
+
+@task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
+def download_google_sheets(gsheets_config_path, env):
+    with open(gsheets_config_path, 'r') as file:
+        gsheets_config = yaml.safe_load(file)
+
+    for download in gsheets_config['downloads']:
+        download_google_sheet(download['google_sheets_id'], download['worksheet_name'], download['output_table_id'], env)
 
 ################################################################################
 # DATA PIPELINE
@@ -284,25 +307,27 @@ def tx_leg_pipeline():
     # curr_rss_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'rss_feeds', ENV)
     curr_committee_hearing_videos_df = get_current_table_data(duckdb_conn, 'lgover', OUT_DATASET_NAME, 'committee_hearing_videos', ENV)
 
-    bills(raw_bills_df, curr_bills_df, duckdb_conn),
-    authors(raw_bills_df, curr_authors_df, duckdb_conn),
-    subjects(raw_bills_df, curr_subjects_df, duckdb_conn),
-    committee_status(raw_bills_df, curr_committee_status_df, duckdb_conn),
-    versions(raw_bills_df, curr_versions_df, duckdb_conn),
-    actions(raw_bills_df, curr_actions_df, duckdb_conn),
-    companions(raw_bills_df, curr_companions_df, duckdb_conn),
-    links(raw_bills_df, config, curr_links_df, duckdb_conn),
-    committee_meetings(config, curr_committee_meetings_df, duckdb_conn),
-    committee_meeting_bills(config, curr_committee_meeting_bills_df, duckdb_conn),
-    bill_stages(raw_bills_df, config, curr_bill_stages_df, duckdb_conn),
-    complete_bills_list(raw_bills_df, curr_complete_bills_list_df, duckdb_conn),
-    upcoming_committee_meetings(config, duckdb_conn),
-    upcoming_committee_meeting_bills(config, duckdb_conn),
-    committee_hearing_videos(config, curr_committee_hearing_videos_df, duckdb_conn),
+    bills(raw_bills_df, curr_bills_df, duckdb_conn)
+    authors(raw_bills_df, curr_authors_df, duckdb_conn)
+    subjects(raw_bills_df, curr_subjects_df, duckdb_conn)
+    committee_status(raw_bills_df, curr_committee_status_df, duckdb_conn)
+    versions(raw_bills_df, curr_versions_df, duckdb_conn)
+    actions(raw_bills_df, curr_actions_df, duckdb_conn)
+    companions(raw_bills_df, curr_companions_df, duckdb_conn)
+    links(raw_bills_df, config, curr_links_df, duckdb_conn)
+    committee_meetings(config, curr_committee_meetings_df, duckdb_conn)
+    committee_meeting_bills(config, curr_committee_meeting_bills_df, duckdb_conn)
+    bill_stages(raw_bills_df, config, curr_bill_stages_df, duckdb_conn)
+    complete_bills_list(raw_bills_df, curr_complete_bills_list_df, duckdb_conn)
+    upcoming_committee_meetings(config, duckdb_conn)
+    upcoming_committee_meeting_bills(config, duckdb_conn)
+    committee_hearing_videos(config, curr_committee_hearing_videos_df, duckdb_conn)
     bill_texts(duckdb_conn, conn)
+    download_google_sheets(GSHEETS_CONFIG_PATH, ENV)
     # rss_feeds(config, curr_rss_df),
 
     duckdb_conn.close()
 
 if __name__ == "__main__":
     tx_leg_pipeline()
+    upload_google_sheets(GSHEETS_CONFIG_PATH, CONFIG_PATH, ENV)
