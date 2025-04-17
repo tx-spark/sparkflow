@@ -5,8 +5,8 @@ import logging
 import pandas as pd
 
 from prefect import flow, task
-from utils import FtpConnection, dataframe_to_bigquery, dataframe_to_duckdb, log_bq_load, get_current_table_data, determine_git_environment, read_gsheets_to_df, upload_google_sheets
-from extract_functions import *
+from .utils import FtpConnection, dataframe_to_bigquery, dataframe_to_duckdb, log_bq_load, get_current_table_data, determine_git_environment, read_gsheets_to_df, upload_google_sheets
+from .extract_functions import *
 
 ################################################################################
 # CONFIGURATION
