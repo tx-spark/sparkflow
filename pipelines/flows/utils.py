@@ -301,6 +301,7 @@ def upload_google_sheets(gsheets_config_path, config_path, env):
             raise ValueError(f"google_sheets_id cannot be empty for {upload['name']}")
 
     for upload in gsheets_config['uploads']:
+        logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Uploading {upload['name']} from {upload['project_id']}.{upload['dataset_id']}.{upload['table_id']} to {config['dev_google_sheets_id'] if env == 'dev' else upload['google_sheets_id']}")
         if env == 'dev':
             upload['dataset_id'] = 'dev_' + upload['dataset_id']
 
@@ -390,6 +391,7 @@ def bigquery_to_df(project_id, dataset_id, table_id, env):
     # Check if table exists
     try:
         bq_df = pd.DataFrame(bq.query(query))
+        bq_df.replace('<NA>',pd.NA, inplace=True)
         return bq_df
     except Exception as e:
         if "Not found: Table" in str(e):
@@ -403,6 +405,7 @@ def query_bq(query):
     # Check if table exists
     try:
         bq_df = pd.DataFrame(bq.query(query))
+        bq_df.replace('<NA>',pd.NA, inplace=True)
         return bq_df
     except Exception as e:
         if "Not found: Table" in str(e):
@@ -513,6 +516,7 @@ def get_current_table_data(duckdb_conn, project_id, dataset_id, table_id, env, l
         select * from {env_dataset_id}.{log_table_id}
         where project_id = '{project_id}' and dataset_id = '{env_dataset_id}' and table_id = '{table_id}'
         order by strptime(upload_time, '%Y-%m-%d %H:%M:%S') desc
+        limit 1
         """
         duckdb_log_df = duckdb_conn.sql(duckdb_query).df()
 

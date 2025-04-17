@@ -3,7 +3,7 @@ uploads:
     google_sheets_id: 1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM
     worksheet_name: "All House Bills"
     project_id: lgover
-    dataset_id: tx_leg_bills
+    dataset_id: dev_tx_leg_bills
     table_id: house_tracker
     replace_headers: false
     filters: 
@@ -15,7 +15,7 @@ uploads:
     google_sheets_id: 1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM
     worksheet_name: "All Senate Bills"
     project_id: lgover
-    dataset_id: tx_leg_bills
+    dataset_id: dev_tx_leg_bills
     table_id: senate_tracker
     filters: 
       - leg_id = "{LegSess}"
@@ -27,7 +27,7 @@ uploads:
     google_sheets_id: 1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM
     worksheet_name: "All HJRs"
     project_id: lgover
-    dataset_id: tx_leg_bills
+    dataset_id: dev_tx_leg_bills
     table_id: house_joint_resolution_tracker
     filters: 
       - leg_id = "{LegSess}"
@@ -39,7 +39,7 @@ uploads:
     google_sheets_id: 1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM
     worksheet_name: "All SJRs"
     project_id: lgover
-    dataset_id: tx_leg_bills
+    dataset_id: dev_tx_leg_bills
     table_id: senate_joint_resolution_tracker
     filters: 
       - leg_id = "{LegSess}"
@@ -51,7 +51,7 @@ uploads:
     google_sheets_id: 1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM
     worksheet_name: "House Bills Past Committee"
     project_id: lgover
-    dataset_id: tx_leg_bills
+    dataset_id: dev_tx_leg_bills
     table_id: house_bills_past_committee
     filters: 
       - leg_id = "{LegSess}"
@@ -63,7 +63,7 @@ uploads:
     google_sheets_id: 1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM
     worksheet_name: "H Bills By H Hearing Date"
     project_id: lgover
-    dataset_id: tx_leg_bills
+    dataset_id: dev_tx_leg_bills
     table_id: house_bills_by_hearing_date
     filters: 
       - leg_id = "{LegSess}"
@@ -75,7 +75,7 @@ uploads:
     google_sheets_id: 1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM
     worksheet_name: "S Bills By S Hearing Date"
     project_id: lgover
-    dataset_id: tx_leg_bills
+    dataset_id: dev_tx_leg_bills
     table_id: senate_bills_by_hearing_date
     filters: 
       - leg_id = "{LegSess}"
@@ -87,7 +87,7 @@ uploads:
     google_sheets_id: 1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM
     worksheet_name: "House Bills Past Committee"
     project_id: lgover
-    dataset_id: tx_leg_bills
+    dataset_id: dev_tx_leg_bills
     table_id: house_bills_past_committee
     filters: 
       - leg_id = "{LegSess}"
@@ -99,7 +99,7 @@ uploads:
     google_sheets_id: 1Wr0OIVbsquKTxGlnluSteBb1164JEUa1rlC-9C760jQ
     worksheet_name: "Bills Data"
     project_id: lgover
-    dataset_id: tx_leg_bills
+    dataset_id: dev_tx_leg_bills
     table_id: blue_action_data
     filters: 
       - leg_id = "{LegSess}"
