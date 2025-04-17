@@ -5,7 +5,7 @@ import logging
 import pandas as pd
 
 from prefect import flow
-from utils import FtpConnection, dataframe_to_bigquery, dataframe_to_duckdb, log_bq_load, get_current_table_data
+from utils import FtpConnection, dataframe_to_bigquery, dataframe_to_duckdb, log_bq_load, get_current_table_data, determine_git_environment
 from extract_functions import *
 
 ################################################################################
@@ -16,7 +16,7 @@ CONFIG_PATH = 'config.yaml'
 DUCKDB_NAME = "texas_bills"
 LOG_PATH = 'tx-leg.log'
 OUT_DATASET_NAME = 'tx_leg_raw_bills'
-ENV = 'dev'
+ENV = determine_git_environment()
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename=LOG_PATH, level=logging.DEBUG)
