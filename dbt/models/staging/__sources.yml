@@ -2,7 +2,7 @@ version: 2
 
 sources:
   - name: raw_bills
-    schema: dev_tx_leg_raw_bills
+    schema: tx_leg_raw_bills
     tables:
       - name: actions
       - name: authors
@@ -23,7 +23,7 @@ sources:
       - name: versions
 
   - name: bills
-    schema: dev_tx_leg_bills
+    schema: tx_leg_bills
     tables:
       - name: actions
       - name: authors
