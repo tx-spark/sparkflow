@@ -16,6 +16,7 @@ COPY uv.lock* .
 
 # Install dependencies with uv
 RUN uv pip install --system --no-cache-dir .
+RUN PARSONS_LIMITED_DEPENDENCIES=1 uv pip install "parsons[google,salesforce,s3] @ https://github.com/move-coop/parsons/archive/refs/heads/main.zip" --system --no-cache-dir
 
 # Runtime stage
 FROM python:3.13-slim-bookworm AS runtime
