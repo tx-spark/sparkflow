@@ -173,14 +173,10 @@ class FtpConnection:
                         page_text = page.extract_text()
                         if page_text:
                             text.append(page_text)
+                            print("Parsed page {i} of {total_pages}")
                         else:
-                            logger.warning(f"No text extracted from page {i+1}")
-                    except MemoryError as me:
-                        logger.error(f"Memory error on page {i+1}: {me}")
-                        # Try to free up memory
-                        import gc
-                        gc.collect()
-                        continue
+                            logger.warning(f"No text extracted from page {i+1} of {pdf_url}")
+                        page.flush_cache()
                     except Exception as e:
                         logger.error(f"Error extracting text from page {i+1}: {str(e)}")
                         continue
