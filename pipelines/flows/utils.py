@@ -171,9 +171,12 @@ class FtpConnection:
                     try:
                         logger.info(f"Processing page {i+1}/{total_pages}")
                         page_text = page.extract_text()
+                        print(f"--------- PAGE {page.page_number} ({len(temp)}) ----------")
+                        page.flush_cache()
+                        page.get_textmap.cache_clear()
                         if page_text:
                             text.append(page_text)
-                            print("Parsed page {i} of {total_pages}")
+                            print(f"Parsed page {i} of {total_pages}")
                         else:
                             logger.warning(f"No text extracted from page {i+1} of {pdf_url}")
                         page.flush_cache()
