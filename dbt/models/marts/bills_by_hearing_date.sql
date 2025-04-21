@@ -73,4 +73,4 @@ left join
             or (FORMAT_TIMESTAMP('%m/%d/%Y', committee_meeting_bills.meeting_datetime) = committee_hearing_videos.date)
         )
         and (committee_hearing_videos.part = 'I' or committee_hearing_videos.part is null)
-order by committee_meeting_bills.meeting_datetime desc
+order by committee_meeting_bills.meeting_datetime desc, committee_meeting_bills.committee_name, committee_meeting_bills.bill_id

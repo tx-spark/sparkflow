@@ -968,6 +968,19 @@ wheels = [
 ]
 
 [[package]]
+name = "gspread"
+version = "6.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-auth" },
+    { name = "google-auth-oauthlib" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/40/14/706185cd71b7181b4922717dae60ea7e4fa63ba5d9d078e88decf70ac4fd/gspread-6.2.0.tar.gz", hash = "sha256:bc3d02d1c39e0b40bfc8035b4fec407aa71a17f343fc81cc7e3f75bfa6555de6", size = 81974 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6f/bd/c1baae68301065079bd3c61150d27a9d4ec1ea4572d955362c810322d73c/gspread-6.2.0-py3-none-any.whl", hash = "sha256:7fa1a11e1ecacc6c5946fa016be05941baca8540404314f59aec963dd8ae5db3", size = 59870 },
+]
+
+[[package]]
 name = "h11"
 version = "0.14.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2463,12 +2476,14 @@ dependencies = [
     { name = "feedparser" },
     { name = "google-cloud-bigquery" },
     { name = "google-cloud-secret-manager" },
+    { name = "gspread" },
     { name = "pandas" },
     { name = "pdfplumber" },
     { name = "prefect" },
     { name = "prefect-gcp" },
     { name = "pydantic-core" },
     { name = "python-dotenv" },
+    { name = "pyyaml" },
 ]
 
 [package.dev-dependencies]
@@ -2489,12 +2504,14 @@ requires-dist = [
     { name = "feedparser", specifier = ">=6.0.11" },
     { name = "google-cloud-bigquery", specifier = ">=3.11.4" },
     { name = "google-cloud-secret-manager", specifier = ">=2.23.2" },
+    { name = "gspread", specifier = "==6.2.0" },
     { name = "pandas", specifier = ">=2.0.0" },
     { name = "pdfplumber", specifier = ">=0.11.6" },
     { name = "prefect", specifier = ">=3.2.15" },
     { name = "prefect-gcp", specifier = ">=0.6.4" },
     { name = "pydantic-core", specifier = ">=2.33.0" },
     { name = "python-dotenv", specifier = ">=1.1.0" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
 ]
 
 [package.metadata.requires-dev]
