@@ -171,7 +171,7 @@ class FtpConnection:
                     try:
                         logger.info(f"Processing page {i+1}/{total_pages}")
                         page_text = page.extract_text()
-                        print(f"--------- PAGE {page.page_number} ({len(temp)}) ----------")
+                        print(f"--------- PAGE {page.page_number} ({len(page_text)}) ----------")
                         page.flush_cache()
                         page.get_textmap.cache_clear()
                         if page_text:
