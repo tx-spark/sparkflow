@@ -168,12 +168,14 @@ class FtpConnection:
                         page_text = page.extract_text()
                         if page_text:
                             text.append(page_text)
+                            # print(page_text)
                     except Exception as e:
                         logger.warning(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Warning: Could not extract text from page: {e}")
                         continue
             
             return '\n'.join(text) if text else None
-                
+
+        print(f"Retrieving PDF text for {pdf_url}")
         return self._retry_on_disconnect(retrieve)
     
     def close(self):

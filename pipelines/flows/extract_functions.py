@@ -1422,6 +1422,7 @@ def get_bill_texts(duckdb_conn, ftp_conn, dataset_id, env, max_errors=5):
     error_count = 0
     for url in pdf_urls:
         try:
+            print(f"Getting PDF text for {url}")
             pdf_text = ftp_conn.get_pdf_text(url)
         except Exception as e:
             logger.debug(f"Failed to get PDF text for {url}: {e}")

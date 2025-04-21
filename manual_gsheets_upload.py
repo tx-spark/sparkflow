@@ -1,7 +1,6 @@
 import logging
 
-from utils import upload_google_sheets
-from extract_functions import *
+from pipelines.flows.utils import upload_google_sheets
 
 ################################################################################
 # CONFIGURATION
