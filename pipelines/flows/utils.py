@@ -1,6 +1,7 @@
 from ftplib import FTP
 from urllib.parse import urlparse
 import io
+import gc
 import atexit
 import gspread
 import pandas as pd
@@ -163,14 +164,25 @@ class FtpConnection:
             # Read PDF with pdfplumber
             with pdfplumber.open(buffer) as pdf:
                 text = []
-                for page in pdf.pages:
+                total_pages = len(pdf.pages)
+                logger.info(f"Processing PDF with {total_pages} pages")
+                
+                for i, page in enumerate(pdf.pages):
                     try:
+                        logger.info(f"Processing page {i+1}/{total_pages}")
                         page_text = page.extract_text()
                         if page_text:
                             text.append(page_text)
-                            # print(page_text)
+                        else:
+                            logger.warning(f"No text extracted from page {i+1}")
+                    except MemoryError as me:
+                        logger.error(f"Memory error on page {i+1}: {me}")
+                        # Try to free up memory
+                        import gc
+                        gc.collect()
+                        continue
                     except Exception as e:
-                        logger.warning(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Warning: Could not extract text from page: {e}")
+                        logger.error(f"Error extracting text from page {i+1}: {str(e)}")
                         continue
             
             return '\n'.join(text) if text else None
@@ -208,6 +220,7 @@ def write_df_to_gsheets(df, google_sheets_id, worksheet_name, minimize_to_rows=F
     The function will resize the worksheet to match the DataFrame dimensions (optionally)
     and write all data starting from cell A1.
     """
+
     google_sheets_df = df.copy()
     google_sheets_df.fillna('', inplace=True)
 
@@ -304,6 +317,7 @@ def upload_google_sheets(gsheets_config_path, config_path, env):
 
     for upload in gsheets_config['uploads']:
         logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Uploading {upload['name']} from {upload['project_id']}.{upload['dataset_id']}.{upload['table_id']} to {config['dev_google_sheets_id'] if env == 'dev' else upload['google_sheets_id']}")
+        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Uploading {upload['name']} from {upload['project_id']}.{upload['dataset_id']}.{upload['table_id']} to {config['dev_google_sheets_id'] if env == 'dev' else upload['google_sheets_id']}")
         if env == 'dev':
             upload['dataset_id'] = 'dev_' + upload['dataset_id']
 
