@@ -168,14 +168,11 @@ class FtpConnection:
                 
                 for i, page in enumerate(pdf.pages):
                     try:
-                        logger.info(f"Processing page {i+1}/{total_pages}")
                         page_text = page.extract_text()
-                        print(f"--------- PAGE {page.page_number} ({len(page_text)}) ----------")
                         page.flush_cache() # PDF Plumber is terrible, and holds soooo much memory for no reason. This gets rid of this
                         page.get_textmap.cache_clear() # You also need to get rid of it here lol
                         if page_text:
                             text.append(page_text)
-                            print(f"Parsed page {i} of {total_pages}")
                         else:
                             logger.warning(f"No text extracted from page {i+1} of {pdf_url}")
                         page.flush_cache()
