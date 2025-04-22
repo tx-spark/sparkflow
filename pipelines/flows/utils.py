@@ -1,7 +1,6 @@
 from ftplib import FTP
 from urllib.parse import urlparse
 import io
-import gc
 import atexit
 import gspread
 import pandas as pd
@@ -172,8 +171,8 @@ class FtpConnection:
                         logger.info(f"Processing page {i+1}/{total_pages}")
                         page_text = page.extract_text()
                         print(f"--------- PAGE {page.page_number} ({len(page_text)}) ----------")
-                        page.flush_cache()
-                        page.get_textmap.cache_clear()
+                        page.flush_cache() # PDF Plumber is terrible, and holds soooo much memory for no reason. This gets rid of this
+                        page.get_textmap.cache_clear() # You also need to get rid of it here lol
                         if page_text:
                             text.append(page_text)
                             print(f"Parsed page {i} of {total_pages}")
@@ -288,7 +287,7 @@ def read_gsheets_to_df(google_sheets_id, worksheet_name, header=0):
         logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- An error occurred: {e}")
         return None
     
-@task(retries=1, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
+@task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
 def upload_google_sheets(gsheets_config_path, config_path, env):
 
     with open(gsheets_config_path, 'r') as file:

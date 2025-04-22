@@ -379,6 +379,8 @@ select
         REPLACE(authors_agg.authors_list, '"', '""'),
         '")'
     ) as authors,
+    bill_tags_agg.tags,
+    INITCAP(bill_tags_agg.position) as position,
     bill_party.p_dem,
     links.captions, -- caption link
     IFNULL(bill_status.bill_status, 'Unassigned') as status,
@@ -430,11 +432,9 @@ select
     senate_committees_agg.committees_link as senate_committees,
     first_senate_committee_meeting_bills.meeting_datetime as first_senate_committee_meeting_datetime,
     first_senate_committee_meeting_bills.video_link as first_senate_committee_video_link,
-    first_senate_committee_meeting_bills.witness_list_pdf as first_senate_committee_witness_list_pdf,
+    first_senate_committee_meeting_bills.witness_list_pdf as first_senate_committee_witness_list_pdf
     -- first_senate_committee_meeting_bills.hearing_notice_pdf as first_senate_committee_hearing_notice_pdf,
     -- first_senate_committee_meeting_bills.minutes_pdf as first_senate_committee_minutes_pdf,
-    bill_tags_agg.tags,
-    INITCAP(bill_tags_agg.position) as position
 
 from complete_bills_list -- join on complete bills list so that the list includes Unassigned bills.
 
