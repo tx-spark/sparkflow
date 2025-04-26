@@ -180,7 +180,7 @@ class FtpConnection:
                         logger.error(f"Error extracting text from page {i+1}: {str(e)}")
                         continue
             
-            return '\n'.join(text) if text else None
+            return '\n'.join(text) if text else ''
 
         print(f"Retrieving PDF text for {pdf_url}")
         return self._retry_on_disconnect(retrieve)
