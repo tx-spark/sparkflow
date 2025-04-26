@@ -115,7 +115,7 @@ uploads:
     table_id: call2action
     filters: 
       - leg_id = "{LegSess}"
-    replace_headers: true
+    replace_headers: false
     drop_cols:
       - leg_id
 
