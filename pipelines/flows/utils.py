@@ -375,7 +375,9 @@ def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_dispo
     for col in df.columns:
         if df[col].dtype == 'datetime64[us]' or df[col].dtype == 'datetime64[ns]':
             df[col] = df[col].dt.strftime('%Y-%m-%d %H:%M:%S')
+
     df.replace('<NA>',pd.NA, inplace=True)
+    df.replace(pd.NA, None, inplace=True)
 
     tbl = Table.from_dataframe(df)
 
@@ -399,13 +401,13 @@ def bigquery_to_df(project_id, dataset_id, table_id, env):
     query = f"""
     SELECT * FROM `{project_id}.{dataset_id}.{table_id}`
     """
-    print(query)
 
     # Check if table exists
     try:
         result = bq.query(query)
         bq_df = pd.DataFrame(result)
-        bq_df.replace('<NA>',pd.NA, inplace=True)
+        bq_df.replace('<NA>',None, inplace=True)
+        bq_df.replace(pd.NA, None, inplace=True)
         return bq_df
     except Exception as e:
         if "Not found: Table" in str(e):
