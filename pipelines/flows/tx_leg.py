@@ -280,7 +280,7 @@ def tx_leg_pipeline():
 
     try:
         logger.info("datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting raw bills data extraction")
-        raw_bills_df = get_raw_bills_data(base_path, leg_session, conn)
+        # raw_bills_df = get_raw_bills_data(base_path, leg_session, conn)
         logger.info("Raw bills data extraction complete")
     except Exception as e:
         logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to get raw bills data: {e}")
