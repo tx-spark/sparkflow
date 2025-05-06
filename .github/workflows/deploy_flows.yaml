@@ -93,6 +93,7 @@ jobs:
       - name: Install Dependencies
         run: |
           uv pip install --system .
+          PARSONS_LIMITED_DEPENDENCIES=1 uv pip install "parsons[google,salesforce,s3] @ https://github.com/move-coop/parsons/archive/refs/heads/main.zip" --system --no-cache-dir
 
       - name: Prefect Deploy
         env:
