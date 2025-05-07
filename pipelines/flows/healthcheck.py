@@ -4,7 +4,6 @@ from prefect import task, flow
 import sys
 import parsons
 
-
 @task(log_prints=True)
 def log_platform_info(env=None):
     data = [

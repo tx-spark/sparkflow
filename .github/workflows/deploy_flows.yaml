@@ -93,6 +93,16 @@ jobs:
       - name: Install Dependencies
         run: |
           uv pip install --system .
+          PARSONS_LIMITED_DEPENDENCIES=1 uv pip install "parsons[google,salesforce,s3] @ https://github.com/move-coop/parsons/archive/refs/heads/main.zip" --system --no-cache-dir
+
+      - name: Validate Environment Variables
+        run: |
+          for var in ENVIRONMENT GCP_PROJECT_ID GAR_LOCATION GAR_REPOSITORY IMAGE_NAME; do
+            if [ -z "${!var}" ]; then
+              echo "Required environment variable $var is not set."
+              exit 1
+            fi
+          done
 
       - name: Prefect Deploy
         env:
