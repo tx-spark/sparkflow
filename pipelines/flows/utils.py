@@ -262,7 +262,10 @@ def read_gsheets_to_df(google_sheets_id, worksheet_name, header=0):
         Returns None if an error occurs.
     """
     try:
-        gc = gspread.service_account()
+        credentials_str = get_secret(secret_id='GOOGLE_SHEETS_SERVICE_ACCOUNT')
+        credentials = json.loads(credentials_str)
+        gc = gspread.service_account_from_dict(credentials)
+
         sh = gc.open_by_key(google_sheets_id)
         worksheet = sh.worksheet(worksheet_name)
 
@@ -320,7 +323,6 @@ def upload_google_sheets(gsheets_config_path, config_path, env):
             upload['dataset_id'] = 'dev_' + upload['dataset_id']
 
         # TO DO: Add logic to handle the case where the table doesn't exist in BigQuery
-        # TO DO: ADD DUCKDB
         query = f""" select * except({','.join(upload['drop_cols'])})
         from `{upload['project_id']}.{upload['dataset_id']}.{upload['table_id']}` 
         where {' AND '.join(upload['filters'])}
@@ -335,7 +337,10 @@ def upload_google_sheets(gsheets_config_path, config_path, env):
 
         if df is not None:
             if env == 'dev':
-                gc = gspread.service_account()
+                credentials_str = get_secret(secret_id='GOOGLE_SHEETS_SERVICE_ACCOUNT')
+                credentials = json.loads(credentials_str)
+                gc = gspread.service_account_from_dict(credentials)
+
                 sh = gc.open_by_key(config['dev_google_sheets_id'])
                 worksheets = sh.worksheets()
                 worksheet_names = [worksheet.title for worksheet in worksheets]
@@ -475,13 +480,10 @@ def dataframe_to_duckdb(df, duckdb_conn, dataset_id, table_id, env,write_disposi
         raise ValueError(f"Invalid write disposition: {write_disposition}")
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loaded {len(df)} rows to {destination}")
 
-def log_bq_load(project_id, dataset_id, table_id, env, write_disposition, duckdb_conn, log_table_id = '_log_bq_load'):
+def log_bq_load(project_id, dataset_id, table_id, env, write_disposition, log_table_id = '_log_bq_load'):
     """
-    Log the BigQuery load to a table in DuckDB and BigQuery.
+    Log the BigQuery load to a table in BigQuery.
     """
-
-    if env == 'dev':
-        dataset_id = f"dev_{dataset_id}"
 
     current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     upload_desc = [
@@ -497,77 +499,19 @@ def log_bq_load(project_id, dataset_id, table_id, env, write_disposition, duckdb
     upload_desc_df = pd.DataFrame(upload_desc)
     upload_desc_df['upload_time'] = current_time
 
-    if env == 'dev':
-        dataset_id = f"dev_{dataset_id}"
-
-    dataframe_to_duckdb(upload_desc_df, duckdb_conn, dataset_id, log_table_id, env, 'append')
     dataframe_to_bigquery(upload_desc_df, project_id, dataset_id, log_table_id, env, 'append')
 
-def get_current_table_data(duckdb_conn, project_id, dataset_id, table_id, env, log_table_id = '_log_bq_load', use_cache = True):
+def get_current_table_data(project_id, dataset_id, table_id, env):
     """
-    Intution here is that I'm caching the data in DuckDB. First check the logs to see if the most recent loads match up.
-    If they do, return the data from DuckDB. If they don't, return the table from BigQuery.
-
-    If the table doesn't exist in either, return None
+    Relic function. TO DO: rewrite / delete this
     """
 
-    env_dataset_id = dataset_id
-    if env == "dev":
-        env_dataset_id = f"dev_{dataset_id}"
-
-    if not use_cache:
-        try:
-            bq_df = bigquery_to_df(project_id, dataset_id, table_id, env)
-        except Exception as e:
-            logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Error querying BigQuery table {project_id}.{dataset_id}.{table_id}: {e}")
-            return None
-        return bq_df
-
-    # check if logs for this table match duckdb table
     try:
-        bq_query = f"""
-        SELECT * FROM `{project_id}.{env_dataset_id}.{log_table_id}`
-        where project_id = '{project_id}' and dataset_id = '{env_dataset_id}' and table_id = '{table_id}'
-        order by PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S', upload_time) desc
-        limit 1
-        """
-        bq_log_df = query_bq(bq_query)
+        bq_df = bigquery_to_df(project_id, dataset_id, table_id, env)
     except Exception as e:
-        logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Error querying BigQuery logs: {e}")
-        bq_log_df = None
-
-    try:
-        duckdb_query = f"""
-        select * from {env_dataset_id}.{log_table_id}
-        where project_id = '{project_id}' and dataset_id = '{env_dataset_id}' and table_id = '{table_id}'
-        order by strptime(upload_time, '%Y-%m-%d %H:%M:%S') desc
-        limit 1
-        """
-        duckdb_log_df = duckdb_conn.sql(duckdb_query).df()
-
-    except Exception as e:
-        logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Error querying DuckDB logs: {e}")
-        duckdb_log_df = None
-
-    if bq_log_df is None and duckdb_log_df is None:
+        logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Error querying BigQuery table {project_id}.{dataset_id}.{table_id}: {e}")
         return None
-    if bq_log_df is None or len(bq_log_df) == 0: # TO DO: Create better logic for this in cases where logging hasn't been done yet
-        return None
-    elif duckdb_log_df is not None and len(duckdb_log_df) > 0 and bq_log_df['upload_time'].iloc[0] == duckdb_log_df['upload_time'].iloc[0] and bq_log_df['write_disposition'].iloc[0] == duckdb_log_df['write_disposition'].iloc[0] and duckdb_log_df['write_disposition'].iloc[0] != 'append': ## If they match, get the data from DuckDB. If there was an append, we don't know if there is the same history in BigQuery, so we don't know if the data is the same.
-        try:
-            duckdb_df = duckdb_conn.sql(f"SELECT * FROM {dataset_id}.{table_id}").df()
-        except Exception as e:
-            logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Error querying DuckDB table: {e}")
-            return None
-        return duckdb_df
-    else:
-        ## If they don't match, get the data from BigQuery
-        try:
-            bq_df = bigquery_to_df(project_id, dataset_id, table_id, env)
-        except Exception as e:
-            logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Error querying BigQuery table {project_id}.{dataset_id}.{table_id}: {e}")
-            return None
-        return bq_df
+    return bq_df
         
 ################################################################################
 # FROM https://github.com/matthewkrausse/parsons-prefect-dbt-cloud-tutorial

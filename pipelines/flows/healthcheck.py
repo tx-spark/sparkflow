@@ -2,7 +2,15 @@ import platform
 import prefect
 from prefect import task, flow
 import sys
+import os
 import parsons
+
+@task(log_prints=True)
+def check_env_variables(env=None):
+    required_env_vars = ["ENVIRONMENT", "GCP_PROJECT_ID", "GAR_LOCATION", "GAR_REPOSITORY", "IMAGE_NAME"]
+    for var in required_env_vars:
+        if not os.environ.get(var):
+            raise ValueError(f"Missing required environment variable: {var}")
 
 @task(log_prints=True)
 def log_platform_info(env=None):
@@ -29,6 +37,7 @@ def healthcheck(env=None):
     Healthcheck flow to log platform information and environment details.
     """
     log_platform_info(env=env)
+    check_env_variables()
 
 
 if __name__ == "__main__":
