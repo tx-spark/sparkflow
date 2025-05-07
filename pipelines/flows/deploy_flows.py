@@ -48,15 +48,10 @@ work_pool_name = "prod-cloud-work-pool" if is_prod else "dev-cloud-work-pool"
 # Define a list of flows to deploy
 flows_to_deploy = [
     {
-        "flow": healthcheck,
-        "name": "Parsons Data Pipeline Healthcheck",
-        "schedule": None,  # No schedule for dev
-    },
-    {
         "flow": tx_leg_pipeline,
         "name": "Pipeline to pull Texas Legislature Bills",
-        "schedule": "0 21 * * *",  # Daily at 9 PM
-    },
+        "schedule": "0 0 * * *",  # Daily at 9 PM
+    }
     # Add additional flows to deploy here
     # Example:
     # {
