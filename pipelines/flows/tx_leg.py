@@ -31,7 +31,7 @@ def download_google_sheet(google_sheets_id, worksheet_name, output_table_id):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process {output_table_id} data")
     google_sheets_df = read_gsheets_to_df(google_sheets_id, worksheet_name)
     dataframe_to_bigquery(google_sheets_df, 'lgover', OUT_DATASET_NAME, output_table_id, ENV, 'drop')
-    log_bq_load('lgover', OUT_DATASET_NAME, output_table_id, ENV, 'drop')
+    log_bq_load('lgover', OUT_DATASET_NAME, output_table_id, ENV, 'drop', sys.getsizeof(google_sheets_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- {output_table_id} data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
