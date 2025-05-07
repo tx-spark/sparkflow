@@ -71,7 +71,7 @@ if __name__ == "__main__":
         # Create deployment name with environment prefix
         deployment_name = base_deployment_name
         if not is_prod:
-            deployment_name = f"DEV-{deployment_name}"
+            deployment_name = f"DEV - {deployment_name}"
 
         # Environment-specific parameters
         flow_parameters = {"env": environment}
