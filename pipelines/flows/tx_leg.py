@@ -2,7 +2,7 @@ import sys
 import yaml
 import datetime
 import logging
-import pandas as pd
+import google.auth
 
 from prefect import flow, task
 from utils import FtpConnection, dataframe_to_bigquery, log_bq_load, get_current_table_data, determine_git_environment, read_gsheets_to_df, upload_google_sheets
@@ -249,6 +249,11 @@ def versions(raw_bills_df):
     log_bq_load('lgover', OUT_DATASET_NAME, 'versions', ENV, 'drop', sys.getsizeof(result_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Versions data processing complete")
 
+def get_current_google_account():
+    credentials, project = google.auth.default()
+    print("Account email:", credentials.service_account_email if hasattr(credentials, 'service_account_email') else "Not a service account")
+    print("Project ID:", project)
+
 ################################################################################
 # MAIN
 ################################################################################
@@ -259,9 +264,10 @@ def tx_leg_pipeline(env=None):
     logger = logging.getLogger(__name__)
     print('USING ENV: ', ENV)
 
-    start_time = datetime.datetime.now()
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
+
+    get_current_google_account()
 
 
     try:
