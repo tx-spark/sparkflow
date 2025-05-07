@@ -259,7 +259,7 @@ def versions(raw_bills_df, curr_versions_df=None, duckdb_conn = None):
 ################################################################################
 
 @flow(name="Texas Leg Pipeline", log_prints=True)
-def tx_leg_pipeline():
+def tx_leg_pipeline(env=None):
 
     logger = logging.getLogger(__name__)
     print('USING ENV: ', ENV)
