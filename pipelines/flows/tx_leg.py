@@ -249,20 +249,6 @@ def versions(raw_bills_df):
     log_bq_load('lgover', OUT_DATASET_NAME, 'versions', ENV, 'drop', sys.getsizeof(result_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Versions data processing complete")
 
-import subprocess
-
-def get_gcloud_active_account():
-    try:
-        result = subprocess.run(
-            ["gcloud", "auth", "list", "--filter=status:ACTIVE", "--format=value(account)"],
-            capture_output=True, text=True, check=True
-        )
-        account = result.stdout.strip()
-        print("Active Google account:", account)
-    except subprocess.CalledProcessError as e:
-        print("Failed to get active account:", e)
-
-
 ################################################################################
 # MAIN
 ################################################################################
@@ -275,9 +261,6 @@ def tx_leg_pipeline(env=None):
 
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
-
-    get_gcloud_active_account()
-
 
     try:
         conn = FtpConnection(config['sources']['ftp']['host'])
