@@ -480,7 +480,7 @@ def dataframe_to_duckdb(df, duckdb_conn, dataset_id, table_id, env,write_disposi
         raise ValueError(f"Invalid write disposition: {write_disposition}")
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loaded {len(df)} rows to {destination}")
 
-def log_bq_load(project_id, dataset_id, table_id, env, write_disposition, log_table_id = '_log_bq_load'):
+def log_bq_load(project_id, dataset_id, table_id, env, write_disposition, nbytes, log_table_id = '_log_bq_load'):
     """
     Log the BigQuery load to a table in BigQuery.
     """
@@ -491,7 +491,8 @@ def log_bq_load(project_id, dataset_id, table_id, env, write_disposition, log_ta
             'project_id':project_id,
             'dataset_id':dataset_id,
             'table_id':table_id,
-            'write_disposition':write_disposition
+            'write_disposition':write_disposition,
+            'bytes':nbytes
         }
     ]
 

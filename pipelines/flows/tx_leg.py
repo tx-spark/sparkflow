@@ -1,3 +1,4 @@
+import sys
 import yaml
 import datetime
 import logging
@@ -53,7 +54,7 @@ def bills(raw_bills_df):
     
     result_df = merge_with_current_data(bills_df, curr_bills_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'bills', ENV, 'drop')
-    log_bq_load('lgover', OUT_DATASET_NAME, 'bills', ENV, 'drop')
+    log_bq_load('lgover', OUT_DATASET_NAME, 'bills', ENV, 'drop', sys.getsizeof(result_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Bills data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
@@ -65,7 +66,7 @@ def actions(raw_bills_df):
 
     result_df = result_df.drop_duplicates()
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'actions', ENV, 'drop')
-    log_bq_load('lgover', OUT_DATASET_NAME, 'actions', ENV, 'drop')
+    log_bq_load('lgover', OUT_DATASET_NAME, 'actions', ENV, 'drop', sys.getsizeof(result_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Actions data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
@@ -76,7 +77,7 @@ def authors(raw_bills_df):
     
     result_df = merge_with_current_data(authors_df, curr_authors_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'authors', ENV, 'drop')
-    log_bq_load('lgover', OUT_DATASET_NAME, 'authors', ENV, 'drop')
+    log_bq_load('lgover', OUT_DATASET_NAME, 'authors', ENV, 'drop', sys.getsizeof(result_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Authors data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
@@ -87,7 +88,7 @@ def bill_stages(raw_bills_df, config):
     
     result_df = merge_with_current_data(bill_stages_df, curr_bill_stages_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'bill_stages', ENV, 'drop')
-    log_bq_load('lgover', OUT_DATASET_NAME, 'bill_stages', ENV, 'drop')
+    log_bq_load('lgover', OUT_DATASET_NAME, 'bill_stages', ENV, 'drop', sys.getsizeof(result_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Bill stages data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
@@ -96,8 +97,9 @@ def bill_texts(ftp_conn):
     first_seen_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
     bill_texts_df = get_bill_texts(ftp_conn, OUT_DATASET_NAME, ENV)
     bill_texts_df['seen_at'] = first_seen_at
+
     dataframe_to_bigquery(bill_texts_df, 'lgover', OUT_DATASET_NAME, 'bill_texts', ENV, 'append')
-    log_bq_load('lgover', OUT_DATASET_NAME, 'bill_texts', ENV, 'append')
+    log_bq_load('lgover', OUT_DATASET_NAME, 'bill_texts', ENV, 'append', sys.getsizeof(bill_texts_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Bill texts data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
@@ -108,7 +110,7 @@ def committee_status(raw_bills_df):
     
     result_df = merge_with_current_data(committees_df, curr_committee_status_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'committee_status', ENV, 'drop')
-    log_bq_load('lgover', OUT_DATASET_NAME, 'committees', ENV, 'drop')
+    log_bq_load('lgover', OUT_DATASET_NAME, 'committees', ENV, 'drop', sys.getsizeof(result_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Committees data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
@@ -119,7 +121,7 @@ def committee_hearing_videos(config):
     
     result_df = merge_with_current_data(committee_hearing_videos_df, curr_committee_hearing_videos_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'committee_hearing_videos', ENV, 'drop')
-    log_bq_load('lgover', OUT_DATASET_NAME, 'committee_hearing_videos', ENV, 'drop')
+    log_bq_load('lgover', OUT_DATASET_NAME, 'committee_hearing_videos', ENV, 'drop', sys.getsizeof(result_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Committee hearing videos data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
@@ -130,7 +132,7 @@ def committee_meetings(config):
     
     result_df = merge_with_current_data(committee_meetings_df, curr_committee_meetings_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'committee_meetings', ENV, 'drop')
-    log_bq_load('lgover', OUT_DATASET_NAME, 'committee_meetings', ENV, 'drop')
+    log_bq_load('lgover', OUT_DATASET_NAME, 'committee_meetings', ENV, 'drop', sys.getsizeof(result_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Committee meetings data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
@@ -141,7 +143,7 @@ def committee_meeting_bills(config):
     
     result_df = merge_with_current_data(committee_meeting_bills_df, curr_committee_meeting_bills_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'committee_meeting_bills', ENV, 'drop')
-    log_bq_load('lgover', OUT_DATASET_NAME, 'committee_meeting_bills', ENV, 'drop')
+    log_bq_load('lgover', OUT_DATASET_NAME, 'committee_meeting_bills', ENV, 'drop', sys.getsizeof(result_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Committee meeting bills data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
@@ -151,7 +153,7 @@ def committee_meetings_links(config, curr_committee_meetings_df=None):
     
     result_df = merge_with_current_data(committee_meetings_df, curr_committee_meetings_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'committee_meetings_links', ENV, 'drop')
-    log_bq_load('lgover', OUT_DATASET_NAME, 'committee_meetings_links', ENV, 'drop')
+    log_bq_load('lgover', OUT_DATASET_NAME, 'committee_meetings_links', ENV, 'drop', sys.getsizeof(result_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Committee meetings links data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
@@ -162,7 +164,7 @@ def companions(raw_bills_df):
 
     result_df = merge_with_current_data(companions_df, curr_companions_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'companions', ENV, 'drop')
-    log_bq_load('lgover', OUT_DATASET_NAME, 'companions', ENV, 'drop')
+    log_bq_load('lgover', OUT_DATASET_NAME, 'companions', ENV, 'drop', sys.getsizeof(result_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Companions data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
@@ -173,7 +175,7 @@ def complete_bills_list(raw_bills_df):
     
     result_df = merge_with_current_data(complete_bills_list_df, curr_complete_bills_list_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'complete_bills_list', ENV, 'drop')
-    log_bq_load('lgover', OUT_DATASET_NAME, 'complete_bills_list', ENV, 'drop')
+    log_bq_load('lgover', OUT_DATASET_NAME, 'complete_bills_list', ENV, 'drop', sys.getsizeof(result_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Complete bills list data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
@@ -184,7 +186,7 @@ def links(raw_bills_df, config):
     
     result_df = merge_with_current_data(links_df, curr_links_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'links', ENV, 'drop')
-    log_bq_load('lgover', OUT_DATASET_NAME, 'links', ENV, 'drop')
+    log_bq_load('lgover', OUT_DATASET_NAME, 'links', ENV, 'drop', sys.getsizeof(result_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Links data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
@@ -194,7 +196,7 @@ def sponsors(raw_bills_df, curr_sponsors_df=None):
     
     result_df = merge_with_current_data(sponsors_df, curr_sponsors_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'sponsors', ENV, 'drop')
-    log_bq_load('lgover', OUT_DATASET_NAME, 'sponsors', ENV, 'drop')
+    log_bq_load('lgover', OUT_DATASET_NAME, 'sponsors', ENV, 'drop', sys.getsizeof(result_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Sponsors data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
@@ -205,7 +207,7 @@ def subjects(raw_bills_df):
     
     result_df = merge_with_current_data(subjects_df, curr_subjects_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'subjects', ENV, 'drop')
-    log_bq_load('lgover', OUT_DATASET_NAME, 'subjects', ENV, 'drop')
+    log_bq_load('lgover', OUT_DATASET_NAME, 'subjects', ENV, 'drop', sys.getsizeof(result_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Subjects data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
@@ -215,7 +217,7 @@ def rss_feeds(config, curr_rss_df=None):
     
     result_df = merge_with_current_data(rss_df, curr_rss_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'rss_feeds', ENV, 'drop')
-    log_bq_load('lgover', OUT_DATASET_NAME, 'rss_feeds', ENV)
+    log_bq_load('lgover', OUT_DATASET_NAME, 'rss_feeds', ENV, sys.getsizeof(result_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- RSS feeds data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
@@ -224,7 +226,7 @@ def upcoming_committee_meetings(config):
     upcoming_meetings_df = get_upcoming_committee_meetings(config)
     upcoming_meetings_df['seen_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
     dataframe_to_bigquery(upcoming_meetings_df, 'lgover', OUT_DATASET_NAME, 'upcoming_committee_meetings', ENV, 'append')
-    log_bq_load('lgover', OUT_DATASET_NAME, 'upcoming_committee_meetings', ENV, 'append')
+    log_bq_load('lgover', OUT_DATASET_NAME, 'upcoming_committee_meetings', ENV, 'append', sys.getsizeof(upcoming_meetings_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Upcoming committee meetings data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
@@ -233,7 +235,7 @@ def upcoming_committee_meeting_bills(config):
     upcoming_meeting_bills_df = get_upcoming_committee_meeting_bills(config)
     upcoming_meeting_bills_df['seen_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
     dataframe_to_bigquery(upcoming_meeting_bills_df, 'lgover', OUT_DATASET_NAME, 'upcoming_committee_meeting_bills', ENV, 'append')
-    log_bq_load('lgover', OUT_DATASET_NAME, 'upcoming_committee_meeting_bills', ENV, 'append')
+    log_bq_load('lgover', OUT_DATASET_NAME, 'upcoming_committee_meeting_bills', ENV, 'append', sys.getsizeof(upcoming_meeting_bills_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Upcoming committee meeting bills data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
@@ -244,7 +246,7 @@ def versions(raw_bills_df):
     
     result_df = merge_with_current_data(versions_df, curr_versions_df)
     dataframe_to_bigquery(result_df, 'lgover', OUT_DATASET_NAME, 'versions', ENV, 'drop')
-    log_bq_load('lgover', OUT_DATASET_NAME, 'versions', ENV, 'drop')
+    log_bq_load('lgover', OUT_DATASET_NAME, 'versions', ENV, 'drop', sys.getsizeof(result_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Versions data processing complete")
 
 ################################################################################
