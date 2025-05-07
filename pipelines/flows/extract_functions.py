@@ -621,6 +621,7 @@ def get_indv_bill_stages(bill_stages_url, bill_id, leg_id):
 
     return stages
 
+@task(retries=0, log_prints=False, cache_policy=NO_CACHE,timeout_seconds=3600)
 def get_bill_stages(bill_stages_url, raw_bills_df, max_errors=5, log_every=20):
     bill_stages = []
     error_count = 0
@@ -1445,7 +1446,7 @@ def get_bill_texts(duckdb_conn, ftp_conn, dataset_id, env, max_errors=5):
         raise Exception(f"Failed to get PDF text for {error_count} bills")
     return pd.DataFrame(pdf_texts)
 
-@task(retries=0, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
+@task(retries=0, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE, timeout_seconds=3600)
 def get_raw_bills_data(base_path, leg_session, ftp_connection, max_errors=5):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting raw bills data extraction")
     try:
