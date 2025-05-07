@@ -43,7 +43,7 @@ full_image_name = f"{GAR_LOCATION}-docker.pkg.dev/{GCP_PROJECT_ID}/{GAR_REPOSITO
 print(f"Using Docker image: {full_image_name}")
 
 # Configure work pool based on environment
-work_pool_name = "prod-cloud-run-pool" if is_prod else "dev-cloud-run-pool"
+work_pool_name = "prod-cloud-work-pool" if is_prod else "dev-cloud-work-pool"
 
 # Define a list of flows to deploy
 flows_to_deploy = [
