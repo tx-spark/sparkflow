@@ -695,6 +695,7 @@ def get_bill_urls(base_path, leg_session, ftp_connection, max_errors=5):
         
     return bill_urls
 
+@task(retries=3, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
 def parse_bill_xml(ftp_connection, url):
     """
     Parse bill XML data from a URL into a standardized dictionary format.
@@ -1402,7 +1403,7 @@ def get_committee_meeting_bills_data(config):
     return bills_df
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
-def get_bill_texts(duckdb_conn, ftp_conn, dataset_id, env, max_errors=5, log_prop=0.05):
+def get_bill_texts(duckdb_conn, ftp_conn, dataset_id, env, max_errors=5):
     # Check if curr_bill_texts table exists
     curr_bill_texts_df = get_current_table_data(duckdb_conn, 'lgover', dataset_id, 'bill_texts', env)
     curr_versions_df = get_current_table_data(duckdb_conn, 'lgover', dataset_id, 'versions', env)
@@ -1425,10 +1426,7 @@ def get_bill_texts(duckdb_conn, ftp_conn, dataset_id, env, max_errors=5, log_pro
     log_count = 0
     for url in pdf_urls:
         # some logging
-        if log_count >=1:
-            print(url)
-            log_count = 0
-        log_count += log_prop
+        print(url)
 
         try:
             print(f"Getting PDF text for {url}")
