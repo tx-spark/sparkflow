@@ -11,6 +11,7 @@ import datetime
 from parsons import GoogleBigQuery, Table
 
 import os
+import json
 import subprocess
 from google.cloud import secretmanager
 import dotenv
@@ -219,7 +220,9 @@ def write_df_to_gsheets(df, google_sheets_id, worksheet_name, minimize_to_rows=F
     google_sheets_df = df.copy()
     google_sheets_df.fillna('', inplace=True)
 
-    gc = gspread.service_account()
+    credentials_str = get_secret(secret_id='GOOGLE_SHEETS_SERVICE_ACCOUNT')
+    credentials = json.loads(credentials_str)
+    gc = gspread.service_account_from_dict(credentials)
 
     sh = gc.open_by_key(google_sheets_id)
 
