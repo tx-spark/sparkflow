@@ -621,12 +621,14 @@ def get_indv_bill_stages(bill_stages_url, bill_id, leg_id):
 
     return stages
 
-def get_bill_stages(bill_stages_url, raw_bills_df, max_errors=5):
+def get_bill_stages(bill_stages_url, raw_bills_df, max_errors=5, log_every=20):
     bill_stages = []
     error_count = 0
-    for _, row in raw_bills_df.iterrows():
+    for i, row in raw_bills_df.iterrows():
         bill_id, leg_id = clean_bill_id(row['bill_id'])
         try:
+            if i % log_every == 0:
+                print(f'Getting bill stages for {bill_id} in the {leg_id} leg session.')
             bill_stages.extend(get_indv_bill_stages(bill_stages_url, bill_id, leg_id))
         except Exception as e:
             print(f"Error getting bill stages for {bill_id}: {e}")
@@ -1400,7 +1402,7 @@ def get_committee_meeting_bills_data(config):
     return bills_df
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
-def get_bill_texts(duckdb_conn, ftp_conn, dataset_id, env, max_errors=5):
+def get_bill_texts(duckdb_conn, ftp_conn, dataset_id, env, max_errors=5, log_prop=0.05):
     # Check if curr_bill_texts table exists
     curr_bill_texts_df = get_current_table_data(duckdb_conn, 'lgover', dataset_id, 'bill_texts', env)
     curr_versions_df = get_current_table_data(duckdb_conn, 'lgover', dataset_id, 'versions', env)
@@ -1420,7 +1422,14 @@ def get_bill_texts(duckdb_conn, ftp_conn, dataset_id, env, max_errors=5):
 
     pdf_texts = []
     error_count = 0
+    log_count = 0
     for url in pdf_urls:
+        # some logging
+        if log_count >=1:
+            print(url)
+            log_count = 0
+        log_count += log_prop
+
         try:
             print(f"Getting PDF text for {url}")
             pdf_text = ftp_conn.get_pdf_text(url)
