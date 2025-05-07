@@ -12,6 +12,8 @@ with committee_meeting_bills as (
                 when time like '%upon adjournment%' then '5:00 PM' -- Approximate time for adjournment
                 when time like '%upon final%' then '6:00 PM' -- Approximate time for final adjournment
                 when time like '%during reading%' then '2:00 PM' -- Approximate time for during reading
+                when lower(time) like '%upon lunch%' then '1:00 PM'
+                when lower(time) like '%upon%' then '1:00 PM'
                 else time
             end
         ) as meeting_datetime,
@@ -23,6 +25,8 @@ with committee_meeting_bills as (
                 when time like '%upon adjournment%' then 'Upon adjournment'
                 when time like '%upon final%' then 'Upon final adjournment'
                 when time like '%during reading%' then 'During reading & referral'
+                when lower(time) like '%upon lunch%' then 'Upon lunch'
+                when lower(time) like '%upon%' then time
                 else time
             end
         ) as meeting_datetime_text,
