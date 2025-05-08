@@ -7,6 +7,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 import json
 import logging
+import duckdb
 
 from prefect import task
 from prefect.cache_policies import NO_CACHE
@@ -121,12 +122,6 @@ def merge_with_current_data(new_df, curr_df):
     merged = merged.replace(placeholder, pd.NA)
     
     return merged
-
-# def get_current_table_data(duckdb_conn, table_name, dataset_name):
-#     curr_df = None
-#     if duckdb_conn.sql(f"SELECT count(*) FROM information_schema.tables WHERE table_name = '{table_name}' AND table_schema = '{dataset_name}'").fetchone()[0] > 0:
-#         curr_df = duckdb_conn.table(f"{dataset_name}.{table_name}").df()
-#     return curr_df
 
 
 
@@ -621,12 +616,15 @@ def get_indv_bill_stages(bill_stages_url, bill_id, leg_id):
 
     return stages
 
-def get_bill_stages(bill_stages_url, raw_bills_df, max_errors=5):
+@task(retries=0, log_prints=False, cache_policy=NO_CACHE,timeout_seconds=3600)
+def get_bill_stages(bill_stages_url, raw_bills_df, max_errors=5, log_every=20):
     bill_stages = []
     error_count = 0
-    for _, row in raw_bills_df.iterrows():
+    for i, row in raw_bills_df.iterrows():
         bill_id, leg_id = clean_bill_id(row['bill_id'])
         try:
+            if i % log_every == 0:
+                print(f'Getting bill stages for {bill_id} in the {leg_id} leg session.')
             bill_stages.extend(get_indv_bill_stages(bill_stages_url, bill_id, leg_id))
         except Exception as e:
             print(f"Error getting bill stages for {bill_id}: {e}")
@@ -1400,10 +1398,10 @@ def get_committee_meeting_bills_data(config):
     return bills_df
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
-def get_bill_texts(duckdb_conn, ftp_conn, dataset_id, env, max_errors=5):
+def get_bill_texts(ftp_conn, dataset_id, env, max_errors=5):
     # Check if curr_bill_texts table exists
-    curr_bill_texts_df = get_current_table_data(duckdb_conn, 'lgover', dataset_id, 'bill_texts', env)
-    curr_versions_df = get_current_table_data(duckdb_conn, 'lgover', dataset_id, 'versions', env)
+    curr_bill_texts_df = get_current_table_data('lgover', dataset_id, 'bill_texts', env)
+    curr_versions_df = get_current_table_data('lgover', dataset_id, 'versions', env)
 
     if curr_bill_texts_df is None and curr_versions_df is None:
         logger.error(f"No table found in {dataset_id}.bill_texts or {dataset_id}.versions")
@@ -1412,15 +1410,18 @@ def get_bill_texts(duckdb_conn, ftp_conn, dataset_id, env, max_errors=5):
         logger.error(f"No table found in {dataset_id}.versions. Unable to get urls for bill texts")
         raise ValueError(f"No table found in {dataset_id}.versions. Unable to get urls for bill texts")
     elif curr_bill_texts_df is None:
-        pdf_urls = duckdb_conn.sql(f'select ftp_pdf_url from curr_versions_df group by 1;').df()
+        pdf_urls = duckdb.sql(f'select ftp_pdf_url from curr_versions_df group by 1;').df()
     else:
-        pdf_urls = duckdb_conn.sql(f'select ftp_pdf_url from curr_versions_df where ftp_pdf_url not in (select ftp_pdf_url from curr_bill_texts_df where text is not null) group by 1;').df()
+        pdf_urls = duckdb.sql(f'select ftp_pdf_url from curr_versions_df where ftp_pdf_url not in (select ftp_pdf_url from curr_bill_texts_df where text is not null) group by 1;').df()
     
     pdf_urls = pdf_urls['ftp_pdf_url'].tolist()
 
     pdf_texts = []
     error_count = 0
     for url in pdf_urls:
+        # some logging
+        print(url)
+
         try:
             print(f"Getting PDF text for {url}")
             pdf_text = ftp_conn.get_pdf_text(url)
@@ -1438,7 +1439,7 @@ def get_bill_texts(duckdb_conn, ftp_conn, dataset_id, env, max_errors=5):
         raise Exception(f"Failed to get PDF text for {error_count} bills")
     return pd.DataFrame(pdf_texts)
 
-@task(retries=0, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
+@task(retries=0, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE, timeout_seconds=3600)
 def get_raw_bills_data(base_path, leg_session, ftp_connection, max_errors=5):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting raw bills data extraction")
     try:

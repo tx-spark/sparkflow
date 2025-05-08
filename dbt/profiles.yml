@@ -1,0 +1,21 @@
+texas_leg_scraper:
+  target: dev
+  outputs:
+    duckdb:
+      type: duckdb
+      path: '../texas_bills.duckdb'
+      schema: 'bills'
+      extensions:
+        - httpfs
+        - parquet
+      external_root: 'data/curated'
+    dev:
+      type: bigquery
+      method: service-account
+      project: lgover
+      dataset: tx_leg_bills # Change to your development dataset
+      keyfile: /Users/lucasgover/.config/keys/tx-leg-service-account.json # DONT CHANGE, set at runtime, Path to your GCP service account key
+      threads: 4
+      timeout_seconds: 300
+      location: US
+      priority: interactive

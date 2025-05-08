@@ -48,15 +48,10 @@ work_pool_name = "prod-cloud-work-pool" if is_prod else "dev-cloud-work-pool"
 # Define a list of flows to deploy
 flows_to_deploy = [
     {
-        "flow": healthcheck,
-        "name": "Parsons Data Pipeline Healthcheck",
-        "schedule": None,  # No schedule for dev
-    },
-    {
         "flow": tx_leg_pipeline,
         "name": "Pipeline to pull Texas Legislature Bills",
-        "schedule": "0 21 * * *",  # Daily at 9 PM
-    },
+        "schedule": "0 0 * * *",  # Daily at 9 PM
+    }
     # Add additional flows to deploy here
     # Example:
     # {
@@ -76,7 +71,7 @@ if __name__ == "__main__":
         # Create deployment name with environment prefix
         deployment_name = base_deployment_name
         if not is_prod:
-            deployment_name = f"DEV-{deployment_name}"
+            deployment_name = f"DEV - {deployment_name}"
 
         # Environment-specific parameters
         flow_parameters = {"env": environment}
