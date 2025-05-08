@@ -349,7 +349,7 @@ def upload_google_sheets(gsheets_config_path, config_path, env):
                 
             write_df_to_gsheets(df, config['dev_google_sheets_id'] if env == 'dev' else upload['google_sheets_id'], upload['worksheet_name'], minimize_to_rows=True, minimize_to_cols=False, replace_headers=upload['replace_headers'])
 
-@task(retries=3, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
+@task(retries=3, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE, timeout_seconds=300)
 def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_disposition):
     """
     Load data to destination using Parsons BigQuery connector.
