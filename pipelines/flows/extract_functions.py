@@ -691,7 +691,6 @@ def get_bill_urls(base_path, leg_session, ftp_connection, max_errors=5):
         
     return bill_urls
 
-@task(retries=3, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
 def parse_bill_xml(ftp_connection, url):
     """
     Parse bill XML data from a URL into a standardized dictionary format.
