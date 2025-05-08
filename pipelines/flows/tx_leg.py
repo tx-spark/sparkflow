@@ -297,7 +297,7 @@ def tx_leg_pipeline(env=None):
     upcoming_committee_meeting_bills(config)
     versions(raw_bills_df)
 
-    bill_texts(conn)
+    # bill_texts(conn)
 
     download_google_sheets(GSHEETS_CONFIG_PATH)
     # rss_feeds(config, curr_rss_df),
