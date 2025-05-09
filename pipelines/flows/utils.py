@@ -371,7 +371,7 @@ def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_dispo
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loading data to {destination} using Parsons")
 
     # Initialize Parsons BigQuery connector
-
+    print(f'Loading data to {table_name} with write disposition of {write_disposition}')
     gcp_creds = get_secret(secret_id="google_application_credentials")
     bq = GoogleBigQuery(app_creds=gcp_creds)
 
@@ -380,6 +380,7 @@ def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_dispo
 
     # convert datetime columns to ISO format strings for BigQuery compatibility -- annoying, but I can't figure out how to get Parsons to read it in properly
     # TO DO: Fix code so this doesn't happen once more familiar with Parsons
+    print('Cleaning the data for BigQuery')
     for col in df.columns:
         if df[col].dtype == 'datetime64[us]' or df[col].dtype == 'datetime64[ns]':
             df[col] = df[col].dt.strftime('%Y-%m-%d %H:%M:%S')
@@ -389,6 +390,7 @@ def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_dispo
 
     tbl = Table.from_dataframe(df)
 
+    print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loading data to {destination} using Parsons")
     # Load data to BigQuery using Parsons
     bq.copy(
         tbl,
