@@ -394,7 +394,7 @@ def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_dispo
         tbl,
         table_name=table_name,
         if_exists=write_disposition,  # Options: "fail", "append", "drop", or "truncate"
-        tmp_gcs_bucket=get_secret("GCS_TEMP_BUCKET"),  # Replace with your GCS bucket
+        tmp_gcs_bucket=get_secret(secret_id="GCS_TEMP_BUCKET"),  # Replace with your GCS bucket
     )
 
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loaded {tbl.num_rows} rows to {destination}")
