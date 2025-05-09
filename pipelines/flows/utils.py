@@ -365,7 +365,7 @@ def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_dispo
     if env == "dev":
         dataset_name = f"dev_{dataset_name}"
 
-    destination = f"{dataset_name}.{table_name}"
+    destination = f"{dataset_name}.{table_id}"
     table_name = f"{project_id}.{dataset_name}.{table_id}"
 
     # Initialize Parsons BigQuery connector
