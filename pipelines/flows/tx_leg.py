@@ -271,6 +271,12 @@ def tx_leg_pipeline(env=None):
     base_path = config['sources']['ftp']['base_path']
     leg_session = config['info']['LegSess']
 
+    committee_hearing_videos(config)
+    committee_meeting_bills(config)
+    committee_meetings(config)
+    upcoming_committee_meetings(config)
+    upcoming_committee_meeting_bills(config)
+
     try:
         logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting raw bills data extraction")
         raw_bills_df = get_raw_bills_data(base_path, leg_session, conn)
@@ -285,16 +291,11 @@ def tx_leg_pipeline(env=None):
     authors(raw_bills_df)
     bill_stages(raw_bills_df, config)
     bills(raw_bills_df)
-    committee_hearing_videos(config)
-    committee_meeting_bills(config)
-    committee_meetings(config)
     committee_status(raw_bills_df)
     companions(raw_bills_df)
     complete_bills_list(raw_bills_df)
     links(raw_bills_df, config)
     subjects(raw_bills_df)
-    upcoming_committee_meetings(config)
-    upcoming_committee_meeting_bills(config)
     versions(raw_bills_df)
 
     # bill_texts(conn)

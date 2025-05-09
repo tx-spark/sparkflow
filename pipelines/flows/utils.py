@@ -361,14 +361,12 @@ def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_dispo
         raise ValueError("DataFrame is None")
 
     # Add environment prefix for dev
-    table_name = table_id
     dataset_name = dataset_id
     if env == "dev":
         dataset_name = f"dev_{dataset_name}"
 
     destination = f"{dataset_name}.{table_name}"
-    table_name = f"{project_id}.{dataset_name}.{table_name}"
-    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loading data to {destination} using Parsons")
+    table_name = f"{project_id}.{dataset_name}.{table_id}"
 
     # Initialize Parsons BigQuery connector
     print(f'Loading data to {table_name} with write disposition of {write_disposition}')
@@ -396,7 +394,7 @@ def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_dispo
         tbl,
         table_name=table_name,
         if_exists=write_disposition,  # Options: "fail", "append", "drop", or "truncate"
-        tmp_gcs_bucket=os.getenv("GCS_TEMP_BUCKET"),  # Replace with your GCS bucket
+        tmp_gcs_bucket=get_secret("GCS_TEMP_BUCKET"),  # Replace with your GCS bucket
     )
 
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loaded {tbl.num_rows} rows to {destination}")
@@ -560,7 +558,7 @@ def determine_git_environment():
     return "dev"
 
 
-def get_secret(project_id="your-gcp-project-id", secret_id=None, version_id="latest"):
+def get_secret(project_id="lgover", secret_id=None, version_id="latest"):
     """
     Access the secret value, first checking environment variables,
     then falling back to Google Secret Manager.
