@@ -61,7 +61,7 @@ def load_campaign_finance_data():
                 df=df,
                 project_id=PROJECT_ID,
                 dataset_id='tx_leg_raw_bills', 
-                table_id=table_name,
+                table_id=f'campaign_finance_{table_name}',
                 env=ENV,
                 write_disposition=write_disposition
             )
