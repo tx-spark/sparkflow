@@ -1449,7 +1449,7 @@ def get_raw_bills_data(base_path, leg_session, ftp_connection, max_errors=5):
         raise Exception(f"Failed to get bill URLs: {e}")
     raw_bills = []
     error_count = 0
-    for url in bill_urls[:10]:
+    for url in bill_urls:
         try:
             bill_data = parse_bill_xml(ftp_connection, url)
             if bill_data:
