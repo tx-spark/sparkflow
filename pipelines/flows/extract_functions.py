@@ -12,9 +12,10 @@ import duckdb
 from prefect import task
 from prefect.cache_policies import NO_CACHE
 
-from utils import get_current_table_data
+from utils import get_current_table_data, get_secret
 
 logger = logging.getLogger(__name__)
+PROJECT_ID = get_secret(secret_id='GCP_PROJECT_ID')
 
 ################################################################################
 # HELPER FUNCTIONS
@@ -1400,8 +1401,8 @@ def get_committee_meeting_bills_data(config):
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
 def get_bill_texts(ftp_conn, dataset_id, env, max_errors=5):
     # Check if curr_bill_texts table exists
-    curr_bill_texts_df = get_current_table_data('lgover', dataset_id, 'bill_texts', env)
-    curr_versions_df = get_current_table_data('lgover', dataset_id, 'versions', env)
+    curr_bill_texts_df = get_current_table_data(PROJECT_ID, dataset_id, 'bill_texts', env)
+    curr_versions_df = get_current_table_data(PROJECT_ID, dataset_id, 'versions', env)
 
     if curr_bill_texts_df is None and curr_versions_df is None:
         logger.error(f"No table found in {dataset_id}.bill_texts or {dataset_id}.versions")

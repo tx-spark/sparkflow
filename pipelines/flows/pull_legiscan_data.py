@@ -1,12 +1,20 @@
 import requests
+import datetime
 import zipfile
 import base64
 import json
+import yaml
 import io
 import os
 import pandas as pd
 
-LEGISCAN_API_KEY = os.getenv('LEGISCAN_API_KEY')
+from utils import get_secret, dataframe_to_bigquery, determine_git_environment, bigquery_to_df
+
+CONFIG_PATH = 'config.yaml'
+LEGISCAN_API_KEY = get_secret(secret_id='LEGISCAN_API_KEY')
+PROJECT_ID = get_secret(secret_id='GCP_PROJECT_ID')
+DATASET_ID = 'tx_leg_raw_bills'
+ENV = determine_git_environment()
 
 ###############################################################################
 #                 Parsing Functions
@@ -251,9 +259,44 @@ def get_dataset(state, leg_id):
         dataset = {name: zip_ref.read(name) for name in zip_ref.namelist()}
     return dataset
 
+def legiscan_to_bigquery(config, project_id, dataset_id, env='dev'):
+    raw_dataset = get_dataset('TX',config['info']['LegSess'])
+    clean_dataset = parse_dataset(raw_dataset)
+
+    legiscan_hash = raw_dataset['TX/2025-2026_89th_Legislature/hash.md5']
+    legiscan_hash = legiscan_hash.decode("utf-8")
+
+    legiscan_pull_info = {
+        "upload_time": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'legiscan_hash': legiscan_hash
+    }
+    try:
+        legiscan_pulls = bigquery_to_df(project_id, dataset_id, '_legiscan_pulls',env)
+        if legiscan_pulls is not None and len(legiscan_pulls) > 0:
+            legiscan_pulls['upload_time'] = pd.to_datetime(legiscan_pulls['upload_time'])
+            most_recent_pull = legiscan_pulls.sort_values('upload_time', ascending=False).iloc[0]
+            if most_recent_pull['legiscan_hash'] == legiscan_hash:
+                print('Legiscan data still has the same hash as the last upload. Skipping upload.')
+                return
+
+    except ValueError:
+        print(f'Table {project_id}.{dataset_id}._legiscan_pulls does not yet exist.')
+
+    legiscan_pull_df = pd.DataFrame([legiscan_pull_info])
+    dataframe_to_bigquery(legiscan_pull_df, project_id, dataset_id, '_legiscan_pulls', env, 'append')
+
+    for table in clean_dataset.keys():
+        table_df = clean_dataset[table]
+        dataframe_to_bigquery(table_df, 'lgover', dataset_id, f'legiscan_{table}', env, 'drop')
+        print(table_df)
+
+
 ################################################################################
 #                 Pull Data
 ################################################################################
 
-raw_dataset = get_dataset('TX','89R')
-clean_dataset = parse_dataset(raw_dataset)
+if __name__ == '__main__':
+    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+    
+    legiscan_to_bigquery(config, project_id=PROJECT_ID,dataset_id=DATASET_ID,env=ENV)

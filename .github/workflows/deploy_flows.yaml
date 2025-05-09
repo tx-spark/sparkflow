@@ -22,7 +22,7 @@ env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCS_TEMP_BUCKET: ${{ secrets.GCS_TEMP_BUCKET }}
   GAR_LOCATION: ${{ secrets.GAR_LOCATION || 'us-central1' }}
-  GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY || 'tx-leg-pipeline' }}
+  GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY || 'prefect-images' }}
   IMAGE_NAME: ${{ secrets.GAR_REPOSITORY || 'tx-leg-pipeline' }}
   GITHUB_SHA: ${{ github.sha }}
   ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
