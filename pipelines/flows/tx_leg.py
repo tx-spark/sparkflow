@@ -7,6 +7,7 @@ import google.auth
 from prefect import flow, task
 from utils import FtpConnection, dataframe_to_bigquery, log_bq_load, get_current_table_data, determine_git_environment, read_gsheets_to_df, upload_google_sheets, get_secret
 from extract_functions import *
+from pull_legiscan_data import legiscan_to_bigquery
 
 ################################################################################
 # CONFIGURATION
@@ -250,6 +251,10 @@ def versions(raw_bills_df):
     log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'versions', ENV, 'drop', sys.getsizeof(result_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Versions data processing complete")
 
+@task(retries=1, retry_delay_seconds=1, log_prints=True, cache_policy=NO_CACHE)
+def legiscan(config):
+    legiscan_to_bigquery(config, PROJECT_ID, 'tx_leg_raw_bills', ENV)
+
 ################################################################################
 # MAIN
 ################################################################################
@@ -291,7 +296,6 @@ def tx_leg_pipeline(env=None):
 
     actions(raw_bills_df)
     authors(raw_bills_df)
-    bill_stages(raw_bills_df, config)
     bills(raw_bills_df)
     committee_status(raw_bills_df)
     companions(raw_bills_df)
@@ -300,6 +304,7 @@ def tx_leg_pipeline(env=None):
     subjects(raw_bills_df)
     versions(raw_bills_df)
 
+    bill_stages(raw_bills_df, config)
     # bill_texts(conn)
 
     download_google_sheets(GSHEETS_CONFIG_PATH)
