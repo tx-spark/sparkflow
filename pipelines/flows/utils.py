@@ -349,7 +349,7 @@ def upload_google_sheets(gsheets_config_path, config_path, env):
                 
             write_df_to_gsheets(df, config['dev_google_sheets_id'] if env == 'dev' else upload['google_sheets_id'], upload['worksheet_name'], minimize_to_rows=True, minimize_to_cols=False, replace_headers=upload['replace_headers'])
 
-@task(retries=3, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE, timeout_seconds=300)
+@task(retries=3, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE, timeout_seconds=300, chunk_size = 50000)
 def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_disposition):
     """
     Load data to destination using Parsons BigQuery connector.
@@ -386,16 +386,21 @@ def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_dispo
     df.replace('<NA>',pd.NA, inplace=True)
     df.replace(pd.NA, None, inplace=True)
 
-    tbl = Table.from_dataframe(df)
-
-    print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loading data to {destination} using Parsons")
-    # Load data to BigQuery using Parsons
-    bq.copy(
-        tbl,
-        table_name=table_name,
-        if_exists=write_disposition,  # Options: "fail", "append", "drop", or "truncate"
-        tmp_gcs_bucket=get_secret(secret_id="GCS_TEMP_BUCKET"),  # Replace with your GCS bucket
-    )
+    # Split dataframe into chunks of 100k rows
+    total_rows = len(df)
+    
+    for i in range(0, total_rows, chunk_size):
+        chunk_df = df.iloc[i:min(i+chunk_size, total_rows)]
+        tbl = Table.from_dataframe(chunk_df)
+        
+        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loading chunk {i//chunk_size + 1} to {destination} using Parsons")
+        # Load data to BigQuery using Parsons
+        bq.copy(
+            tbl,
+            table_name=table_name,
+            if_exists="append" if i > 0 else write_disposition,  # First chunk uses write_disposition, subsequent chunks append
+            tmp_gcs_bucket=get_secret(secret_id="GCS_TEMP_BUCKET"),  # Replace with your GCS bucket
+        )
 
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loaded {tbl.num_rows} rows to {destination}")
 
