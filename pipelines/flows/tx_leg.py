@@ -307,6 +307,8 @@ def tx_leg_pipeline(env=None):
     bill_stages(raw_bills_df, config)
     # bill_texts(conn)
 
+    legiscan(config)
+
     download_google_sheets(GSHEETS_CONFIG_PATH)
     # rss_feeds(config, curr_rss_df),
 
