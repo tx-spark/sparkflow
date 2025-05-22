@@ -9,6 +9,7 @@ import warnings
 import logging
 import datetime
 from parsons import GoogleBigQuery, Table
+from gspread import SpreadsheetNotFound
 
 import os
 import json
@@ -218,13 +219,18 @@ def write_df_to_gsheets(df, google_sheets_id, worksheet_name, minimize_to_rows=F
     """
 
     google_sheets_df = df.copy()
+    for col in google_sheets_df.columns:
+        google_sheets_df[col] = google_sheets_df[col].astype(str)
     google_sheets_df.fillna('', inplace=True)
 
     credentials_str = get_secret(secret_id='GOOGLE_SHEETS_SERVICE_ACCOUNT')
     credentials = json.loads(credentials_str)
     gc = gspread.service_account_from_dict(credentials)
 
-    sh = gc.open_by_key(google_sheets_id)
+    try:
+        sh = gc.open_by_key(google_sheets_id)
+    except SpreadsheetNotFound:
+        raise SpreadsheetNotFound(f"Could not find {google_sheets_id}. Either the service account doesn\'t have access to the sheet, or the spreadsheet doesn't exist")
 
     worksheet = sh.worksheet(worksheet_name)
 
@@ -338,6 +344,7 @@ def upload_google_sheets(gsheets_config_path, config_path, env):
         if df is not None:
             if env == 'dev':
                 credentials_str = get_secret(secret_id='GOOGLE_SHEETS_SERVICE_ACCOUNT')
+                print(credentials_str)
                 credentials = json.loads(credentials_str)
                 gc = gspread.service_account_from_dict(credentials)
 
@@ -383,7 +390,7 @@ def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_dispo
         if df[col].dtype == 'datetime64[us]' or df[col].dtype == 'datetime64[ns]':
             df[col] = df[col].dt.strftime('%Y-%m-%d %H:%M:%S')
 
-    df.replace('<NA>',pd.NA, inplace=True)
+    df.replace('<NA>',None, inplace=True)
     df.replace(pd.NA, None, inplace=True)
 
     # Split dataframe into chunks of 100k rows
@@ -577,7 +584,7 @@ def get_secret(project_id="lgover", secret_id=None, version_id="latest"):
         The secret value as a string
     """
     # Load environment variables from .env file
-    dotenv.load_dotenv()
+    dotenv.load_dotenv(override=True)
 
     # Check for project_id in environment variables
     env_project_id = os.environ.get("GCP_PROJECT_ID")
