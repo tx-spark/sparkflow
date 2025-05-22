@@ -52,45 +52,53 @@ def download_google_sheets(gsheets_config_path):
 def bills(raw_bills_df):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process bills data")
     bills_df = get_bills_data(raw_bills_df)
-    curr_bills_df =  get_current_table_data(PROJECT_ID, OUT_DATASET_NAME, 'bills', ENV)
+
+    curr_time = pd.Timestamp.now().floor('min')
+    bills_df['last_seen_at'] = curr_time
+    bills_df['first_seen_at'] = curr_time
     
-    result_df = merge_with_current_data(bills_df, curr_bills_df)
-    dataframe_to_bigquery(result_df, PROJECT_ID, OUT_DATASET_NAME, 'bills', ENV, 'drop')
-    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'bills', ENV, 'drop', sys.getsizeof(result_df))
+    dataframe_to_bigquery(bills_df, PROJECT_ID, OUT_DATASET_NAME, 'bills', ENV, 'drop')
+    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'bills', ENV, 'drop', sys.getsizeof(bills_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Bills data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
 def actions(raw_bills_df):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process actions data")
     actions_df = get_actions_data(raw_bills_df)
-    curr_actions_df =  get_current_table_data(PROJECT_ID, OUT_DATASET_NAME, 'actions', ENV)
-    result_df = merge_with_current_data(actions_df, curr_actions_df)
 
-    result_df = result_df.drop_duplicates()
-    dataframe_to_bigquery(result_df, PROJECT_ID, OUT_DATASET_NAME, 'actions', ENV, 'drop')
-    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'actions', ENV, 'drop', sys.getsizeof(result_df))
+    curr_time = pd.Timestamp.now().floor('min')
+    actions_df['last_seen_at'] = curr_time
+    actions_df['first_seen_at'] = curr_time
+
+    actions_df = actions_df.drop_duplicates()
+    dataframe_to_bigquery(actions_df, PROJECT_ID, OUT_DATASET_NAME, 'actions', ENV, 'drop')
+    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'actions', ENV, 'drop', sys.getsizeof(actions_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Actions data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
 def authors(raw_bills_df):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process authors data")
     authors_df = get_authors_data(raw_bills_df)
-    curr_authors_df =  get_current_table_data(PROJECT_ID, OUT_DATASET_NAME, 'authors', ENV)
     
-    result_df = merge_with_current_data(authors_df, curr_authors_df)
-    dataframe_to_bigquery(result_df, PROJECT_ID, OUT_DATASET_NAME, 'authors', ENV, 'drop')
-    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'authors', ENV, 'drop', sys.getsizeof(result_df))
+    curr_time = pd.Timestamp.now().floor('min')
+    authors_df['last_seen_at'] = curr_time
+    authors_df['first_seen_at'] = curr_time
+    
+    dataframe_to_bigquery(authors_df, PROJECT_ID, OUT_DATASET_NAME, 'authors', ENV, 'drop')
+    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'authors', ENV, 'drop', sys.getsizeof(authors_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Authors data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
 def bill_stages(raw_bills_df, config):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process bill stages data")
     bill_stages_df = get_bill_stages(config['sources']['html']['bill_stages'], raw_bills_df)
-    curr_bill_stages_df =  get_current_table_data(PROJECT_ID, OUT_DATASET_NAME, 'bill_stages', ENV)
     
-    result_df = merge_with_current_data(bill_stages_df, curr_bill_stages_df)
-    dataframe_to_bigquery(result_df, PROJECT_ID, OUT_DATASET_NAME, 'bill_stages', ENV, 'drop')
-    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'bill_stages', ENV, 'drop', sys.getsizeof(result_df))
+    curr_time = pd.Timestamp.now().floor('min')
+    bill_stages_df['last_seen_at'] = curr_time
+    bill_stages_df['first_seen_at'] = curr_time
+    
+    dataframe_to_bigquery(bill_stages_df, PROJECT_ID, OUT_DATASET_NAME, 'bill_stages', ENV, 'drop')
+    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'bill_stages', ENV, 'drop', sys.getsizeof(bill_stages_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Bill stages data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
@@ -108,118 +116,143 @@ def bill_texts(ftp_conn):
 def committee_status(raw_bills_df):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process committee status data")
     committees_df = get_committee_status_data(raw_bills_df)
-    curr_committee_status_df =  get_current_table_data(PROJECT_ID, OUT_DATASET_NAME, 'committee_status', ENV)
     
-    result_df = merge_with_current_data(committees_df, curr_committee_status_df)
-    dataframe_to_bigquery(result_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_status', ENV, 'drop')
-    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'committees', ENV, 'drop', sys.getsizeof(result_df))
+    curr_time = pd.Timestamp.now().floor('min')
+    committees_df['last_seen_at'] = curr_time
+    committees_df['first_seen_at'] = curr_time
+    
+    dataframe_to_bigquery(committees_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_status', ENV, 'drop')
+    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'committees', ENV, 'drop', sys.getsizeof(committees_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Committees data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
 def committee_hearing_videos(config):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process committee hearing videos data")
     committee_hearing_videos_df = get_committee_hearing_videos_data(config)
-    curr_committee_hearing_videos_df =  get_current_table_data(PROJECT_ID, OUT_DATASET_NAME, 'committee_hearing_videos', ENV)
     
-    result_df = merge_with_current_data(committee_hearing_videos_df, curr_committee_hearing_videos_df)
-    dataframe_to_bigquery(result_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_hearing_videos', ENV, 'drop')
-    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'committee_hearing_videos', ENV, 'drop', sys.getsizeof(result_df))
+    curr_time = pd.Timestamp.now().floor('min')
+    committee_hearing_videos_df['last_seen_at'] = curr_time
+    committee_hearing_videos_df['first_seen_at'] = curr_time
+    
+    dataframe_to_bigquery(committee_hearing_videos_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_hearing_videos', ENV, 'drop')
+    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'committee_hearing_videos', ENV, 'drop', sys.getsizeof(committee_hearing_videos_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Committee hearing videos data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
 def committee_meetings(config):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process committee meetings data")
     committee_meetings_df = get_committee_meetings_data(config)
-    curr_committee_meetings_df =  get_current_table_data(PROJECT_ID, OUT_DATASET_NAME, 'committee_meetings', ENV)
     
-    result_df = merge_with_current_data(committee_meetings_df, curr_committee_meetings_df)
-    dataframe_to_bigquery(result_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_meetings', ENV, 'drop')
-    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'committee_meetings', ENV, 'drop', sys.getsizeof(result_df))
+    curr_time = pd.Timestamp.now().floor('min')
+    committee_meetings_df['last_seen_at'] = curr_time
+    committee_meetings_df['first_seen_at'] = curr_time
+    
+    dataframe_to_bigquery(committee_meetings_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_meetings', ENV, 'drop')
+    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'committee_meetings', ENV, 'drop', sys.getsizeof(committee_meetings_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Committee meetings data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
 def committee_meeting_bills(config):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process committee meeting bills data")
     committee_meeting_bills_df = get_committee_meeting_bills_data(config)
-    curr_committee_meeting_bills_df =  get_current_table_data(PROJECT_ID, OUT_DATASET_NAME, 'committee_meeting_bills', ENV)
     
-    result_df = merge_with_current_data(committee_meeting_bills_df, curr_committee_meeting_bills_df)
-    dataframe_to_bigquery(result_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_meeting_bills', ENV, 'drop')
-    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'committee_meeting_bills', ENV, 'drop', sys.getsizeof(result_df))
+    curr_time = pd.Timestamp.now().floor('min')
+    committee_meeting_bills_df['last_seen_at'] = curr_time
+    committee_meeting_bills_df['first_seen_at'] = curr_time
+    
+    dataframe_to_bigquery(committee_meeting_bills_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_meeting_bills', ENV, 'drop')
+    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'committee_meeting_bills', ENV, 'drop', sys.getsizeof(committee_meeting_bills_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Committee meeting bills data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
-def committee_meetings_links(config, curr_committee_meetings_df=None):
+def committee_meetings_links(config):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process committee meetings links data")
     committee_meetings_df = get_committee_meetings_data(config)
     
-    result_df = merge_with_current_data(committee_meetings_df, curr_committee_meetings_df)
-    dataframe_to_bigquery(result_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_meetings_links', ENV, 'drop')
-    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'committee_meetings_links', ENV, 'drop', sys.getsizeof(result_df))
+    curr_time = pd.Timestamp.now().floor('min')
+    committee_meetings_df['last_seen_at'] = curr_time
+    committee_meetings_df['first_seen_at'] = curr_time
+    
+    dataframe_to_bigquery(committee_meetings_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_meetings_links', ENV, 'drop')
+    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'committee_meetings_links', ENV, 'drop', sys.getsizeof(committee_meetings_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Committee meetings links data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
 def companions(raw_bills_df):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process companions data")
     companions_df = get_companions_data(raw_bills_df)
-    curr_companions_df =  get_current_table_data(PROJECT_ID, OUT_DATASET_NAME, 'companions', ENV)
 
-    result_df = merge_with_current_data(companions_df, curr_companions_df)
-    dataframe_to_bigquery(result_df, PROJECT_ID, OUT_DATASET_NAME, 'companions', ENV, 'drop')
-    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'companions', ENV, 'drop', sys.getsizeof(result_df))
+    curr_time = pd.Timestamp.now().floor('min')
+    companions_df['last_seen_at'] = curr_time
+    companions_df['first_seen_at'] = curr_time
+
+    dataframe_to_bigquery(companions_df, PROJECT_ID, OUT_DATASET_NAME, 'companions', ENV, 'drop')
+    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'companions', ENV, 'drop', sys.getsizeof(companions_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Companions data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
 def complete_bills_list(raw_bills_df):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process complete bills list data")
     complete_bills_list_df = get_complete_bills_list(raw_bills_df)
-    curr_complete_bills_list_df =  get_current_table_data(PROJECT_ID, OUT_DATASET_NAME, 'complete_bills_list', ENV)
     
-    result_df = merge_with_current_data(complete_bills_list_df, curr_complete_bills_list_df)
-    dataframe_to_bigquery(result_df, PROJECT_ID, OUT_DATASET_NAME, 'complete_bills_list', ENV, 'drop')
-    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'complete_bills_list', ENV, 'drop', sys.getsizeof(result_df))
+    curr_time = pd.Timestamp.now().floor('min')
+    complete_bills_list_df['last_seen_at'] = curr_time
+    complete_bills_list_df['first_seen_at'] = curr_time
+    
+    dataframe_to_bigquery(complete_bills_list_df, PROJECT_ID, OUT_DATASET_NAME, 'complete_bills_list', ENV, 'drop')
+    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'complete_bills_list', ENV, 'drop', sys.getsizeof(complete_bills_list_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Complete bills list data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
 def links(raw_bills_df, config):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process links data")
     links_df = get_links_data(raw_bills_df,config)
-    curr_links_df =  get_current_table_data(PROJECT_ID, OUT_DATASET_NAME, 'links', ENV)
     
-    result_df = merge_with_current_data(links_df, curr_links_df)
-    dataframe_to_bigquery(result_df, PROJECT_ID, OUT_DATASET_NAME, 'links', ENV, 'drop')
-    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'links', ENV, 'drop', sys.getsizeof(result_df))
+    curr_time = pd.Timestamp.now().floor('min')
+    links_df['last_seen_at'] = curr_time
+    links_df['first_seen_at'] = curr_time
+    
+    dataframe_to_bigquery(links_df, PROJECT_ID, OUT_DATASET_NAME, 'links', ENV, 'drop')
+    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'links', ENV, 'drop', sys.getsizeof(links_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Links data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
-def sponsors(raw_bills_df, curr_sponsors_df=None):
+def sponsors(raw_bills_df):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process sponsors data")
     sponsors_df = get_sponsors_data(raw_bills_df)
     
-    result_df = merge_with_current_data(sponsors_df, curr_sponsors_df)
-    dataframe_to_bigquery(result_df, PROJECT_ID, OUT_DATASET_NAME, 'sponsors', ENV, 'drop')
-    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'sponsors', ENV, 'drop', sys.getsizeof(result_df))
+    curr_time = pd.Timestamp.now().floor('min')
+    sponsors_df['last_seen_at'] = curr_time
+    sponsors_df['first_seen_at'] = curr_time
+    
+    dataframe_to_bigquery(sponsors_df, PROJECT_ID, OUT_DATASET_NAME, 'sponsors', ENV, 'drop')
+    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'sponsors', ENV, 'drop', sys.getsizeof(sponsors_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Sponsors data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
 def subjects(raw_bills_df):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process subjects data")
     subjects_df = get_subjects_data(raw_bills_df)
-    curr_subjects_df =  get_current_table_data(PROJECT_ID, OUT_DATASET_NAME, 'subjects', ENV)
     
-    result_df = merge_with_current_data(subjects_df, curr_subjects_df)
-    dataframe_to_bigquery(result_df, PROJECT_ID, OUT_DATASET_NAME, 'subjects', ENV, 'drop')
-    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'subjects', ENV, 'drop', sys.getsizeof(result_df))
+    curr_time = pd.Timestamp.now().floor('min')
+    subjects_df['last_seen_at'] = curr_time
+    subjects_df['first_seen_at'] = curr_time
+    
+    dataframe_to_bigquery(subjects_df, PROJECT_ID, OUT_DATASET_NAME, 'subjects', ENV, 'drop')
+    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'subjects', ENV, 'drop', sys.getsizeof(subjects_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Subjects data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
-def rss_feeds(config, curr_rss_df=None):
+def rss_feeds(config):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process RSS feeds data")
     rss_df = get_rss_data(config)
     
-    result_df = merge_with_current_data(rss_df, curr_rss_df)
-    dataframe_to_bigquery(result_df, PROJECT_ID, OUT_DATASET_NAME, 'rss_feeds', ENV, 'drop')
-    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'rss_feeds', ENV, sys.getsizeof(result_df))
+    curr_time = pd.Timestamp.now().floor('min')
+    rss_df['last_seen_at'] = curr_time
+    rss_df['first_seen_at'] = curr_time
+    
+    dataframe_to_bigquery(rss_df, PROJECT_ID, OUT_DATASET_NAME, 'rss_feeds', ENV, 'append')
+    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'rss_feeds', ENV, sys.getsizeof(rss_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- RSS feeds data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
@@ -244,11 +277,13 @@ def upcoming_committee_meeting_bills(config):
 def versions(raw_bills_df):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process versions data")
     versions_df = get_versions_data(raw_bills_df)
-    curr_versions_df =  get_current_table_data(PROJECT_ID, OUT_DATASET_NAME, 'versions', ENV)
     
-    result_df = merge_with_current_data(versions_df, curr_versions_df)
-    dataframe_to_bigquery(result_df, PROJECT_ID, OUT_DATASET_NAME, 'versions', ENV, 'drop')
-    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'versions', ENV, 'drop', sys.getsizeof(result_df))
+    curr_time = pd.Timestamp.now().floor('min')
+    versions_df['last_seen_at'] = curr_time
+    versions_df['first_seen_at'] = curr_time
+    
+    dataframe_to_bigquery(versions_df, PROJECT_ID, OUT_DATASET_NAME, 'versions', ENV, 'drop')
+    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'versions', ENV, 'drop', sys.getsizeof(versions_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Versions data processing complete")
 
 @task(retries=1, retry_delay_seconds=1, log_prints=True, cache_policy=NO_CACHE)
