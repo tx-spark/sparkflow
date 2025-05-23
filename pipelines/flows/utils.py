@@ -222,6 +222,8 @@ def write_df_to_gsheets(df, google_sheets_id, worksheet_name, minimize_to_rows=F
     for col in google_sheets_df.columns:
         google_sheets_df[col] = google_sheets_df[col].astype(str)
     google_sheets_df.fillna('', inplace=True)
+    google_sheets_df.replace('None','', inplace=True)
+    google_sheets_df.replace('nan','', inplace=True)
 
     credentials_str = get_secret(secret_id='GOOGLE_SHEETS_SERVICE_ACCOUNT')
     credentials = json.loads(credentials_str)
@@ -338,23 +340,25 @@ def upload_google_sheets(gsheets_config_path, config_path, env):
             query = query.replace(f'{{{var}}}', config['info'][var])
 
         # TO DO: check if there are any {variables} in the query that are not in the config['info']
+        try:
+            df = query_bq(query)
 
-        df = query_bq(query)
+            if df is not None:
+                if env == 'dev':
+                    credentials_str = get_secret(secret_id='GOOGLE_SHEETS_SERVICE_ACCOUNT')
+                    print(credentials_str)
+                    credentials = json.loads(credentials_str)
+                    gc = gspread.service_account_from_dict(credentials)
 
-        if df is not None:
-            if env == 'dev':
-                credentials_str = get_secret(secret_id='GOOGLE_SHEETS_SERVICE_ACCOUNT')
-                print(credentials_str)
-                credentials = json.loads(credentials_str)
-                gc = gspread.service_account_from_dict(credentials)
-
-                sh = gc.open_by_key(config['dev_google_sheets_id'])
-                worksheets = sh.worksheets()
-                worksheet_names = [worksheet.title for worksheet in worksheets]
-                if upload['worksheet_name'] not in worksheet_names:
-                    sh.add_worksheet(upload['worksheet_name'], rows = 1, cols = 1)
-                
-            write_df_to_gsheets(df, config['dev_google_sheets_id'] if env == 'dev' else upload['google_sheets_id'], upload['worksheet_name'], minimize_to_rows=True, minimize_to_cols=False, replace_headers=upload['replace_headers'])
+                    sh = gc.open_by_key(config['dev_google_sheets_id'])
+                    worksheets = sh.worksheets()
+                    worksheet_names = [worksheet.title for worksheet in worksheets]
+                    if upload['worksheet_name'] not in worksheet_names:
+                        sh.add_worksheet(upload['worksheet_name'], rows = 1, cols = 1)
+                    
+                write_df_to_gsheets(df, config['dev_google_sheets_id'] if env == 'dev' else upload['google_sheets_id'], upload['worksheet_name'], minimize_to_rows=True, minimize_to_cols=False, replace_headers=upload['replace_headers'])
+        except Exception as e:
+            print(e)
 
 @task(retries=3, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE, timeout_seconds=600)
 def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_disposition, chunk_size = 50000):
