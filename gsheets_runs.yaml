@@ -95,17 +95,17 @@ uploads:
     drop_cols:
       - leg_id
 
-  - name: "Blue Action Master Data - Bills Data"
-    google_sheets_id: 1Wr0OIVbsquKTxGlnluSteBb1164JEUa1rlC-9C760jQ
-    worksheet_name: "Bills Data"
-    project_id: lgover
-    dataset_id: tx_leg_bills
-    table_id: blue_action_data
-    filters: 
-      - leg_id = "{LegSess}"
-    replace_headers: false
-    drop_cols:
-      - leg_id
+  # - name: "Blue Action Master Data - Bills Data"
+  #   google_sheets_id: 1Wr0OIVbsquKTxGlnluSteBb1164JEUa1rlC-9C760jQ
+  #   worksheet_name: "Bills Data"
+  #   project_id: lgover
+  #   dataset_id: tx_leg_bills
+  #   table_id: blue_action_data
+  #   filters: 
+  #     - leg_id = "{LegSess}"
+  #   replace_headers: false
+  #   drop_cols:
+  #     - leg_id
 
   - name: "Call To Action"
     google_sheets_id: 1dkqnu0rN6RUnsYEDwo7o7iP1QTwfpsmKI3_hOSjAmuc
