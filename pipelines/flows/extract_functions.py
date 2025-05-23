@@ -124,8 +124,8 @@ def merge_with_current_data(new_df, curr_df):
     
     return merged
 
-
-
+def merge_new_data_in_database(df, project_id, dataset_id, table_id, env, database='bq'):
+    return
 ################################################################################
 # RSS SCRAPING FUNCTIONS
 ################################################################################
