@@ -1302,10 +1302,11 @@ def get_complete_bills_list(raw_bills_df):
 def get_upcoming_committee_meetings(config):
     try:
         upcoming_meetings_df = get_rss_committee_meetings(config['sources']['rss']['upcoming'])
+
         return upcoming_meetings_df[['committee', 'chamber', 'date', 'time', 'location', 'chair', 'meeting_url']]
     except Exception as e:
         logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to get upcoming committee meetings data: {e}")
-        return pd.DataFrame()
+        return pd.DataFrame(columns=['committee', 'chamber', 'date', 'time', 'location', 'chair', 'meeting_url'])
 
 def get_upcoming_committee_meeting_bills(config):
     upcoming_meetings_df = get_rss_committee_meetings(config['sources']['rss']['upcoming'])
@@ -1345,7 +1346,9 @@ def get_upcoming_committee_meeting_bills(config):
         except Exception as e:
             logger.debug(f"Failed to get clean upcoming committee meeting bills data from RSS for {meeting['meeting_url']}: {e}")
             continue
-            
+    
+    if len(bills_list) <= 0:
+        return pd.DataFrame(columns=['committee', 'chamber', 'date', 'time', 'meeting_url', 'bill_id', 'leg_id', 'link', 'author', 'description', 'status'])
     # Convert to DataFrame
     bills_df = pd.DataFrame(bills_list)
     return bills_df
