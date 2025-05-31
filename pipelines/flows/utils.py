@@ -376,7 +376,6 @@ def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_dispo
         if allow_empty_table:
             query_bq(f"CREATE OR REPLACE TABLE `{project_id}.{dataset_id}.{table_id}` AS SELECT * FROM `{project_id}.{dataset_id}.{table_id}` WHERE 1=0")
 
-
     # Add environment prefix for dev
     dataset_name = dataset_id
     if env == "dev":
