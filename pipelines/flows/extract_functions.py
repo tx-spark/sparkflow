@@ -1478,10 +1478,3 @@ def get_raw_bills_data(base_path, leg_session, ftp_connection, max_errors=5):
         raise Exception(f"Failed to get bill data for {error_count} bills")
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Finished raw bills data extraction")
     return pd.DataFrame(raw_bills)
-
-if __name__ == '__main__':
-    import yaml
-    CONFIG_PATH = 'config.yaml'
-    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-        config = yaml.safe_load(f)
-    get_rss_committee_meetings(config['sources']['rss']['upcoming'])
