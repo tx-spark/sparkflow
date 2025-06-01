@@ -197,6 +197,8 @@ def get_rss_committee_meetings(rss_config):
     # Filter for committee meetings and reset index
     meetings_mask = upcoming_meetings['rss_label'].isin(['meetings_senate', 'meetings_house'])
     filtered_meetings = upcoming_meetings[meetings_mask].reset_index(drop=True)
+    available_meeting_mask = filtered_meetings['title'] != 'No committee meetings scheduled.'
+    filtered_meetings = filtered_meetings[available_meeting_mask].reset_index(drop=True)
 
     # If no meetings found, return empty DataFrame with correct columns
     if len(filtered_meetings) == 0:
@@ -1476,3 +1478,10 @@ def get_raw_bills_data(base_path, leg_session, ftp_connection, max_errors=5):
         raise Exception(f"Failed to get bill data for {error_count} bills")
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Finished raw bills data extraction")
     return pd.DataFrame(raw_bills)
+
+if __name__ == '__main__':
+    import yaml
+    CONFIG_PATH = 'config.yaml'
+    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+    get_rss_committee_meetings(config['sources']['rss']['upcoming'])
