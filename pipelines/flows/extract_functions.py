@@ -180,7 +180,6 @@ def get_upcoming_from_rss(upcoming_rss_urls:dict):
             entries.append(entry_dict)
             
     return pd.DataFrame(entries)
-
 @task(retries=3, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
 def get_rss_committee_meetings(rss_config):
     """
@@ -198,12 +197,21 @@ def get_rss_committee_meetings(rss_config):
     # Filter for committee meetings and reset index
     meetings_mask = upcoming_meetings['rss_label'].isin(['meetings_senate', 'meetings_house'])
     filtered_meetings = upcoming_meetings[meetings_mask].reset_index(drop=True)
+
+    # If no meetings found, return empty DataFrame with correct columns
+    if len(filtered_meetings) == 0:
+        return pd.DataFrame(columns=['committee', 'chamber', 'date', 'time', 'location', 'chair', 'meeting_url', 'bills'])
+
     meetings_links = filtered_meetings['link'].tolist()
     meetings_labels = filtered_meetings['rss_label'].tolist()
     
     # Get detailed meeting data
     meetings_df = pd.DataFrame(map(read_committee_meeting, meetings_links))
     meetings_df = meetings_df[meetings_df['bills'].notna()]
+
+    # If no valid meetings with bills found, return empty DataFrame
+    if len(meetings_df) == 0:
+        return pd.DataFrame(columns=['committee', 'chamber', 'date', 'time', 'location', 'chair', 'meeting_url', 'bills'])
     
     # Convert bills columns from string to list if needed
     if isinstance(meetings_df['bills'].iloc[0], str):
@@ -232,7 +240,6 @@ def get_rss_committee_meetings(rss_config):
         }
 
         # Add regular bills
-
         for bill in meeting['bills']:
             bill_info = {
                 'bill_id': bill['bill_id'],
@@ -1303,6 +1310,9 @@ def get_upcoming_committee_meetings(config):
     try:
         upcoming_meetings_df = get_rss_committee_meetings(config['sources']['rss']['upcoming'])
 
+        if upcoming_meetings_df is None or len(upcoming_meetings_df) <= 0:
+            return pd.DataFrame(columns=['committee', 'chamber', 'date', 'time', 'location', 'chair', 'meeting_url'])
+
         return upcoming_meetings_df[['committee', 'chamber', 'date', 'time', 'location', 'chair', 'meeting_url']]
     except Exception as e:
         logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to get upcoming committee meetings data: {e}")
@@ -1466,4 +1476,3 @@ def get_raw_bills_data(base_path, leg_session, ftp_connection, max_errors=5):
         raise Exception(f"Failed to get bill data for {error_count} bills")
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Finished raw bills data extraction")
     return pd.DataFrame(raw_bills)
-
