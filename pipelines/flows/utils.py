@@ -361,15 +361,20 @@ def upload_google_sheets(gsheets_config_path, config_path, env):
             print(e)
 
 @task(retries=3, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE, timeout_seconds=600)
-def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_disposition, chunk_size = 50000):
+def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_disposition, chunk_size = 50000, allow_empty_table=False):
     """
     Load data to destination using Parsons BigQuery connector.
-    Replace with your actual data loading logic.
     """
 
     if df is None:
         logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- DataFrame is None")
         raise ValueError("DataFrame is None")
+    
+    if len(df) <= 0:
+        if write_disposition == 'append':
+            return
+        if allow_empty_table:
+            query_bq(f"CREATE OR REPLACE TABLE `{project_id}.{dataset_id}.{table_id}` AS SELECT * FROM `{project_id}.{dataset_id}.{table_id}` WHERE 1=0")
 
     # Add environment prefix for dev
     dataset_name = dataset_id
@@ -403,6 +408,7 @@ def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_dispo
     for i in range(0, total_rows, chunk_size):
         chunk_df = df.iloc[i:min(i+chunk_size, total_rows)]
         tbl = Table.from_dataframe(chunk_df)
+        print(tbl)
         
         print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loading chunk {i//chunk_size + 1} to {destination} using Parsons")
         # Load data to BigQuery using Parsons
