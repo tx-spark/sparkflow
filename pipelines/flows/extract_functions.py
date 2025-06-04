@@ -129,14 +129,29 @@ def merge_new_data_in_database(df, project_id, dataset_id, table_id, env, databa
 ################################################################################
 # RSS SCRAPING FUNCTIONS
 ################################################################################
+def get_rss_data():
+    rss_feeds = {
+        'daily': {
+            'bills_passed': 'https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysbillspassed',
+            'bills_filed_senate': 'https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysfiledsenate', 
+            'bills_filed_house': 'https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysfiledhouse',
+            'bill_analyses': 'https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysbillanalyses',
+            'fiscal_notes': 'https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysfiscalnotes',
+            'bill_text': 'https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysbilltext'
+        },
+        'upcoming': {
+            'calendar_senate': 'https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingcalendarssenate',
+            'calendar_house': 'https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingcalendarshouse',
+            'meetings_senate': 'https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingmeetingssenate',
+            'meetings_house': 'https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingmeetingshouse'
+        }
+    }
 
-def get_rss_data(config):
-    timeframes = config['sources']['rss']
     current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+    entries = []
 
-    for timeframe in timeframes.keys():
-        entries = []
-        for rss_label, rss_url in zip(timeframes[timeframe].keys(), timeframes[timeframe].values()):
+    for timeframe, feeds in rss_feeds.items():
+        for rss_label, rss_url in feeds.items():
             feed = feedparser.parse(rss_url)
             for entry in feed.entries:
                 entry_dict = {
@@ -147,19 +162,24 @@ def get_rss_data(config):
                 for key, value in entry.items():
                     entry_dict[key] = value
                 entries.append(entry_dict)
+
     return pd.DataFrame(entries)
 
 @task(retries=3, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
-def get_upcoming_from_rss(upcoming_rss_urls:dict):
+def get_upcoming_from_rss():
     """
     Gets RSS feed data from the configured URLs and returns a DataFrame.
     
-    Args:
-        config (dict): Configuration dictionary containing labelsRSS feed URLs
-        
     Returns:
         pandas.DataFrame: DataFrame containing RSS feed entries
     """
+    upcoming_rss_urls = {
+        'calendar_senate': 'https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingcalendarssenate',
+        'calendar_house': 'https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingcalendarshouse',
+        'meetings_senate': 'https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingmeetingssenate',
+        'meetings_house': 'https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingmeetingshouse'
+    }
+    
     current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
     entries = []
     
@@ -181,18 +201,17 @@ def get_upcoming_from_rss(upcoming_rss_urls:dict):
             
     return pd.DataFrame(entries)
 @task(retries=3, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
-def get_rss_committee_meetings(rss_config):
+def get_rss_committee_meetings():
     """
     Gets all committee meetings from RSS feed and returns a standardized DataFrame.
     
-    Args:
-        rss_config (dict): Dictionary containing RSS feed URLs for upcoming meetings
-        
     Returns:
         DataFrame with standardized meeting details including bills
     """
+
+    
     # Get upcoming meetings from RSS
-    upcoming_meetings = get_upcoming_from_rss(rss_config)
+    upcoming_meetings = get_upcoming_from_rss()
     
     # Filter for committee meetings and reset index
     meetings_mask = upcoming_meetings['rss_label'].isin(['meetings_senate', 'meetings_house'])
@@ -321,18 +340,18 @@ def get_committee_meetings(committee_meetings_url):
     return meetings
 
 
-def get_html_committee_meetings(config):
+def get_html_committee_meetings(leg_session):
     """
     Gets all committee meetings from committee pages and returns a standardized DataFrame.
     
     Args:
-        config (dict): Dictionary containing configuration including URLs and session info
+        leg_session: String containing the legislative session you'd like the committee meetings from
         
     Returns:
         DataFrame with standardized meeting details including bills
     """
     # Get committee links with chamber info
-    committee_links = get_committee_meetings_links(config)
+    committee_links = get_committee_meetings_links(leg_session)
     
     # Get meetings for each committee
     meetings = []
@@ -457,11 +476,11 @@ def extract_committee_meetings_links(committees_page_url, leg_id):
 
     return committees
 
-def get_committee_meetings_links(config, max_errors=5):
+def get_committee_meetings_links(leg_session, max_errors=5):
 
-    committees_list_url = config['sources']['static_html']['committees_list']
-    committees_url = config['sources']['static_html']['committees']
-    leg_id = ''.join(filter(lambda i: i.isdigit(), config['info']['LegSess']))
+    committees_list_url = 'https://capitol.texas.gov/Committees/Committees.aspx'
+    committees_url = 'https://capitol.texas.gov/Committees/'
+    leg_id = ''.join(filter(lambda i: i.isdigit(), leg_session))
 
     committee_meetings = []
     error_count = 0
@@ -475,7 +494,7 @@ def get_committee_meetings_links(config, max_errors=5):
                     'name': committee['name'],
                     'link': committees_url + committee['href'],
                     'chamber': chamber,
-                    'leg_id': config['info']['LegSess']
+                    'leg_id': leg_session
                     })
         except Exception as e:
             logger.debug(f"Failed to get committee meetings links for {chamber}: {e}")
@@ -531,12 +550,13 @@ def get_senate_hearing_videos_data(senate_videos_url, leg_id):
     return pd.DataFrame(videos_list)
 
 
-def get_committee_hearing_videos_data(config):
-    house_videos = config['sources']['videos']['house']
-    senate_videos = config['sources']['videos']['senate']
+def get_committee_hearing_videos_data(leg_id): 
 
-    house_videos_df = get_house_hearing_videos_data(house_videos, config['info']['LegSess']) ## has lots of columns: id	date	time	name	type	status_id	status	liveUrl	channel	noTime	textTime	room	notes	sponsors	publicNote	url	EventUrl
-    senate_videos_df = get_senate_hearing_videos_data(senate_videos, config['info']['LegSess'])
+    house_videos = 'https://house.texas.gov/api/GetVideoEvents/{leg_id}/published/committee'
+    senate_videos = 'https://senate.texas.gov/av-archive.php?sess={leg_id}'
+
+    house_videos_df = get_house_hearing_videos_data(house_videos, leg_id) ## has lots of columns: id	date	time	name	type	status_id	status	liveUrl	channel	noTime	textTime	room	notes	sponsors	publicNote	url	EventUrl
+    senate_videos_df = get_senate_hearing_videos_data(senate_videos, leg_id)
 
     house_videos_df = house_videos_df[['date', 'time', 'name', 'EventUrl']]
 
@@ -544,9 +564,8 @@ def get_committee_hearing_videos_data(config):
 
     house_videos_df['chamber'] = 'House'
     senate_videos_df['chamber'] = 'Senate'
-    house_videos_df['leg_id'] = config['info']['LegSess']
-    senate_videos_df['leg_id'] = config['info']['LegSess']
-
+    house_videos_df['leg_id'] = leg_id
+    senate_videos_df['leg_id'] = leg_id
     # date, program, video_link
 
     return pd.concat([house_videos_df, senate_videos_df])
@@ -627,7 +646,8 @@ def get_indv_bill_stages(bill_stages_url, bill_id, leg_id):
     return stages
 
 @task(retries=0, log_prints=False, cache_policy=NO_CACHE,timeout_seconds=3600)
-def get_bill_stages(bill_stages_url, raw_bills_df, max_errors=5, log_every=20):
+def get_bill_stages(raw_bills_df, max_errors=5, log_every=20):
+    bill_stages_url = 'https://capitol.texas.gov/BillLookup/BillStages.aspx'
     bill_stages = []
     error_count = 0
     for i, row in raw_bills_df.iterrows():
@@ -1254,7 +1274,19 @@ def get_versions_data(raw_bills_df):
     return pd.DataFrame(versions_data, columns=['bill_id', 'leg_id', 'type', 'text_order', 'description',
                                               'html_url', 'pdf_url', 'ftp_html_url', 'ftp_pdf_url'])
 
-def get_links_data(raw_bills_df, config):
+def get_links_data(raw_bills_df):
+    base_urls = {
+        'history': 'https://capitol.texas.gov/BillLookup/History.aspx',
+        'text': 'https://capitol.texas.gov/BillLookup/Text.aspx',
+        'actions': 'https://capitol.texas.gov/BillLookup/Actions.aspx',
+        'companions': 'https://capitol.texas.gov/BillLookup/Companions.aspx',
+        'amendments': 'https://capitol.texas.gov/BillLookup/Amendments.aspx',
+        'authors': 'https://capitol.texas.gov/BillLookup/Authors.aspx',
+        'sponsors': 'https://capitol.texas.gov/BillLookup/Sponsors.aspx',
+        'captions': 'https://capitol.texas.gov/BillLookup/Captions.aspx',
+        'bill_stages': 'https://capitol.texas.gov/BillLookup/BillStages.aspx'
+    }
+    
     links_data = []
     
     for _, row in raw_bills_df.iterrows():
@@ -1266,7 +1298,7 @@ def get_links_data(raw_bills_df, config):
                 'bill_id': bill_id,
                 'leg_id': leg_id,
             }
-            for link_type, base_url in config['sources']['html'].items():
+            for link_type, base_url in base_urls.items():
                 # Format URL with session and bill info
                 formatted_url = f"{base_url}?LegSess={leg_id}&Bill={bill_id}"
                 links[link_type] = formatted_url
@@ -1276,18 +1308,20 @@ def get_links_data(raw_bills_df, config):
             logger.debug(f"Failed to create clean links data for {row['bill_id']}: {e}")
             continue
 
-    return pd.DataFrame(links_data, columns=['bill_id', 'leg_id'] + list(config['sources']['html'].keys()))
+    return pd.DataFrame(links_data, columns=['bill_id', 'leg_id'] + list(base_urls.keys()))
 
 def get_complete_bills_list(raw_bills_df):
     new_rows = []
     
     # Extract and clean bill_id and leg_id
+    print(raw_bills_df)
     cleaned_data = []
     for _, row in raw_bills_df.iterrows():
         bill_id, leg_id = clean_bill_id(row['bill_id'])
         cleaned_data.append((bill_id, leg_id))
     
     cleaned_df = pd.DataFrame(cleaned_data, columns=["bill_id", "leg_id"])
+    print(cleaned_df)
     
     # Group by legislative session
     for leg_id, group in cleaned_df.groupby("leg_id"):
@@ -1305,12 +1339,12 @@ def get_complete_bills_list(raw_bills_df):
                 "leg_id": leg_id
             })
             new_rows.append(full_range)
-    
+    print(new_rows)
     return pd.concat(new_rows, ignore_index=True)
 
-def get_upcoming_committee_meetings(config):
+def get_upcoming_committee_meetings():
     try:
-        upcoming_meetings_df = get_rss_committee_meetings(config['sources']['rss']['upcoming'])
+        upcoming_meetings_df = get_rss_committee_meetings()
 
         if upcoming_meetings_df is None or len(upcoming_meetings_df) <= 0:
             return pd.DataFrame(columns=['committee', 'chamber', 'date', 'time', 'location', 'chair', 'meeting_url'])
@@ -1320,8 +1354,14 @@ def get_upcoming_committee_meetings(config):
         logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to get upcoming committee meetings data: {e}")
         return pd.DataFrame(columns=['committee', 'chamber', 'date', 'time', 'location', 'chair', 'meeting_url'])
 
-def get_upcoming_committee_meeting_bills(config):
-    upcoming_meetings_df = get_rss_committee_meetings(config['sources']['rss']['upcoming'])
+def get_upcoming_committee_meeting_bills():
+    rss_upcoming = {
+            'calendar_senate': 'https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingcalendarssenate',
+            'calendar_house': 'https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingcalendarshouse',
+            'meetings_senate': 'https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingmeetingssenate',
+            'meetings_house': 'https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingmeetingshouse'
+        }
+    upcoming_meetings_df = get_rss_committee_meetings()
 
     # Create list to store flattened bill records
     bills_list = []
@@ -1367,15 +1407,15 @@ def get_upcoming_committee_meeting_bills(config):
 
 
 @task(retries=3, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE)
-def get_committee_meetings_data(config):
-    upcoming_meetings_df = get_html_committee_meetings(config)
+def get_committee_meetings_data(leg_session):
+    upcoming_meetings_df = get_html_committee_meetings(leg_session)
     return upcoming_meetings_df[['committee', 'chamber', 'committee_meetings_link', 'leg_id', 'date',
        'time', 'location', 'chair', 'meeting_url', 'subcommittee',
        'hearing_notice_html', 'hearing_notice_pdf', 'minutes_html',
        'minutes_pdf', 'witness_list_html', 'witness_list_pdf', 'comments']]
 
-def get_committee_meeting_bills_data(config):
-    upcoming_meetings_df = get_html_committee_meetings(config)
+def get_committee_meeting_bills_data(leg_session):
+    upcoming_meetings_df = get_html_committee_meetings(leg_session)
 
     # Create list to store flattened bill records 
     bills_list = []
