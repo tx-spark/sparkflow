@@ -57,7 +57,9 @@ def bills(raw_bills_df):
     bills_df['last_seen_at'] = curr_time
     bills_df['first_seen_at'] = curr_time
     
-    dataframe_to_bigquery(bills_df, PROJECT_ID, OUT_DATASET_NAME, 'bills', ENV, 'drop')
+    dataframe_to_bigquery(bills_df, PROJECT_ID, OUT_DATASET_NAME, 'bills', ENV, 'append') # changed to append, needs to be corrected on BQ
+    merge_new_data_in_database(bills_df, PROJECT_ID, OUT_DATASET_NAME, 'bills', ENV)
+
     log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'bills', ENV, 'drop', sys.getsizeof(bills_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Bills data processing complete")
 
@@ -71,7 +73,8 @@ def actions(raw_bills_df):
     actions_df['first_seen_at'] = curr_time
 
     actions_df = actions_df.drop_duplicates()
-    dataframe_to_bigquery(actions_df, PROJECT_ID, OUT_DATASET_NAME, 'actions', ENV, 'drop')
+    dataframe_to_bigquery(actions_df, PROJECT_ID, OUT_DATASET_NAME, 'actions', ENV, 'append') # changed to append, needs to be corrected on BQ
+    merge_new_data_in_database(actions_df, PROJECT_ID, OUT_DATASET_NAME, 'actions', ENV)
     log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'actions', ENV, 'drop', sys.getsizeof(actions_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Actions data processing complete")
 
@@ -84,20 +87,22 @@ def authors(raw_bills_df):
     authors_df['last_seen_at'] = curr_time
     authors_df['first_seen_at'] = curr_time
     
-    dataframe_to_bigquery(authors_df, PROJECT_ID, OUT_DATASET_NAME, 'authors', ENV, 'drop')
+    dataframe_to_bigquery(authors_df, PROJECT_ID, OUT_DATASET_NAME, 'authors', ENV, 'append') # changed to append, needs to be corrected on BQ
+    merge_new_data_in_database(authors_df, PROJECT_ID, OUT_DATASET_NAME, 'authors', ENV)
     log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'authors', ENV, 'drop', sys.getsizeof(authors_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Authors data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
-def bill_stages(raw_bills_df, config):
+def bill_stages(raw_bills_df):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process bill stages data")
-    bill_stages_df = get_bill_stages(config['sources']['html']['bill_stages'], raw_bills_df)
+    bill_stages_df = get_bill_stages(raw_bills_df)
     
     curr_time = pd.Timestamp.now().floor('min')
     bill_stages_df['last_seen_at'] = curr_time
     bill_stages_df['first_seen_at'] = curr_time
     
-    dataframe_to_bigquery(bill_stages_df, PROJECT_ID, OUT_DATASET_NAME, 'bill_stages', ENV, 'drop')
+    dataframe_to_bigquery(bill_stages_df, PROJECT_ID, OUT_DATASET_NAME, 'bill_stages', ENV, 'append') # changed to append, needs to be corrected on BQ
+    merge_new_data_in_database(bill_stages_df, PROJECT_ID, OUT_DATASET_NAME, 'bill_stages', ENV)
     log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'bill_stages', ENV, 'drop', sys.getsizeof(bill_stages_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Bill stages data processing complete")
 
@@ -121,61 +126,66 @@ def committee_status(raw_bills_df):
     committees_df['last_seen_at'] = curr_time
     committees_df['first_seen_at'] = curr_time
     
-    dataframe_to_bigquery(committees_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_status', ENV, 'drop')
+    dataframe_to_bigquery(committees_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_status', ENV, 'append') # changed to append, needs to be corrected on BQ
+    merge_new_data_in_database(committees_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_status', ENV)
     log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'committees', ENV, 'drop', sys.getsizeof(committees_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Committees data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
-def committee_hearing_videos(config):
+def committee_hearing_videos(leg_session):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process committee hearing videos data")
-    committee_hearing_videos_df = get_committee_hearing_videos_data(config)
+    committee_hearing_videos_df = get_committee_hearing_videos_data(leg_session)
     
     curr_time = pd.Timestamp.now().floor('min')
     committee_hearing_videos_df['last_seen_at'] = curr_time
     committee_hearing_videos_df['first_seen_at'] = curr_time
     
-    dataframe_to_bigquery(committee_hearing_videos_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_hearing_videos', ENV, 'drop')
+    dataframe_to_bigquery(committee_hearing_videos_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_hearing_videos', ENV, 'append') # changed to append, needs to be corrected on BQ
+    merge_new_data_in_database(committee_hearing_videos_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_hearing_videos', ENV)
     log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'committee_hearing_videos', ENV, 'drop', sys.getsizeof(committee_hearing_videos_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Committee hearing videos data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
-def committee_meetings(config):
+def committee_meetings(leg_session):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process committee meetings data")
-    committee_meetings_df = get_committee_meetings_data(config)
+    committee_meetings_df = get_committee_meetings_data(leg_session)
     
     curr_time = pd.Timestamp.now().floor('min')
     committee_meetings_df['last_seen_at'] = curr_time
     committee_meetings_df['first_seen_at'] = curr_time
     
-    dataframe_to_bigquery(committee_meetings_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_meetings', ENV, 'drop')
+    dataframe_to_bigquery(committee_meetings_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_meetings', ENV, 'append') # changed to append, needs to be corrected on BQ
+    merge_new_data_in_database(committee_meetings_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_meetings', ENV)
     log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'committee_meetings', ENV, 'drop', sys.getsizeof(committee_meetings_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Committee meetings data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
-def committee_meeting_bills(config):
+def committee_meeting_bills(leg_session):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process committee meeting bills data")
-    committee_meeting_bills_df = get_committee_meeting_bills_data(config)
+    committee_meeting_bills_df = get_committee_meeting_bills_data(leg_session)
     
     curr_time = pd.Timestamp.now().floor('min')
     committee_meeting_bills_df['last_seen_at'] = curr_time
     committee_meeting_bills_df['first_seen_at'] = curr_time
     
-    dataframe_to_bigquery(committee_meeting_bills_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_meeting_bills', ENV, 'drop')
+    dataframe_to_bigquery(committee_meeting_bills_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_meeting_bills', ENV, 'append') # changed to append, needs to be corrected on BQ
+    merge_new_data_in_database(committee_meeting_bills_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_meeting_bills', ENV)
     log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'committee_meeting_bills', ENV, 'drop', sys.getsizeof(committee_meeting_bills_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Committee meeting bills data processing complete")
 
-@task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
-def committee_meetings_links(config):
-    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process committee meetings links data")
-    committee_meetings_df = get_committee_meetings_data(config)
+# @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
+# def committee_meetings_links(leg_session):
+#     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process committee meetings links data")
+#     committee_meetings_df = get_committee_meetings_data(leg_session)
     
-    curr_time = pd.Timestamp.now().floor('min')
-    committee_meetings_df['last_seen_at'] = curr_time
-    committee_meetings_df['first_seen_at'] = curr_time
+#     curr_time = pd.Timestamp.now().floor('min')
+#     committee_meetings_df['last_seen_at'] = curr_time
+#     committee_meetings_df['first_seen_at'] = curr_time
     
-    dataframe_to_bigquery(committee_meetings_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_meetings_links', ENV, 'drop')
-    log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'committee_meetings_links', ENV, 'drop', sys.getsizeof(committee_meetings_df))
-    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Committee meetings links data processing complete")
+#     dataframe_to_bigquery(committee_meetings_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_meetings_links', ENV, 'append') # changed to append, needs to be corrected on BQ
+#     merge_new_data_in_database(committee_meetings_df, PROJECT_ID, OUT_DATASET_NAME, 'committee_meetings_links', ENV)
+#     log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'committee_meetings_links', ENV, 'drop', sys.getsizeof(committee_meetings_df))
+#     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Committee meetings links data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
 def companions(raw_bills_df):
@@ -186,7 +196,8 @@ def companions(raw_bills_df):
     companions_df['last_seen_at'] = curr_time
     companions_df['first_seen_at'] = curr_time
 
-    dataframe_to_bigquery(companions_df, PROJECT_ID, OUT_DATASET_NAME, 'companions', ENV, 'drop')
+    dataframe_to_bigquery(companions_df, PROJECT_ID, OUT_DATASET_NAME, 'companions', ENV, 'append') # changed to append, needs to be corrected on BQ
+    merge_new_data_in_database(companions_df, PROJECT_ID, OUT_DATASET_NAME, 'companions', ENV)
     log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'companions', ENV, 'drop', sys.getsizeof(companions_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Companions data processing complete")
 
@@ -199,20 +210,22 @@ def complete_bills_list(raw_bills_df):
     complete_bills_list_df['last_seen_at'] = curr_time
     complete_bills_list_df['first_seen_at'] = curr_time
     
-    dataframe_to_bigquery(complete_bills_list_df, PROJECT_ID, OUT_DATASET_NAME, 'complete_bills_list', ENV, 'drop')
+    dataframe_to_bigquery(complete_bills_list_df, PROJECT_ID, OUT_DATASET_NAME, 'complete_bills_list', ENV, 'append') # changed to append, needs to be corrected on BQ
+    merge_new_data_in_database(complete_bills_list_df, PROJECT_ID, OUT_DATASET_NAME, 'complete_bills_list', ENV)
     log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'complete_bills_list', ENV, 'drop', sys.getsizeof(complete_bills_list_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Complete bills list data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
-def links(raw_bills_df, config):
+def links(raw_bills_df):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process links data")
-    links_df = get_links_data(raw_bills_df,config)
+    links_df = get_links_data(raw_bills_df)
     
     curr_time = pd.Timestamp.now().floor('min')
     links_df['last_seen_at'] = curr_time
     links_df['first_seen_at'] = curr_time
     
-    dataframe_to_bigquery(links_df, PROJECT_ID, OUT_DATASET_NAME, 'links', ENV, 'drop')
+    dataframe_to_bigquery(links_df, PROJECT_ID, OUT_DATASET_NAME, 'links', ENV, 'append') # changed to append, needs to be corrected on BQ
+    merge_new_data_in_database(links_df, PROJECT_ID, OUT_DATASET_NAME, 'links', ENV)
     log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'links', ENV, 'drop', sys.getsizeof(links_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Links data processing complete")
 
@@ -225,7 +238,8 @@ def sponsors(raw_bills_df):
     sponsors_df['last_seen_at'] = curr_time
     sponsors_df['first_seen_at'] = curr_time
     
-    dataframe_to_bigquery(sponsors_df, PROJECT_ID, OUT_DATASET_NAME, 'sponsors', ENV, 'drop')
+    dataframe_to_bigquery(sponsors_df, PROJECT_ID, OUT_DATASET_NAME, 'sponsors', ENV, 'append') # changed to append, needs to be corrected on BQ
+    merge_new_data_in_database(sponsors_df, PROJECT_ID, OUT_DATASET_NAME, 'sponsors', ENV)
     log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'sponsors', ENV, 'drop', sys.getsizeof(sponsors_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Sponsors data processing complete")
 
@@ -238,14 +252,15 @@ def subjects(raw_bills_df):
     subjects_df['last_seen_at'] = curr_time
     subjects_df['first_seen_at'] = curr_time
     
-    dataframe_to_bigquery(subjects_df, PROJECT_ID, OUT_DATASET_NAME, 'subjects', ENV, 'drop')
+    dataframe_to_bigquery(subjects_df, PROJECT_ID, OUT_DATASET_NAME, 'subjects', ENV, 'append') # changed to append, needs to be corrected on BQ
+    merge_new_data_in_database(subjects_df, PROJECT_ID, OUT_DATASET_NAME, 'subjects', ENV)
     log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'subjects', ENV, 'drop', sys.getsizeof(subjects_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Subjects data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
-def rss_feeds(config):
+def rss_feeds():
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process RSS feeds data")
-    rss_df = get_rss_data(config)
+    rss_df = get_rss_data()
     
     curr_time = pd.Timestamp.now().floor('min')
     rss_df['last_seen_at'] = curr_time
@@ -256,18 +271,19 @@ def rss_feeds(config):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- RSS feeds data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
-def upcoming_committee_meetings(config):
+def upcoming_committee_meetings():
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process upcoming committee meetings data")
-    upcoming_meetings_df = get_upcoming_committee_meetings(config)
+    upcoming_meetings_df = get_upcoming_committee_meetings()
     upcoming_meetings_df['seen_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+    print(upcoming_meetings_df)
     dataframe_to_bigquery(upcoming_meetings_df, PROJECT_ID, OUT_DATASET_NAME, 'upcoming_committee_meetings', ENV, 'append')
     log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'upcoming_committee_meetings', ENV, 'append', sys.getsizeof(upcoming_meetings_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Upcoming committee meetings data processing complete")
 
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
-def upcoming_committee_meeting_bills(config):
+def upcoming_committee_meeting_bills():
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting to process upcoming committee meeting bills data")
-    upcoming_meeting_bills_df = get_upcoming_committee_meeting_bills(config)
+    upcoming_meeting_bills_df = get_upcoming_committee_meeting_bills()
     upcoming_meeting_bills_df['seen_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
     dataframe_to_bigquery(upcoming_meeting_bills_df, PROJECT_ID, OUT_DATASET_NAME, 'upcoming_committee_meeting_bills', ENV, 'append')
     log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'upcoming_committee_meeting_bills', ENV, 'append', sys.getsizeof(upcoming_meeting_bills_df))
@@ -282,7 +298,8 @@ def versions(raw_bills_df):
     versions_df['last_seen_at'] = curr_time
     versions_df['first_seen_at'] = curr_time
     
-    dataframe_to_bigquery(versions_df, PROJECT_ID, OUT_DATASET_NAME, 'versions', ENV, 'drop')
+    dataframe_to_bigquery(versions_df, PROJECT_ID, OUT_DATASET_NAME, 'versions', ENV, 'append') # changed to append, needs to be corrected on BQ
+    merge_new_data_in_database(versions_df, PROJECT_ID, OUT_DATASET_NAME, 'versions', ENV)
     log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'versions', ENV, 'drop', sys.getsizeof(versions_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Versions data processing complete")
 
@@ -299,25 +316,26 @@ def tx_leg_pipeline(env=None):
 
     logger = logging.getLogger(__name__)
     print('USING ENV: ', ENV)
+    ftp_host_url = 'ftp.legis.state.tx.us'
 
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
     try:
-        conn = FtpConnection(config['sources']['ftp']['host'])
+        conn = FtpConnection(ftp_host_url)
     except Exception as e:
         logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to connect to FTP: {e}")
         raise e
 
-    base_path = config['sources']['ftp']['base_path']
+    base_path = 'ftp://ftp.legis.state.tx.us/bills/{LegSess}'
     leg_session = config['info']['LegSess']
 
     # first get the dataframes without raw_bills_df
-    committee_hearing_videos(config)
-    committee_meeting_bills(config)
-    committee_meetings(config)
-    upcoming_committee_meetings(config)
-    upcoming_committee_meeting_bills(config)
+    # committee_hearing_videos(leg_session)
+    # committee_meeting_bills(leg_session)
+    # committee_meetings(leg_session)
+    # upcoming_committee_meetings()
+    # upcoming_committee_meeting_bills()
 
     try:
         logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting raw bills data extraction")
@@ -329,17 +347,17 @@ def tx_leg_pipeline(env=None):
 
     # curr_rss_df =  get_current_table_data(PROJECT_ID, OUT_DATASET_NAME, 'rss_feeds', ENV)
 
-    actions(raw_bills_df)
-    authors(raw_bills_df)
-    bills(raw_bills_df)
-    committee_status(raw_bills_df)
-    companions(raw_bills_df)
+    # actions(raw_bills_df)
+    # authors(raw_bills_df)
+    # bills(raw_bills_df)
+    # committee_status(raw_bills_df)
+    # companions(raw_bills_df)
     complete_bills_list(raw_bills_df)
-    links(raw_bills_df, config)
+    links(raw_bills_df)
     subjects(raw_bills_df)
     versions(raw_bills_df)
 
-    bill_stages(raw_bills_df, config)
+    bill_stages(raw_bills_df)
     # bill_texts(conn)
 
     legiscan(config)

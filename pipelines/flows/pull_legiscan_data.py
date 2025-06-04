@@ -8,7 +8,7 @@ import io
 import os
 import pandas as pd
 
-from utils import get_secret, dataframe_to_bigquery, determine_git_environment, bigquery_to_df
+from utils import get_secret, dataframe_to_bigquery, determine_git_environment, bigquery_to_df, query_bq
 
 CONFIG_PATH = 'config.yaml'
 LEGISCAN_API_KEY = get_secret(secret_id='LEGISCAN_API_KEY')
@@ -215,9 +215,19 @@ def parse_dataset(dataset):
         'history': pd.DataFrame(history)
     }
 
-def get_dataset(state, leg_id):
-    dataset_list_url = f'https://api.legiscan.com/?key={LEGISCAN_API_KEY}&op=getDatasetList&state={state}'
+def get_most_recent_dataset_hash(project_id, dataset_id, table_id='_legiscan_pulls'):
+    most_recent_hash = query_bq(f"""
+            select
+            legiscan_hash
+            from `{project_id}.{dataset_id}.{table_id}`
+            order by TIMESTAMP(upload_time) desc
+            limit 1
+             """).iloc[0]['legiscan_hash']
+    
+    return most_recent_hash
 
+def get_dataset(state, leg_id, most_recent_hash):
+    dataset_list_url = f'https://api.legiscan.com/?key={LEGISCAN_API_KEY}&op=getDatasetList&state={state}'
 
     # Extract number by finding first digit and taking all digits
     leg_number = int(''.join(c for c in leg_id if c.isdigit()))
@@ -240,6 +250,11 @@ def get_dataset(state, leg_id):
 
     access_key = curr_dataset['access_key']
     session_id = curr_dataset['session_id']
+    curr_dataset_hash = curr_dataset['dataset_hash']
+
+    if curr_dataset_hash == most_recent_hash:
+        print('Current hash matches most recent data pull. Not downloading data.')
+        return None
 
     weekly_dataset_url = f'https://api.legiscan.com/?key={LEGISCAN_API_KEY}&op=getDataset&id={session_id}&access_key={access_key}'
     weekly_dataset_response = requests.get(weekly_dataset_url,timeout=30)
@@ -259,8 +274,13 @@ def get_dataset(state, leg_id):
         dataset = {name: zip_ref.read(name) for name in zip_ref.namelist()}
     return dataset
 
-def legiscan_to_bigquery(config, project_id, dataset_id, env='dev'):
-    raw_dataset = get_dataset('TX',config['info']['LegSess'])
+def legiscan_to_bigquery(leg_session, project_id, dataset_id, env='dev'):
+    most_recent_dataset_hash = get_most_recent_dataset_hash(project_id, dataset_id)
+
+    raw_dataset = get_dataset('TX',leg_session, most_recent_hash=most_recent_dataset_hash)
+    if raw_dataset == None: # if there's nothing new, do nothing
+        return
+    
     clean_dataset = parse_dataset(raw_dataset)
 
     legiscan_hash = raw_dataset['TX/2025-2026_89th_Legislature/hash.md5']
@@ -270,18 +290,6 @@ def legiscan_to_bigquery(config, project_id, dataset_id, env='dev'):
         "upload_time": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'legiscan_hash': legiscan_hash
     }
-    try:
-        legiscan_pulls = bigquery_to_df(project_id, dataset_id, '_legiscan_pulls',env)
-        if legiscan_pulls is not None and len(legiscan_pulls) > 0:
-            legiscan_pulls['upload_time'] = pd.to_datetime(legiscan_pulls['upload_time'])
-            most_recent_pull = legiscan_pulls.sort_values('upload_time', ascending=False).iloc[0]
-            if most_recent_pull['legiscan_hash'] == legiscan_hash:
-                print('Legiscan data still has the same hash as the last upload. Skipping upload.')
-                return
-
-    except ValueError:
-        print(f'Table {project_id}.{dataset_id}._legiscan_pulls does not yet exist.')
-
     legiscan_pull_df = pd.DataFrame([legiscan_pull_info])
     dataframe_to_bigquery(legiscan_pull_df, project_id, dataset_id, '_legiscan_pulls', env, 'append')
 
@@ -298,5 +306,9 @@ def legiscan_to_bigquery(config, project_id, dataset_id, env='dev'):
 if __name__ == '__main__':
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
+
+    leg_session = config['info']['LegSess']
     
-    legiscan_to_bigquery(config, project_id=PROJECT_ID,dataset_id=DATASET_ID,env=ENV)
+    # get_most_recent_dataset_hash('lgover','tx_leg_raw_bills')
+    # get_dataset('TX','89R')
+    legiscan_to_bigquery(leg_session, project_id=PROJECT_ID,dataset_id=DATASET_ID,env=ENV)
