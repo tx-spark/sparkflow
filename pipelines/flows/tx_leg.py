@@ -331,11 +331,11 @@ def tx_leg_pipeline(env=None):
     leg_session = config['info']['LegSess']
 
     # first get the dataframes without raw_bills_df
-    # committee_hearing_videos(leg_session)
-    # committee_meeting_bills(leg_session)
-    # committee_meetings(leg_session)
-    # upcoming_committee_meetings()
-    # upcoming_committee_meeting_bills()
+    committee_hearing_videos(leg_session)
+    committee_meeting_bills(leg_session)
+    committee_meetings(leg_session)
+    upcoming_committee_meetings()
+    upcoming_committee_meeting_bills()
 
     try:
         logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting raw bills data extraction")
@@ -347,20 +347,20 @@ def tx_leg_pipeline(env=None):
 
     # curr_rss_df =  get_current_table_data(PROJECT_ID, OUT_DATASET_NAME, 'rss_feeds', ENV)
 
-    # actions(raw_bills_df)
-    # authors(raw_bills_df)
-    # bills(raw_bills_df)
-    # committee_status(raw_bills_df)
-    # companions(raw_bills_df)
+    actions(raw_bills_df)
+    authors(raw_bills_df)
+    bills(raw_bills_df)
+    committee_status(raw_bills_df)
+    companions(raw_bills_df)
     complete_bills_list(raw_bills_df)
     links(raw_bills_df)
     subjects(raw_bills_df)
     versions(raw_bills_df)
 
     bill_stages(raw_bills_df)
-    # bill_texts(conn)
+    bill_texts(conn)
 
-    legiscan(config)
+    legiscan(leg_session)
 
     download_google_sheets(GSHEETS_CONFIG_PATH)
     # rss_feeds(config, curr_rss_df),
