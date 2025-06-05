@@ -275,8 +275,10 @@ def get_dataset(state, leg_id, most_recent_hash):
     return dataset
 
 def legiscan_to_bigquery(leg_session, project_id, dataset_id, env='dev'):
-    most_recent_dataset_hash = get_most_recent_dataset_hash(project_id, dataset_id)
+    if env.lower() == 'dev':
+        dataset_id = f'dev_{dataset_id}'
 
+    most_recent_dataset_hash = get_most_recent_dataset_hash(project_id, dataset_id)
     raw_dataset = get_dataset('TX',leg_session, most_recent_hash=most_recent_dataset_hash)
     if raw_dataset == None: # if there's nothing new, do nothing
         return
@@ -291,6 +293,7 @@ def legiscan_to_bigquery(leg_session, project_id, dataset_id, env='dev'):
         'legiscan_hash': legiscan_hash
     }
     legiscan_pull_df = pd.DataFrame([legiscan_pull_info])
+    print(legiscan_pull_df)
     dataframe_to_bigquery(legiscan_pull_df, project_id, dataset_id, '_legiscan_pulls', env, 'append')
 
     for table in clean_dataset.keys():
