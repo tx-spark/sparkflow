@@ -15,6 +15,7 @@ LEGISCAN_API_KEY = get_secret(secret_id='LEGISCAN_API_KEY')
 PROJECT_ID = get_secret(secret_id='GCP_PROJECT_ID')
 DATASET_ID = 'tx_leg_raw_bills'
 ENV = determine_git_environment()
+ENV = 'prod'
 
 ###############################################################################
 #                 Parsing Functions
@@ -281,10 +282,16 @@ def legiscan_to_bigquery(leg_session, project_id, dataset_id, env='dev'):
 
     most_recent_dataset_hash = get_most_recent_dataset_hash(project_id, dataset_id)
     raw_dataset = get_dataset('TX',leg_session, most_recent_hash=most_recent_dataset_hash)
+    total_size_bytes = sum(len(data) for data in raw_dataset.values())
+    total_size_gb = total_size_bytes / (1024 * 1024 * 1024)
+    print(f"Raw dataset size: {len(raw_dataset)} files ({total_size_gb:.2f} GB)")
     if raw_dataset == None: # if there's nothing new, do nothing
         return
     
     clean_dataset = parse_dataset(raw_dataset)
+    clean_size_bytes = sum(df.memory_usage(deep=True).sum() for df in clean_dataset.values())
+    clean_size_gb = clean_size_bytes / (1024 * 1024 * 1024)
+    print(f"Clean dataset size: {len(clean_dataset)} tables ({clean_size_gb:.2f} GB)")
 
     legiscan_hash = raw_dataset['TX/2025-2026_89th_Legislature/hash.md5']
     legiscan_hash = legiscan_hash.decode("utf-8")
