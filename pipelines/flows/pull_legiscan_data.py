@@ -256,6 +256,7 @@ def get_dataset(state, leg_id, most_recent_hash):
         print('Current hash matches most recent data pull. Not downloading data.')
         return None
 
+    print('Downloading new Legiscan weekly dataset')
     weekly_dataset_url = f'https://api.legiscan.com/?key={LEGISCAN_API_KEY}&op=getDataset&id={session_id}&access_key={access_key}'
     weekly_dataset_response = requests.get(weekly_dataset_url,timeout=30)
     weekly_dataset = weekly_dataset_response.json()
@@ -293,7 +294,6 @@ def legiscan_to_bigquery(leg_session, project_id, dataset_id, env='dev'):
         'legiscan_hash': legiscan_hash
     }
     legiscan_pull_df = pd.DataFrame([legiscan_pull_info])
-    print(legiscan_pull_df)
     dataframe_to_bigquery(legiscan_pull_df, project_id, dataset_id, '_legiscan_pulls', env, 'append')
 
     for table in clean_dataset.keys():
