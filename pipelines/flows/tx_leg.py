@@ -358,7 +358,7 @@ def tx_leg_pipeline(env=None):
     versions(raw_bills_df)
 
     bill_stages(raw_bills_df)
-    bill_texts(conn)
+    # bill_texts(conn)
 
     legiscan(leg_session)
 
