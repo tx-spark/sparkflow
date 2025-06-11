@@ -3,7 +3,7 @@ sources:
     schema: tx_leg_raw_bills
     tables:
       - name: _legiscan_pulls
-        description: Table containing information about pulls from Legiscan
+        description: Information about pulls from Legiscan
         columns:
         - name: upload_time
           description: The time when the data was uploaded

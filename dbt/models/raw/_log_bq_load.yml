@@ -3,7 +3,7 @@ sources:
     schema: tx_leg_raw_bills
     tables:
       - name: _log_bq_load
-        description: Table containing information about data pipeline loads
+        description: Information about data pipeline loads
         columns:
         - name: project_id
           description: GCP ID of the project
