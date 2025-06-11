@@ -3,7 +3,7 @@ sources:
     schema: tx_leg_raw_bills
     tables:
       - name: bill_texts
-        description: Text of bill documents and associated metadata
+        description: Text of bill documents
         columns:
         - name: ftp_pdf_url
           description: This column contains the URL for the PDF of the bill text document

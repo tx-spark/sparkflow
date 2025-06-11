@@ -34,9 +34,7 @@ sources:
         - name: alt_amendment
           description: Indicates if there is an alternative amendment
         - name: alt_mime
-          description: MIME type of the alternative amendment
         - name: alt_mime_id
-          description: Unique ID for the MIME type of the alternative amendment
         - name: alt_state_link
           description: Link to the state document of the alternative amendment
         - name: alt_amendment_size

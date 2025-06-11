@@ -3,7 +3,7 @@ sources:
     schema: tx_leg_raw_bills
     tables:
       - name: actions
-        description: Table containing legislative action details
+        description: Legislative action details
         columns:
         - name: bill_id
           tests:
@@ -21,6 +21,8 @@ sources:
         - name: action_timestamp
           description: Timestamp of the legislative action
         - name: last_seen_at
-          description: Last seen timestamp of the legislative action
+          tests:
+          - not_null
         - name: first_seen_at
-          description: First seen timestamp of the legislative action
+          tests:
+          - not_null

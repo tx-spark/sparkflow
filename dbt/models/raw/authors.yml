@@ -3,7 +3,7 @@ sources:
     schema: tx_leg_raw_bills
     tables:
       - name: authors
-        description: Table containing information about authors of legislative bills
+        description: Authors of legislative bills
         columns:
         - name: bill_id
           tests:
