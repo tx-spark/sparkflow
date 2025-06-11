@@ -1,0 +1,29 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: links
+        description: Bill links to TLO for every bill. 
+        columns:
+        - name: bill_id
+          tests:
+          - not_null
+        - name: leg_id
+          description: Legislative session ID
+          tests:
+          - not_null
+        - name: history
+        - name: text
+        - name: actions
+        - name: companions
+        - name: amendments
+        - name: authors
+        - name: sponsors
+        - name: captions
+        - name: bill_stages
+        - name: last_seen_at
+          tests:
+          - not_null
+        - name: first_seen_at
+          tests:
+          - not_null

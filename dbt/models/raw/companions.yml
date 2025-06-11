@@ -1,0 +1,22 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: companions
+        description: Companion bill relations
+        columns:
+        - name: bill_id
+          tests:
+          - not_null
+        - name: leg_id
+          description: Legislative session ID
+          tests:
+          - not_null
+        - name: companion_bill_id
+        - name: relationship
+        - name: last_seen_at
+          tests:
+          - not_null
+        - name: first_seen_at
+          tests:
+          - not_null

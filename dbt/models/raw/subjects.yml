@@ -1,0 +1,22 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: subjects
+        description: Subjects of bills as described on TLO.
+        columns:
+        - name: bill_id
+          tests:
+          - not_null
+        - name: leg_id
+          description: Legislative session ID
+          tests:
+          - not_null
+        - name: subject_title
+        - name: subject_id
+        - name: last_seen_at
+          tests:
+          - not_null
+        - name: first_seen_at
+          tests:
+          - not_null

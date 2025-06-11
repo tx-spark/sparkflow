@@ -1,0 +1,37 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: versions
+        description: All the versions of bills with associated metadata
+        columns:
+        - name: bill_id
+          tests:
+          - not_null
+        - name: leg_id
+          description: Legislative session ID
+        - name: type
+          description: The type of the legislative document
+          tests:
+          - accepted_values:
+              values: ['Analysis', 'Bill', 'Fiscal Note']
+        - name: text_order
+          description: The order of the text document
+          tests:
+          - not_null
+        - name: description
+          description: The status of the legislative document
+        - name: html_url
+          description: URL for the HTML version of the document
+        - name: pdf_url
+          description: URL for the PDF version of the document
+        - name: ftp_html_url
+          description: FTP URL for the HTML version of the document
+        - name: ftp_pdf_url
+          description: FTP URL for the PDF version of the document
+        - name: last_seen_at
+          tests:
+          - not_null
+        - name: first_seen_at
+          tests:
+          - not_null

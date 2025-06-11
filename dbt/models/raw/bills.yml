@@ -1,0 +1,33 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: bills
+        description: Basic information about bills
+        columns:
+        - name: bill_id
+          tests:
+            - not_null
+        - name: leg_id
+          description: Legislative session ID
+          tests:
+          - not_null
+        - name: caption
+        - name: last_action
+        - name: last_action_date
+        - name: last_action_chamber
+          description: Chamber where the last action took place. (H for House, S for Senate, E for Executive)
+          tests:
+          - accepted_values:
+              values: ['H', 'S','E']
+        - name: caption_version
+          description: Version of the bill caption
+          tests:
+          - accepted_values:
+              values: ['Engrossed', 'Enrolled', 'House Committee Report', 'Introduced', 'Senate Committee Report']
+        - name: last_seen_at
+          tests:
+          - not_null
+        - name: first_seen_at
+          tests:
+          - not_null

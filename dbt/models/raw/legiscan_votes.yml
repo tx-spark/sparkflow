@@ -1,0 +1,14 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: legiscan_votes
+        description: Table containing vote information from Legiscan
+        columns:
+        - name: roll_call_id
+        - name: legiscan_bill_id
+        - name: date
+        - name: desc
+        - name: legiscan_people_id
+        - name: vote_id
+        - name: vote_text

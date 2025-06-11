@@ -1,0 +1,41 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: legiscan_bills
+        description: Table containing bill details from Legiscan
+        columns:
+        - name: legiscan_bill_id
+          description: Unique ID for a bill in Legiscan
+        - name: change_hash
+          description: Hash value for tracking changes. Updated every change of the bill
+        - name: session_id
+        - name: session_tag
+        - name: session_title
+        - name: session_name
+        - name: url
+          description: URL for the bill on Legiscan
+        - name: completed
+        - name: status
+        - name: status_date
+          description: Date of the bill status
+        - name: bill_number
+          description: Number identifier for the bill
+        - name: bill_type
+          description: examples are 'B', 'CR', 'JR', 'R'
+        - name: bill_type_id
+        - name: body
+          description: chamber of the bill. examples are 'H' and 'S'
+        - name: body_id
+        - name: current_body
+        - name: current_body_id
+        - name: title
+          description: Title of the bill
+        - name: description
+          description: Description of the bill
+        - name: pending_committee_id
+        - name: committee_id
+        - name: committee_chamber
+        - name: committee_chamber_id
+        - name: committee_name
+          description: Name of the committee

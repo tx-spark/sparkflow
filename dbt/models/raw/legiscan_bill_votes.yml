@@ -1,0 +1,24 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: legiscan_bill_votes
+        description: Table containing information about bill votes from Legiscan
+        columns:
+        - name: roll_call_id
+        - name: date
+        - name: desc
+        - name: yea
+        - name: nay
+        - name: nv
+        - name: absent
+        - name: total
+          tests:
+          - unique
+          - not_null
+        - name: passed
+        - name: chamber
+        - name: chamber_id
+        - name: url
+        - name: state_link
+        - name: legiscan_bill_id

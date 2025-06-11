@@ -1,0 +1,10 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: legiscan_subjects
+        description: Subjects associated with bills from Legiscan
+        columns:
+        - name: subject_id
+        - name: subject_name
+        - name: legiscan_bill_id

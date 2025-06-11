@@ -1,0 +1,18 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: complete_bills_list
+        description: List of bills, including bill IDs that haven't been filed yet
+        columns:
+        - name: bill_id
+          tests:
+          - not_null
+        - name: leg_id
+          description: Legislative session ID
+        - name: last_seen_at
+          tests:
+          - not_null
+        - name: first_seen_at
+          tests:
+          - not_null

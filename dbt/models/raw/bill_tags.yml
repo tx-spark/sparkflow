@@ -1,0 +1,31 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: bill_tags
+        description: Tags for bills. Read in from Google Sheet with bill tags
+        columns:
+        - name: bill_id
+          tests:
+            - not_null
+        - name: leg_id
+          description: Legislative session ID
+          tests:
+            - not_null
+        - name: tag
+          description: Tag associated with the bill
+          tests:
+            - not_null
+        - name: for_against_on
+          description: Indicates if the tag is for, against, or on the bill
+          tests:
+            - accepted_values:
+                values: ['AGAINST', 'FOR', 'ON']
+        - name: organization
+          description: Organization associated with the tag
+          tests:
+            - not_null
+        - name: other
+          description: Additional information related to the tag
+          tests:
+            - not_null

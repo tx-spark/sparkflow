@@ -1,0 +1,25 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: legiscan_people
+        description: Table containing information about people involved in the legislative process
+        columns:
+        - name: people_id
+        - name: person_hash
+        - name: party
+          description: The political party affiliation of the person
+        - name: role
+          description: The role of the person (e.g. Rep or Sen)
+          tests:
+          - accepted_values:
+              values: ['Rep', 'Sen']
+        - name: name
+        - name: first_name
+        - name: middle_name
+        - name: last_name
+        - name: suffix
+        - name: nickname
+        - name: district
+        - name: votesmart_id
+        - name: ballotpedia

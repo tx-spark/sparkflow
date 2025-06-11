@@ -1,0 +1,25 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: authors
+        description: Table containing information about authors of legislative bills
+        columns:
+        - name: bill_id
+          tests:
+          - not_null
+        - name: leg_id
+          description: Legislative session ID
+          tests:
+          - not_null
+        - name: author
+        - name: author_type
+          tests:
+          - accepted_values:
+              values: ['Author', 'Coauthor']
+        - name: last_seen_at
+          tests:
+          - not_null
+        - name: first_seen_at
+          tests:
+          - not_null
