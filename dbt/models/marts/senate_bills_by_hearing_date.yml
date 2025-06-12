@@ -1,0 +1,22 @@
+models:
+- name: senate_bills_by_hearing_date
+  description: Table containing senate bills by hearing date
+  columns:
+  - name: bill_id
+    tests:
+    - not_null
+  - name: leg_id
+    description: Legislative session ID
+    tests:
+    - not_null
+  - name: caption
+  - name: bill_history
+  - name: committee_name
+  - name: chamber
+    tests:
+    - accepted_values:
+        values: ['House', 'Senate']
+  - name: hearing_datetime
+  - name: minutes_pdf
+  - name: witness_list_pdf
+  - name: video_link

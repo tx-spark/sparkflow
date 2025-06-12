@@ -1,0 +1,33 @@
+models:
+- name: bills
+  description: Basic bill descriptions
+  columns:
+  - name: bill_id
+    tests:
+    - not_null
+  - name: leg_id
+    description: Legislative session ID
+    tests:
+    - not_null
+  - name: caption
+    description: Bill caption
+  - name: last_action_date
+    description: Date of the last action on the bill in MM/DD/YYYY format
+    tests:
+    - not_null
+  - name: last_action_chamber
+    description: Chamber where the last action took place
+    tests:
+    - accepted_values:
+        values: ['Executive', 'House', 'Senate']
+    - not_null
+  - name: last_action
+    description: Description of the last action taken on the bill
+  - name: caption_version
+    description: Version of the bill caption
+  - name: first_seen_at
+    tests:
+    - not_null
+  - name: last_seen_at
+    tests:
+    - not_null

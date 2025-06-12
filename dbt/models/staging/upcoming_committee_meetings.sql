@@ -7,7 +7,7 @@ with upcoming_committee_meetings as (
         location,
         chair,
         meeting_url,
-        PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S',  seen_at) as seen_at
+        PARSE_TIMESTAMP('%Y-%m-%d %H:%M',  seen_at) as seen_at
     FROM {{ source('raw_bills', 'upcoming_committee_meetings') }}
 ),
 

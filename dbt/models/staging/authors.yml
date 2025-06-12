@@ -1,0 +1,26 @@
+models:
+  - name: authors
+    description: Table containing information about authors of legislative bills
+    columns:
+    - name: bill_id
+      tests:
+      - not_null
+    - name: leg_id
+      description: Legislative session ID
+      tests:
+      - not_null
+    - name: author
+      description: Name of the author of the bill
+      tests:
+      - not_null
+    - name: author_type
+      description: Type of author (e.g. Author, Coauthor)
+      tests:
+      - accepted_values:
+          values: ['Author', 'Coauthor']
+    - name: first_seen_at
+      tests:
+      - not_null
+    - name: last_seen_at
+      tests:
+      - not_null

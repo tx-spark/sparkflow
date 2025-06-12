@@ -1,0 +1,31 @@
+models:
+- name: committee_meeting_bills
+  description: Bill information for committee meetings
+  columns:
+    - name: bill_id
+      tests:
+        - not_null
+    - name: leg_id
+      description: Legislative session ID
+      tests:
+        - not_null
+    - name: chamber
+      description: Chamber in which the bill is being considered
+    - name: committee_name
+      description: Name of the committee holding the meeting
+    - name: meeting_datetime
+      description: Date and time of the meeting
+      tests:
+        - not_null
+    - name: meeting_datetime_text
+      description: Text representation of the meeting date and time
+    - name: meeting_url
+      description: URL for the meeting details
+    - name: status
+      description: Status of the meeting
+    - name: first_seen_at
+      tests:
+      - not_null
+    - name: last_seen_at
+      tests:
+      - not_null

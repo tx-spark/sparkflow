@@ -1,0 +1,39 @@
+models:
+- name: upcoming_meeting_bills
+  description: Table of upcoming meeting bills
+  columns:
+  - name: bill_id
+    tests:
+    - not_null
+  - name: leg_id
+    description: Legislative session ID
+    tests:
+    - not_null
+  - name: committee
+    description: Committee responsible for the bill
+  - name: chamber
+    description: Legislative chamber the bill belongs to
+    tests:
+    - accepted_values:
+        values: ['House', 'Senate']
+  - name: meeting_datetime
+    description: Date and time of the upcoming meeting
+    tests:
+    - not_null
+  - name: meeting_url
+    description: URL link to the meeting details
+  - name: link
+    description: URL link to the bill details
+  - name: author
+    description: Author of the bill
+  - name: description
+    description: Description of the bill
+  - name: status
+    description: Status of the bill
+    tests:
+    - accepted_values:
+        values: ['added', 'deleted', 'scheduled']
+  - name: seen_at
+    description: Date and time when bill was last seen
+    tests:
+    - not_null

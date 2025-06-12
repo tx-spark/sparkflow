@@ -1,0 +1,69 @@
+models:
+- name: tracker
+  description: Details of legislative bills
+  columns:
+  - name: bill_id
+    tests:
+    - not_null
+  - name: leg_id
+    description: Legislative session ID
+    tests:
+    - not_null
+  - name: caption
+    description: Title of the bill
+  - name: bill_history
+    description: Link to bill history
+  - name: authors
+    description: Link to bill authors
+  - name: tags
+    description: Tags associated with the bill
+  - name: position
+    description: Position on the bill (for, against, on)
+  - name: p_dem
+    description: Percentage of democrat support
+  - name: captions
+    description: Link to caption information
+  - name: status
+    tests:
+    - accepted_values:
+        values: ['Alive', 'Dead', 'Law', 'Unassigned']
+  - name: last_action_date
+    description: Date of the last legislative action
+  - name: last_action_chamber
+    description: Chamber of the last legislative action
+  - name: last_action
+    description: Link to the last legislative action
+  - name: text
+    description: Link to bill text
+  - name: recent_bill_text
+    description: Link to recent bill text
+  - name: introduced_pdf_url
+    description: Link to the bill's introduced PDF
+  - name: fiscal_note
+    description: Link to the bill's fiscal note
+  - name: analysis
+    description: Link to the bill's analysis
+  - name: companions
+    description: Link to bill companions
+  - name: amendments
+    description: Link to bill amendments
+  - name: sponsors
+    description: Link to bill sponsors
+  - name: stages
+    description: Link to bill stages
+  - name: house_committees
+    description: Link to house committee information
+  - name: first_house_committee_meeting_datetime
+    description: Date of first house committee meeting
+  - name: first_house_committee_video_link
+    description: Link to video of first house committee meeting
+  - name: first_house_committee_witness_list_pdf
+    description: Link to witness list PDF of first house committee meeting
+  - name: senate_committees
+    description: Link to senate committee information
+  - name: first_senate_committee_meeting_datetime
+    description: Date of first senate committee meeting
+  - name: first_senate_committee_video_link
+    description: Link to video of first senate committee meeting
+  - name: first_senate_committee_witness_list_pdf
+    description: Link to witness list PDF of first senate committee meeting

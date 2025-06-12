@@ -1,0 +1,38 @@
+models:
+- name: committee_status
+  description: Committee Status for Bills
+  columns:
+    - name: bill_id
+      description: Unique identifier for the bill
+      tests:
+        - not_null
+        - unique
+    - name: leg_id
+      description: Legislative session ID
+      tests:
+        - not_null
+    - name: chamber
+      description: Chamber where the committee status is held
+    - name: name
+      description: Name of the committee
+    - name: status
+      description: Current status of the bill in committee
+      tests:
+        - accepted_values:
+            values: ["In committee", "Out of committee"]
+    - name: aye_votes
+      description: Number of 'aye' votes for the bill
+    - name: nay_votes
+      description: Number of 'nay' votes for the bill
+    - name: present_votes
+      description: Number of 'present' votes for the bill
+    - name: absent_votes
+      description: Number of 'absent' votes for the bill
+    - name: first_seen_at
+      description: Date and time when the committee status was first recorded
+      tests:
+        - not_null
+    - name: last_seen_at
+      description: Date and time when the committee status was last updated
+      tests:
+        - not_null

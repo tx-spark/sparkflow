@@ -1,0 +1,40 @@
+models:
+- name: bill_stages
+  description: Bill stages information
+  columns:
+  - name: bill_id
+    description: Unique ID for a bill
+    tests:
+    - not_null
+  - name: leg_id
+    description: Legislative session ID
+    tests:
+    - not_null
+  - name: stage_num
+    description: Numeric identifier for the stage
+    tests:
+    - not_null
+    - accepted_values:
+        values: [1, 2, 3, 4, 5, 6, 7]
+  - name: stage_title
+    description: Title of the stage
+    tests:
+    - not_null
+  - name: stage_text
+    description: Text description of the stage
+  - name: stage_date
+    description: Date of the stage
+    tests:
+    - not_null
+  - name: status
+    description: Current status of the bill stage
+    tests:
+    - not_null
+    - accepted_values:
+        values: ['Alive', 'Dead']
+  - name: first_seen_at
+    tests:
+    - not_null
+  - name: last_seen_at
+    tests:
+    - not_null

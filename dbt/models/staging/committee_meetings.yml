@@ -1,0 +1,55 @@
+models:
+- name: committee_meetings
+  description: Details about legislative committee meetings
+  columns:
+  - name: leg_id
+    description: Legislative session ID
+    tests:
+    - not_null
+  - name: chamber
+    description: "The chamber where the committee meeting is held"
+    tests:
+    - not_null
+    - accepted_values:
+        values: ['House', 'Senate']
+  - name: committee_name
+    description: "Name of the legislative committee"
+    tests:
+    - not_null
+  - name: meeting_datetime
+    description: "Date and time of the committee meeting"
+    tests:
+    - not_null
+  - name: meeting_datetime_text
+    description: "Date and time of the committee meeting (text format)"
+  - name: location
+    description: "Location where the committee meeting is held"
+  - name: chair
+    description: "Chairperson of the committee meeting"
+  - name: meeting_url
+    description: "URL for the committee meeting details"
+  - name: committee_meetings_link
+    description: "Link to the committee meetings page"
+  - name: committee_code
+    description: "Code for the legislative committee"
+  - name: hearing_notice_html
+    description: "URL for the hearing notice (HTML format)"
+  - name: hearing_notice_pdf
+    description: "URL for the hearing notice (PDF format)"
+  - name: minutes_html
+    description: "URL for the meeting minutes (HTML format)"
+  - name: minutes_pdf
+    description: "URL for the meeting minutes (PDF format)"
+  - name: witness_list_html
+    description: "URL for the witness list (HTML format)"
+  - name: witness_list_pdf
+    description: "URL for the witness list (PDF format)"
+  - name: comments
+    tests:
+    - not_null
+  - name: first_seen_at
+    tests:
+    - not_null
+  - name: last_seen_at
+    tests:
+    - not_null

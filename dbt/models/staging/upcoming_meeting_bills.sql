@@ -9,5 +9,5 @@ select
     author,
     description,
     status,
-    PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S',  seen_at) as seen_at
+    PARSE_TIMESTAMP('%Y-%m-%d %H:%M',  seen_at) as seen_at
 from {{ source('raw_bills', 'upcoming_committee_meeting_bills') }}

@@ -1,0 +1,15 @@
+models:
+- name: bill_tags
+  description: Tags associated with legislative bills
+  columns:
+  - name: leg_id
+    description: Legislative session ID
+  - name: bill_id
+  - name: tag
+  - name: position
+    description: Position on the bill
+    tests:
+    - accepted_values:
+        values: ['AGAINST', 'Against', 'FOR', 'For', 'ON', 'On', None]
+  - name: organization
+  - name: notes
