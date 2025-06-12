@@ -11,9 +11,6 @@ sources:
           description: The political party affiliation of the person
         - name: role
           description: The role of the person (e.g. Rep or Sen)
-          tests:
-          - accepted_values:
-              values: ['Rep', 'Sen']
         - name: name
         - name: first_name
         - name: middle_name

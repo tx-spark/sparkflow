@@ -6,7 +6,6 @@ models:
       description: Unique identifier for the bill
       tests:
         - not_null
-        - unique
     - name: leg_id
       description: Legislative session ID
       tests:

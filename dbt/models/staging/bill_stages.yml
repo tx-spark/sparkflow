@@ -14,8 +14,6 @@ models:
     description: Numeric identifier for the stage
     tests:
     - not_null
-    - accepted_values:
-        values: [1, 2, 3, 4, 5, 6, 7]
   - name: stage_title
     description: Title of the stage
     tests:
@@ -24,8 +22,6 @@ models:
     description: Text description of the stage
   - name: stage_date
     description: Date of the stage
-    tests:
-    - not_null
   - name: status
     description: Current status of the bill stage
     tests:

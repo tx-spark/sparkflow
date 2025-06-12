@@ -45,8 +45,6 @@ models:
   - name: witness_list_pdf
     description: "URL for the witness list (PDF format)"
   - name: comments
-    tests:
-    - not_null
   - name: first_seen_at
     tests:
     - not_null

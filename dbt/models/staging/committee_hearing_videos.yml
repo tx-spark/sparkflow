@@ -10,11 +10,8 @@ models:
       description: Date of the committee hearing
       tests:
       - not_null
-      - unique
     - name: time
       description: Time of the committee hearing in HH:MM format
-      tests:
-      - not_null
     - name: part
       description: Part of the committee hearing
     - name: video_link

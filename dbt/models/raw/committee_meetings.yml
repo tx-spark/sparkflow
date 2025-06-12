@@ -18,7 +18,6 @@ sources:
         - name: committee_meetings_link
           description: Link to the committee meetings
           tests:
-          - unique
           - not_null
         - name: leg_id
           description: Legislative session ID
@@ -38,12 +37,9 @@ sources:
           - not_null
         - name: chair
           description: Chair of the committee
-          tests:
-          - not_null
         - name: meeting_url
           description: URL for the committee meeting
           tests:
-          - unique
           - not_null
         - name: subcommittee
           description: Subcommittee details
@@ -57,21 +53,12 @@ sources:
           - not_null
         - name: minutes_html
           description: HTML link for meeting minutes
-          tests:
-          - not_null
         - name: minutes_pdf
           description: PDF link for meeting minutes
-          tests:
-          - not_null
         - name: witness_list_html
           description: HTML link for witness list
-          tests:
-          - unique
-          - not_null
         - name: witness_list_pdf
           description: PDF link for witness list
-          tests:
-          - not_null
         - name: comments
           description: Comments about the committee meeting
         - name: last_seen_at

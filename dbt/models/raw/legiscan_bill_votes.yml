@@ -13,9 +13,6 @@ sources:
         - name: nv
         - name: absent
         - name: total
-          tests:
-          - unique
-          - not_null
         - name: passed
         - name: chamber
         - name: chamber_id

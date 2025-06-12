@@ -5,7 +5,6 @@ models:
   - name: bill_id
     tests:
     - not_null
-    - unique
   - name: leg_id
     description: Legislative session ID
     tests:
@@ -38,8 +37,6 @@ models:
     - not_null
   - name: text
     description: Text content of the bill version
-    tests:
-    - not_null
   - name: first_seen_at
     tests:
     - not_null

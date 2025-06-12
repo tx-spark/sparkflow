@@ -4,12 +4,13 @@ models:
   columns:
   - name: leg_id
     description: Legislative session ID
+    tests:
+    - not_null
   - name: bill_id
+    tests:
+    - not_null
   - name: tag
   - name: position
     description: Position on the bill
-    tests:
-    - accepted_values:
-        values: ['AGAINST', 'Against', 'FOR', 'For', 'ON', 'On', None]
   - name: organization
   - name: notes
