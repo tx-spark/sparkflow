@@ -1314,14 +1314,12 @@ def get_complete_bills_list(raw_bills_df):
     new_rows = []
     
     # Extract and clean bill_id and leg_id
-    print(raw_bills_df)
     cleaned_data = []
     for _, row in raw_bills_df.iterrows():
         bill_id, leg_id = clean_bill_id(row['bill_id'])
         cleaned_data.append((bill_id, leg_id))
     
     cleaned_df = pd.DataFrame(cleaned_data, columns=["bill_id", "leg_id"])
-    print(cleaned_df)
     
     # Group by legislative session
     for leg_id, group in cleaned_df.groupby("leg_id"):
@@ -1331,7 +1329,7 @@ def get_complete_bills_list(raw_bills_df):
         
         # Ensure each prefix has a consecutive sequence
         for prefix, sub_group in group.groupby("prefix"):
-            min_bill = sub_group["number"].min()
+            min_bill = 1 #sub_group["number"].min()
             max_bill = sub_group["number"].max()
             print(f"Prefix: {prefix}, Min: {min_bill}, Max: {max_bill}")
             full_range = pd.DataFrame({
@@ -1339,7 +1337,6 @@ def get_complete_bills_list(raw_bills_df):
                 "leg_id": leg_id
             })
             new_rows.append(full_range)
-    print(new_rows)
     return pd.concat(new_rows, ignore_index=True)
 
 def get_upcoming_committee_meetings():
