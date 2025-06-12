@@ -4,10 +4,11 @@ uploads:
     worksheet_name: "All House Bills"
     project_id: lgover
     dataset_id: tx_leg_bills
-    table_id: house_tracker
+    table_id: tracker
     replace_headers: false
     filters: 
       - leg_id = "{LegSess}"
+      - left(bill_id, 2) = 'HB'
     drop_cols:
       - leg_id
 
@@ -16,9 +17,10 @@ uploads:
     worksheet_name: "All Senate Bills"
     project_id: lgover
     dataset_id: tx_leg_bills
-    table_id: senate_tracker
+    table_id: tracker
     filters: 
       - leg_id = "{LegSess}"
+      - left(bill_id, 2) = 'SB'
     replace_headers: false
     drop_cols:
       - leg_id
@@ -28,9 +30,10 @@ uploads:
     worksheet_name: "All HJRs"
     project_id: lgover
     dataset_id: tx_leg_bills
-    table_id: house_joint_resolution_tracker
+    table_id: tracker
     filters: 
       - leg_id = "{LegSess}"
+      - left(bill_id, 3) = 'HJR'
     replace_headers: false
     drop_cols:
       - leg_id
@@ -40,9 +43,10 @@ uploads:
     worksheet_name: "All SJRs"
     project_id: lgover
     dataset_id: tx_leg_bills
-    table_id: senate_joint_resolution_tracker
+    table_id: tracker
     filters: 
       - leg_id = "{LegSess}"
+      - left(bill_id, 3) = 'SJR'
     replace_headers: false
     drop_cols:
       - leg_id
@@ -52,7 +56,7 @@ uploads:
     worksheet_name: "House Bills Past Committee"
     project_id: lgover
     dataset_id: tx_leg_bills
-    table_id: house_bills_past_committee
+    table_id: bills_past_committee
     filters: 
       - leg_id = "{LegSess}"
     replace_headers: false
@@ -64,9 +68,10 @@ uploads:
     worksheet_name: "H Bills By H Hearing Date"
     project_id: lgover
     dataset_id: tx_leg_bills
-    table_id: house_bills_by_hearing_date
+    table_id: bills_by_hearing_date
     filters: 
       - leg_id = "{LegSess}"
+      - left(bill_id, 2) = 'HB'
     replace_headers: false
     drop_cols:
       - leg_id
@@ -76,9 +81,10 @@ uploads:
     worksheet_name: "S Bills By S Hearing Date"
     project_id: lgover
     dataset_id: tx_leg_bills
-    table_id: senate_bills_by_hearing_date
+    table_id: bills_by_hearing_date
     filters: 
       - leg_id = "{LegSess}"
+      - left(bill_id, 2) = 'SB'
     replace_headers: false
     drop_cols:
       - leg_id
