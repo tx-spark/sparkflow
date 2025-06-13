@@ -1,0 +1,34 @@
+models:
+- name: call2action
+  description: Calls to action data for Susana
+  columns:
+  - name: leg_id
+    description: Legislative session ID
+    tests:
+    - not_null
+  - name: meeting_datetime
+    description: Date and time of the meeting
+    tests:
+    - not_null
+  - name: CMT
+    description: Committee meeting details
+  - name: bill_id
+    description: Unique ID for the bill
+    tests:
+    - not_null
+  - name: caption
+    description: Description of the bill
+  - name: Position
+  - name: p_dem
+    description: Percentage of democratic support
+  - name: authors_list
+    description: List of bill authors
+  - name: Reason
+  - name: Link to orgs and advocates for talking points
+  - name: Notes
+  - name: history
+    description: Link to bill history
+  - name: Public Comment Link
+    description: Link for public comments
+  - name: Hearing Link
+    description: Link to the legislative hearing

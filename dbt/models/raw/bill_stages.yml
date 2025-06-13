@@ -1,0 +1,37 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: bill_stages
+        description: Describes the different stages of a bill in the legislative process as scraped from Bill Stages page on TLO
+        columns:
+        - name: bill_id
+          tests:
+            - not_null
+        - name: leg_id
+          description: Legislative session ID
+          tests:
+          - not_null
+        - name: stage
+          tests:
+          - accepted_values:
+              values: ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Stage 6', 'Stage 7'] # There shouldn't be any stages listed past Stage 7 (passed by the governor)
+        - name: stage_title
+        - name: stage_date
+        - name: div_class
+          description: the div in this case contains where the bill is within the stage. Options are "complete", "failed", or "pending"
+          tests:
+          - accepted_values:
+              values: ['complete', 'failed', 'pending']
+        - name: after_status
+          tests:
+          - accepted_values:
+              values: ['fail', 'pass', null]
+        - name: stage_text
+          description: "Text description of the stage"
+        - name: last_seen_at
+          tests:
+          - not_null
+        - name: first_seen_at
+          tests:
+          - not_null

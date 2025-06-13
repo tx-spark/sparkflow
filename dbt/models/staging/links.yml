@@ -1,0 +1,53 @@
+models:
+- name: links
+  description: Links to Bill Information
+  columns:
+  - name: bill_id
+    tests:
+    - not_null
+  - name: leg_id
+    description: Legislative session ID
+    tests:
+    - not_null
+  - name: history
+    description: Link to bill history
+    tests:
+    - not_null
+  - name: text
+    description: Link to bill text
+    tests:
+    - not_null
+  - name: actions
+    description: Link to bill actions
+    tests:
+    - not_null
+  - name: companions
+    description: Link to bill companions
+    tests:
+    - not_null
+  - name: amendments
+    description: Link to bill amendments
+    tests:
+    - not_null
+  - name: authors
+    description: Link to bill authors
+    tests:
+    - not_null
+  - name: sponsors
+    description: Link to bill sponsors
+    tests:
+    - not_null
+  - name: captions
+    description: Link to bill captions
+    tests:
+    - not_null
+  - name: bill_stages
+    description: Link to bill stages
+    tests:
+    - not_null
+  - name: first_seen_at
+    tests:
+    - not_null
+  - name: last_seen_at
+    tests:
+    - not_null

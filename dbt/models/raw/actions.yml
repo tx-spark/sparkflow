@@ -1,0 +1,28 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: actions
+        description: Legislative action details
+        columns:
+        - name: bill_id
+          tests:
+          - not_null
+        - name: leg_id
+          description: Legislative session ID
+        - name: action_number
+          description: Number assigned to the legislative action
+        - name: action_date
+          description: Date of the legislative action
+        - name: description
+          description: Description of the legislative action
+        - name: comment
+          description: Additional comment on the legislative action
+        - name: action_timestamp
+          description: Timestamp of the legislative action
+        - name: last_seen_at
+          tests:
+          - not_null
+        - name: first_seen_at
+          tests:
+          - not_null

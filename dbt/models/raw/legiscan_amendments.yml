@@ -1,0 +1,45 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: legiscan_amendments
+        description: Table containing information about bill amendments from Legiscan
+        columns:
+        - name: amendment_id
+          description: Unique ID for an amendment
+        - name: adopted
+          description: Indicates if the amendment has been adopted
+        - name: chamber
+          description: Indicates the chamber the amendment belongs to
+        - name: chamber_id
+          description: Unique ID for the chamber
+        - name: date
+          description: The date of the amendment
+        - name: title
+          description: Title of the amendment
+        - name: description
+          description: Description of the amendment
+        - name: mime
+          description: MIME type of the document
+        - name: mime_id
+          description: Unique ID for the MIME type
+        - name: url
+          description: URL of the amendment
+        - name: state_link
+          description: Link to the state document
+        - name: amendment_size
+          description: Size of the amendment
+        - name: amendment_hash
+          description: Hash of the amendment
+        - name: alt_amendment
+          description: Indicates if there is an alternative amendment
+        - name: alt_mime
+        - name: alt_mime_id
+        - name: alt_state_link
+          description: Link to the state document of the alternative amendment
+        - name: alt_amendment_size
+          description: Size of the alternative amendment
+        - name: alt_amendment_hash
+          description: Hash of the alternative amendment
+        - name: legiscan_bill_id
+          description: Unique ID for the bill associated with the amendment

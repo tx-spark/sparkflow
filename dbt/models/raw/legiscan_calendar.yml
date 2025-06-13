@@ -1,0 +1,18 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: legiscan_calendar
+        description: Calendar events from Legiscan
+        columns:
+        - name: type_id
+          description: Unique ID for the event type
+        - name: event_hash
+        - name: type
+          description: Type of event (e.g. Hearing)
+        - name: date
+        - name: time
+        - name: location
+        - name: description
+        - name: legiscan_bill_id
+          description: Unique ID for a bill in Legiscan

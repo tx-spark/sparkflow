@@ -1,0 +1,36 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: committee_status
+        description: Status of bills in committees
+        columns:
+        - name: bill_id
+          tests:
+          - not_null
+        - name: leg_id
+          description: Legislative session ID
+          tests:
+          - not_null
+        - name: chamber
+          description: Indicates the chamber of the legislature
+          tests:
+          - accepted_values:
+              values: ['house', 'senate']
+        - name: name
+          description: Name of the committee
+        - name: status
+          description: Status of the bill in the committee
+          tests:
+          - accepted_values:
+              values: ['In committee', 'Out of committee', null]
+        - name: aye_votes
+        - name: nay_votes
+        - name: present_votes
+        - name: absent_votes
+        - name: last_seen_at
+          tests:
+          - not_null
+        - name: first_seen_at
+          tests:
+          - not_null

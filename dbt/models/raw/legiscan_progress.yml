@@ -1,0 +1,10 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: legiscan_progress
+        description: Progress events for bills from Legiscan
+        columns:
+        - name: date
+        - name: event
+        - name: legiscan_bill_id

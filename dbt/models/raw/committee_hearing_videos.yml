@@ -1,0 +1,30 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: committee_hearing_videos
+        description: Video links of legislative committee hearings
+        columns:
+        - name: date
+          description: Date of the committee hearing
+        - name: time
+          description: Time of the committee hearing
+        - name: program
+          description: Program or topic of the committee hearing
+        - name: video_link
+          description: Link to the video recording of the committee hearing
+        - name: chamber
+          description: Chamber where the committee hearing took place
+          tests:
+          - accepted_values:
+              values: ['House', 'Senate']
+        - name: leg_id
+          description: Legislative session ID
+          tests:
+          - not_null
+        - name: last_seen_at
+          tests:
+          - not_null
+        - name: first_seen_at
+          tests:
+          - not_null

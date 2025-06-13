@@ -1,0 +1,31 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: committees
+        description: Legislative committee information
+        columns:
+        - name: bill_id
+          tests:
+          - not_null
+        - name: leg_id
+          description: Legislative session ID
+          tests:
+          - not_null
+        - name: chamber
+          description: Identifies the legislative chamber (e.g. house, senate)
+          tests:
+          - accepted_values:
+              values: ['house', 'senate', 'joint']
+        - name: name
+        - name: status
+        - name: aye_votes
+        - name: nay_votes
+        - name: present_votes
+        - name: absent_votes
+        - name: last_seen_at
+          tests:
+          - not_null
+        - name: first_seen_at
+          tests:
+          - not_null

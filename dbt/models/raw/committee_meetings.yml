@@ -1,0 +1,69 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: committee_meetings
+        description: Legislative committee meeting information. 
+        columns:
+        - name: committee
+          description: Name of the committee
+          tests:
+          - not_null
+        - name: chamber
+          description: The chamber the committee belongs to
+          tests:
+          - accepted_values:
+              values: ['House', 'Senate']
+          - not_null
+        - name: committee_meetings_link
+          description: Link to the committee meetings
+          tests:
+          - not_null
+        - name: leg_id
+          description: Legislative session ID
+          tests:
+          - not_null
+        - name: date
+          description: Date of the committee meeting
+          tests:
+          - not_null
+        - name: time
+          description: Time of the committee meeting
+          tests:
+          - not_null
+        - name: location
+          description: Location of the committee meeting
+          tests:
+          - not_null
+        - name: chair
+          description: Chair of the committee
+        - name: meeting_url
+          description: URL for the committee meeting
+          tests:
+          - not_null
+        - name: subcommittee
+          description: Subcommittee details
+        - name: hearing_notice_html
+          description: HTML link for hearing notice
+          tests:
+          - not_null
+        - name: hearing_notice_pdf
+          description: PDF link for hearing notice
+          tests:
+          - not_null
+        - name: minutes_html
+          description: HTML link for meeting minutes
+        - name: minutes_pdf
+          description: PDF link for meeting minutes
+        - name: witness_list_html
+          description: HTML link for witness list
+        - name: witness_list_pdf
+          description: PDF link for witness list
+        - name: comments
+          description: Comments about the committee meeting
+        - name: last_seen_at
+          tests:
+          - not_null
+        - name: first_seen_at
+          tests:
+          - not_null

@@ -1,21 +1,21 @@
 with committee_meeting_bills as (
-    select * from {{ source('bills', 'committee_meeting_bills') }}
+    select * from {{ ref('committee_meeting_bills') }}
 ),
 
 committee_meetings as (
-    select * from {{ source('bills', 'committee_meetings') }}
+    select * from {{ ref('committee_meetings') }}
 ),
 
 links as (
-    select * from {{ source('bills', 'links') }}
+    select * from {{ ref('links') }}
 ),
 
 bills as (
-    select * from {{ source('bills', 'bills') }}
+    select * from {{ ref('bills') }}
 ),
 
 committee_hearing_videos as (
-    select * from {{ source('bills', 'committee_hearing_videos') }}
+    select * from {{ ref('committee_hearing_videos') }}
 )
 
 --------------------------------------

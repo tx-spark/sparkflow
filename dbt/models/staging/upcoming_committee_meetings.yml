@@ -1,0 +1,19 @@
+models:
+- name: upcoming_committee_meetings
+  description: Upcoming Committee Meetings
+  columns:
+  - name: committee
+  - name: chamber
+    tests:
+    - accepted_values:
+        values: ['House', 'Senate']
+  - name: date
+  - name: time
+  - name: location
+  - name: chair
+  - name: meeting_url
+    tests:
+    - not_null
+  - name: seen_at
+    tests:
+    - not_null

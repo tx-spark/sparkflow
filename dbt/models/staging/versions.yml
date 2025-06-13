@@ -1,0 +1,45 @@
+models:
+- name: versions
+  description: Information about bill versions
+  columns:
+  - name: bill_id
+    tests:
+    - not_null
+  - name: leg_id
+    description: Legislative session ID
+    tests:
+    - not_null
+  - name: type
+    description: Type of bill version
+    tests:
+    - not_null
+    - accepted_values:
+        values: ['Analysis', 'Bill', 'Fiscal Note']
+  - name: text_order
+    description: Order of the text
+  - name: description
+    description: Description of the bill version
+  - name: html_url
+    description: URL for HTML version
+    tests:
+    - not_null
+  - name: pdf_url
+    description: URL for PDF version
+    tests:
+    - not_null
+  - name: ftp_html_url
+    description: FTP URL for HTML version
+    tests:
+    - not_null
+  - name: ftp_pdf_url
+    description: FTP URL for PDF version
+    tests:
+    - not_null
+  - name: text
+    description: Text content of the bill version
+  - name: first_seen_at
+    tests:
+    - not_null
+  - name: last_seen_at
+    tests:
+    - not_null

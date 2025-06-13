@@ -1,0 +1,23 @@
+models:
+- name: subjects
+  description: Subjects of to legislative bills according to TLO
+  columns:
+  - name: bill_id
+    tests:
+    - not_null
+  - name: leg_id
+    description: Legislative session ID
+    tests:
+    - not_null
+  - name: subject_title
+    description: Title of the subject
+  - name: subject_id
+    description: Unique ID for the subject
+    tests:
+    - not_null
+  - name: first_seen_at
+    tests:
+    - not_null
+  - name: last_seen_at
+    tests:
+    - not_null

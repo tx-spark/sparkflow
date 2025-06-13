@@ -1,0 +1,13 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: legiscan_history
+        description: Table containing historical data for bills from Legiscan
+        columns:
+        - name: date
+        - name: action
+        - name: chamber
+        - name: chamber_id
+        - name: importance
+        - name: legiscan_bill_id

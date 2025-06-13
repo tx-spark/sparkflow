@@ -1,0 +1,15 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: bill_texts
+        description: Text of bill documents
+        columns:
+        - name: ftp_pdf_url
+          description: This column contains the URL for the PDF of the bill text document
+        - name: text
+          description: This column contains the full text of the bill document
+        - name: seen_at
+          description: Timestamp for when the bill text document was viewed
+          tests:
+          - not_null

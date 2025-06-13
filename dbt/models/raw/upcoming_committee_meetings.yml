@@ -1,0 +1,19 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: upcoming_committee_meetings
+        description: Upcoming committee meetings information. Scraped from the TLO RSS feed
+        columns:
+        - name: committee
+        - name: chamber
+          tests:
+          - accepted_values:
+              values: ['House', 'Senate']
+        - name: date
+        - name: time
+        - name: location
+        - name: chair
+        - name: meeting_url
+        - name: seen_at
+          description: Date and time the row was seen on RSS feed

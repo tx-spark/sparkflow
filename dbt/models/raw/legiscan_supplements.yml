@@ -1,0 +1,31 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: legiscan_supplements
+        description: Table containing supplemental documents from Legiscan related to bills
+        columns:
+        - name: supplement_id
+          description: Unique ID for a supplement
+        - name: date
+        - name: type
+        - name: type_id
+        - name: title
+        - name: description
+        - name: mime
+        - name: mime_id
+        - name: url
+          description: URL of the supplement
+        - name: state_link
+        - name: supplement_size
+          description: Size of the supplement
+        - name: supplement_hash
+          description: Hash value of the supplement
+        - name: alt_supplement
+        - name: alt_mime
+        - name: alt_mime_id
+        - name: alt_state_link
+        - name: alt_supplement_size
+        - name: alt_supplement_hash
+        - name: legiscan_bill_id
+          description: Unique ID for a bill in Legiscan

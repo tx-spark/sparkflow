@@ -1,0 +1,14 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: legiscan_referrals
+        description: Bill referrals from Legiscan
+        columns:
+        - name: date
+        - name: committee_id
+        - name: chamber
+          description: Chamber where the bill is referred. 
+        - name: chamber_id
+        - name: name
+        - name: legiscan_bill_id

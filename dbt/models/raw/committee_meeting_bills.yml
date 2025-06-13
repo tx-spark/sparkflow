@@ -1,0 +1,50 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: committee_meeting_bills
+        description: Bill information from committee meetings
+        columns:
+        - name: committee
+          description: Committee where the meeting is held
+          tests:
+          - not_null
+        - name: chamber
+          description: Chamber in which the meeting is held
+          tests:
+          - accepted_values:
+              values: ['House', 'Senate','Joint']
+        - name: date
+          tests:
+          - not_null
+        - name: time
+          tests:
+          - not_null
+        - name: meeting_url
+          tests:
+          - not_null
+        - name: bill_id
+          tests:
+          - not_null
+        - name: leg_id
+          description: Legislative session ID
+          tests:
+          - not_null
+        - name: link
+          description: URL link for the bill
+          tests:
+          - not_null
+        - name: author
+          description: Author of the bill
+        - name: description
+          description: Description of the bill
+        - name: status
+          tests:
+          - accepted_values:
+              values: ['added', 'deleted', 'scheduled']
+        - name: last_seen_at
+          tests:
+          - not_null
+        - name: first_seen_at
+          tests:
+          - not_null

@@ -20,6 +20,22 @@ ENV = determine_git_environment()
 #                 Parsing Functions
 ###############################################################################
 def parse_vote(votes):
+    """
+    Parse vote data from LegiScan API response.
+
+    Args:
+        votes (str): JSON string containing vote data
+
+    Returns:
+        list[dict]: List of dictionaries containing parsed vote data with fields:
+            - roll_call_id: Unique ID for the roll call vote
+            - legiscan_bill_id: LegiScan bill ID
+            - date: Date of the vote
+            - desc: Description of the vote
+            - legiscan_people_id: LegiScan ID for the voting member
+            - vote_id: ID of the specific vote
+            - vote_text: Text representation of the vote (e.g. Yea, Nay)
+    """
     votes_dict = json.loads(votes)
 
     roll_call = votes_dict['roll_call']
@@ -39,6 +55,25 @@ def parse_vote(votes):
     return votes_list
 
 def parse_bill(bill_json):
+    """
+    Parse bill data from LegiScan API response.
+
+    Args:
+        bill_json (str): JSON string containing bill data
+
+    Returns:
+        dict: Dictionary containing parsed bill data with keys:
+            - bill_info: Basic bill information
+            - progress: List of bill progress events
+            - referrals: List of committee referrals
+            - calendar: List of calendar events
+            - amendments: List of bill amendments
+            - supplements: List of supplemental documents
+            - votes: List of vote events
+            - texts: List of bill text versions
+            - subjects: List of bill subjects
+            - history: List of historical events
+    """
     bill_dict = json.loads(bill_json)['bill']
 
     # get progress as a list of dicts
@@ -139,6 +174,28 @@ def parse_bill(bill_json):
     }
 
 def parse_person(person_json):
+    """
+    Parse legislator data from LegiScan API response.
+
+    Args:
+        person_json (str): JSON string containing legislator data
+
+    Returns:
+        dict: Dictionary containing parsed legislator data with fields:
+            - people_id: LegiScan ID for the legislator
+            - person_hash: Hash of legislator data
+            - party: Political party
+            - role: Legislative role
+            - name: Full name
+            - first_name: First name
+            - middle_name: Middle name
+            - last_name: Last name
+            - suffix: Name suffix
+            - nickname: Nickname
+            - district: Legislative district
+            - votesmart_id: VoteSmart ID
+            - ballotpedia: Ballotpedia URL
+    """
     person_dict = json.loads(person_json)
 
     person = person_dict['person']
@@ -161,6 +218,27 @@ def parse_person(person_json):
 
 
 def parse_dataset(dataset):
+    """
+    Parse complete LegiScan dataset into structured dataframes.
+
+    Args:
+        dataset (dict): Dictionary containing raw LegiScan dataset files
+
+    Returns:
+        dict: Dictionary of pandas DataFrames containing parsed data:
+            - bills: Basic bill information
+            - people: Legislator information
+            - bill_votes: Vote events
+            - votes: Individual votes
+            - progress: Bill progress events
+            - referrals: Committee referrals
+            - calendar: Calendar events
+            - amendments: Bill amendments
+            - supplements: Supplemental documents
+            - texts: Bill text versions
+            - subjects: Bill subjects
+            - history: Bill history events
+    """
     bills = []
     people = []
     bill_votes = []
@@ -216,6 +294,17 @@ def parse_dataset(dataset):
     }
 
 def get_most_recent_dataset_hash(project_id, dataset_id, table_id='_legiscan_pulls'):
+    """
+    Get hash of most recently downloaded LegiScan dataset.
+
+    Args:
+        project_id (str): GCP project ID
+        dataset_id (str): BigQuery dataset ID
+        table_id (str, optional): BigQuery table ID. Defaults to '_legiscan_pulls'.
+
+    Returns:
+        str: Hash of most recent dataset
+    """
     most_recent_hash = query_bq(f"""
             select
             legiscan_hash
@@ -227,6 +316,17 @@ def get_most_recent_dataset_hash(project_id, dataset_id, table_id='_legiscan_pul
     return most_recent_hash
 
 def get_dataset(state, leg_id, most_recent_hash):
+    """
+    Download LegiScan dataset for a given state and legislative session.
+
+    Args:
+        state (str): Two-letter state code
+        leg_id (str): Legislative session ID (e.g. '89R')
+        most_recent_hash (str): Hash of most recently downloaded dataset
+
+    Returns:
+        dict: Dictionary containing dataset files, or None if dataset unchanged
+    """
     dataset_list_url = f'https://api.legiscan.com/?key={LEGISCAN_API_KEY}&op=getDatasetList&state={state}'
 
     # Extract number by finding first digit and taking all digits
@@ -276,19 +376,34 @@ def get_dataset(state, leg_id, most_recent_hash):
     return dataset
 
 def legiscan_to_bigquery(leg_session, project_id, dataset_id, env='dev'):
+    """
+    Download LegiScan dataset and load into BigQuery.
+
+    Args:
+        leg_session (str): Legislative session ID (e.g. '89R')
+        project_id (str): GCP project ID
+        dataset_id (str): BigQuery dataset ID
+        env (str, optional): Environment ('dev' or 'prod'). Defaults to 'dev'.
+    """
     if env.lower() == 'dev':
         dataset_id = f'dev_{dataset_id}'
 
     most_recent_dataset_hash = get_most_recent_dataset_hash(project_id, dataset_id)
     raw_dataset = get_dataset('TX',leg_session, most_recent_hash=most_recent_dataset_hash)
+    total_size_bytes = sum(len(data) for data in raw_dataset.values())
+    total_size_gb = total_size_bytes / (1024 * 1024 * 1024)
+    print(f"Raw dataset size: {len(raw_dataset)} files ({total_size_gb:.2f} GB)")
     if raw_dataset == None: # if there's nothing new, do nothing
         return
     
     clean_dataset = parse_dataset(raw_dataset)
+    clean_size_bytes = sum(df.memory_usage(deep=True).sum() for df in clean_dataset.values())
+    clean_size_gb = clean_size_bytes / (1024 * 1024 * 1024)
+    print(f"Clean dataset size: {len(clean_dataset)} tables ({clean_size_gb:.2f} GB)")
 
     legiscan_hash = raw_dataset['TX/2025-2026_89th_Legislature/hash.md5']
     legiscan_hash = legiscan_hash.decode("utf-8")
-
+    
     legiscan_pull_info = {
         "upload_time": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'legiscan_hash': legiscan_hash
@@ -298,7 +413,7 @@ def legiscan_to_bigquery(leg_session, project_id, dataset_id, env='dev'):
 
     for table in clean_dataset.keys():
         table_df = clean_dataset[table]
-        dataframe_to_bigquery(table_df, 'lgover', dataset_id, f'legiscan_{table}', env, 'drop')
+        dataframe_to_bigquery(table_df, PROJECT_ID, dataset_id, f'legiscan_{table}', env, 'drop')
         print(table_df)
 
 
@@ -312,6 +427,6 @@ if __name__ == '__main__':
 
     leg_session = config['info']['LegSess']
     
-    # get_most_recent_dataset_hash('lgover','tx_leg_raw_bills')
+    # get_most_recent_dataset_hash(PROJECT_ID,'tx_leg_raw_bills')
     # get_dataset('TX','89R')
     legiscan_to_bigquery(leg_session, project_id=PROJECT_ID,dataset_id=DATASET_ID,env=ENV)

@@ -1,0 +1,26 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: legiscan_texts
+        description: Table containing bill text documents from Legiscan
+        columns:
+            - name: doc_id
+            - name: date
+            - name: type
+              description: Type of bill text (e.g. Comm Sub, Engrossed, Enrolled, Introduced)
+            - name: type_id
+            - name: mime
+            - name: mime_id
+            - name: url
+            - name: state_link
+            - name: text_size
+            - name: text_hash
+            - name: alt_bill_text
+            - name: alt_mime
+            - name: alt_mime_id
+            - name: alt_state_link
+            - name: alt_text_size
+            - name: alt_text_hash
+            - name: legiscan_bill_id
+              description: This column contains too many values to be an enum

@@ -1,10 +1,10 @@
 
 with tracker as (
-    select * from {{ source('bills', 'tracker') }}
+    select * from {{ ref('tracker') }}
 ),
 
 stages as (
-    select * from {{ source('bills','bill_stages')}}
+    select * from {{ ref('bill_stages')}}
 ),
 
 most_recent_bill_stage as (

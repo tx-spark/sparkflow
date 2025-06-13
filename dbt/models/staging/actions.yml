@@ -1,0 +1,27 @@
+models:
+  - name: actions
+    description: Legislative Bill Actions
+    columns:
+      - name: bill_id
+        tests:
+          - not_null
+      - name: leg_id
+        description: Legislative session ID
+        tests:
+          - not_null
+      - name: action_number
+        description: Action number provided by TLO
+      - name: action_date
+        description: Date of the action in MM/DD/YYYY format
+        tests:
+          - not_null
+      - name: description
+        description: Action description
+      - name: comment
+        description: Additional comments
+      - name: action_timestamp
+        description: Timestamp of the action
+      - name: first_seen_at
+        description: Date and time when the action was first seen
+      - name: last_seen_at
+        description: Date and time when the action was last seen
