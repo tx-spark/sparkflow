@@ -1,56 +1,56 @@
 with complete_bills_list as (
-    select * from {{ source('bills', 'complete_bills_list') }}
+    select * from {{ ref('complete_bills_list') }}
 ),
 bills as (
-    select * from {{ source('bills', 'bills') }}
+    select * from {{ ref('bills') }}
 ),
 
 links as (
-    select * from {{ source('bills', 'links') }}
+    select * from {{ ref('links') }}
 ),
 
 authors as (
-    select * from {{ source('bills', 'authors') }}
+    select * from {{ ref('authors') }}
 ),
 
 actions as (
-    select * from {{ source('bills', 'actions') }}
+    select * from {{ ref('actions') }}
 ),
 
 versions as (
-    select * from {{ source('bills', 'versions') }}
+    select * from {{ ref('versions') }}
 ),
 
 companions as (
-    select * from {{ source('bills', 'companions') }}
+    select * from {{ ref('companions') }}
 ),
 
 committee_meetings as (
-    select * from {{ source('bills', 'committee_meetings') }}
+    select * from {{ ref('committee_meetings') }}
 ),
 
 stages as (
-    select * from {{ source('bills', 'bill_stages') }}
+    select * from {{ ref('bill_stages') }}
 ),
 
 committees as (
-    select * from {{ source('bills', 'committee_status') }}
+    select * from {{ ref('committee_status') }}
 ),
 
 committee_meeting_bills as (
-    select * from {{ source('bills', 'committee_meeting_bills') }}
+    select * from {{ ref('committee_meeting_bills') }}
 ),
 
 committee_hearing_videos as (
-    select * from {{ source('bills', 'committee_hearing_videos') }}
+    select * from {{ ref('committee_hearing_videos') }}
 ),
 
 rep_sen_contact_sheet as (
-    select * from {{ source('bills', 'rep_sen_contact_sheet') }}
+    select * from {{ ref('rep_sen_contact_sheet') }}
 ),
 
 bill_tags as (
-    select * from {{ source('bills', 'bill_tags') }}
+    select * from {{ ref('bill_tags') }}
 ),
 
 ----------------------------------------------------------

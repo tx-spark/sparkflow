@@ -1,25 +1,25 @@
 with bills as (
-    select * from {{ source('bills', 'bills') }}
+    select * from {{ ref('bills') }}
 ),
 
 committee_meeting_bills as (
-    select * from {{ source('bills', 'committee_meeting_bills') }}
+    select * from {{ ref('committee_meeting_bills') }}
 ),
 
 committee_meetings as (
-    select * from {{ source('bills', 'committee_meetings') }}
+    select * from {{ ref('committee_meetings') }}
 ),
 
 authors as (
-    select * from {{ source('bills', 'authors') }}
+    select * from {{ ref('authors') }}
 ),
 
 links as (
-    select * from {{ source('bills', 'links') }}
+    select * from {{ ref('links') }}
 ),
 
 rep_sen_contact_sheet as (
-    select * from {{ source('bills', 'rep_sen_contact_sheet') }}
+    select * from {{ ref('rep_sen_contact_sheet') }}
 ),
 
 ----------------------------------------------------------
