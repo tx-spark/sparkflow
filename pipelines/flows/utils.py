@@ -580,7 +580,7 @@ def determine_git_environment():
     return "dev"
 
 
-def get_secret(project_id="lgover", secret_id=None, version_id="latest"):
+def get_secret(project_id="txspark", secret_id=None, version_id="latest"):
     """
     Access the secret value, first checking environment variables,
     then falling back to Google Secret Manager.
