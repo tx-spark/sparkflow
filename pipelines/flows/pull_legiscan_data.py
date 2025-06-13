@@ -413,7 +413,7 @@ def legiscan_to_bigquery(leg_session, project_id, dataset_id, env='dev'):
 
     for table in clean_dataset.keys():
         table_df = clean_dataset[table]
-        dataframe_to_bigquery(table_df, 'lgover', dataset_id, f'legiscan_{table}', env, 'drop')
+        dataframe_to_bigquery(table_df, PROJECT_ID, dataset_id, f'legiscan_{table}', env, 'drop')
         print(table_df)
 
 
@@ -427,6 +427,6 @@ if __name__ == '__main__':
 
     leg_session = config['info']['LegSess']
     
-    # get_most_recent_dataset_hash('lgover','tx_leg_raw_bills')
+    # get_most_recent_dataset_hash(PROJECT_ID,'tx_leg_raw_bills')
     # get_dataset('TX','89R')
     legiscan_to_bigquery(leg_session, project_id=PROJECT_ID,dataset_id=DATASET_ID,env=ENV)
