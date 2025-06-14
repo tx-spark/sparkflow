@@ -12,7 +12,7 @@ import duckdb
 from prefect import task
 from prefect.cache_policies import NO_CACHE
 
-from utils import get_current_table_data, get_secret
+from utils import get_current_table_data, get_secret, query_bq
 
 logger = logging.getLogger(__name__)
 PROJECT_ID = get_secret(secret_id='GCP_PROJECT_ID')
@@ -125,7 +125,23 @@ def merge_with_current_data(new_df, curr_df):
     return merged
 
 def merge_new_data_in_database(df, project_id, dataset_id, table_id, env, database='bq'):
-    return
+    if env == "dev":
+        dataset_id = f"dev_{dataset_id}"
+    columns = [col for col in list(df.columns) if col.lower() not in ['last_seen_at', 'first_seen_at']]
+    query = f"""
+CREATE OR REPLACE TABLE `{project_id}.{dataset_id}.{table_id}` AS 
+(
+    SELECT
+        {',\n        '.join(columns)},
+        FORMAT_TIMESTAMP('%Y-%m-%d %H:%M:%S', MIN(PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S', first_seen_at))) AS first_seen_at,
+        FORMAT_TIMESTAMP('%Y-%m-%d %H:%M:%S', MAX(PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S', last_seen_at))) AS last_seen_at
+    FROM `{project_id}.{dataset_id}.{table_id}`
+    GROUP BY
+        {',\n        '.join(columns)}
+);
+    """
+    query_bq(query)
+
 ################################################################################
 # RSS SCRAPING FUNCTIONS
 ################################################################################
