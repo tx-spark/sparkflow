@@ -173,7 +173,7 @@ cython_debug/
 
 # Raw data
 raw_data/
-data/
+data/temp_data/
 
 # DBT
 target/
