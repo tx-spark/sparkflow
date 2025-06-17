@@ -1508,7 +1508,7 @@ def get_bill_texts(ftp_conn, dataset_id, env, max_errors=5):
         raise Exception(f"Failed to get PDF text for {error_count} bills")
     return pd.DataFrame(pdf_texts)
 
-@task(retries=0, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE, timeout_seconds=3600)
+@task(retries=0, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE, timeout_seconds=7200)
 def get_raw_bills_data(base_path, leg_session, ftp_connection, max_errors=5):
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting raw bills data extraction")
     try:
@@ -1519,6 +1519,7 @@ def get_raw_bills_data(base_path, leg_session, ftp_connection, max_errors=5):
     raw_bills = []
     error_count = 0
     for url in bill_urls:
+        print(url)
         try:
             bill_data = parse_bill_xml(ftp_connection, url)
             if bill_data:
@@ -1526,8 +1527,8 @@ def get_raw_bills_data(base_path, leg_session, ftp_connection, max_errors=5):
         except Exception as e:
             logger.debug(f"Error getting bill data for {url}: {e}")
             error_count += 1
-    if error_count > max_errors:
-        logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to get bill data for {error_count} bills")
-        raise Exception(f"Failed to get bill data for {error_count} bills")
+        if error_count > max_errors:
+            logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to get bill data for {error_count} bills")
+            raise Exception(f"Failed to get bill data for {error_count} bills")
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Finished raw bills data extraction")
     return pd.DataFrame(raw_bills)
