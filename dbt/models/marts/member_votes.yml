@@ -1,0 +1,31 @@
+models:
+- name: member_votes
+  description: How each member voted on bills that made it to a third read.
+  columns:
+  - name: bill_id
+    tests:
+    - not_null
+  - name: leg_id
+    description: Legislative session ID
+    tests:
+    - not_null
+  - name: date
+    description: Date of the vote
+    tests:
+    - not_null
+  - name: vote
+    description: Committee meeting details
+    tests:
+    - not_null
+    - accepted_values:
+      values: ["Yea",'Nay','Absent','NV']
+  - name: name
+    description: Name of the representative
+    tests:
+    - not_null
+  - name: district
+    description: District of the representative
+    tests:
+    - not_null
+  - name: ballotpedia_link
+    description: Link to the representative's Ballotpedia page
