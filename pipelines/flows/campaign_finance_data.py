@@ -12,11 +12,13 @@ def load_campaign_finance_data():
 
     # Create data directory if it doesn't exist
     os.makedirs('./data', exist_ok=True)
+    os.makedirs('./data/temp_data/', exist_ok=True)
+    os.makedirs('./data/temp_data/tx_campaign_finance', exist_ok=True)
 
     # Download the campaign finance data
     response = requests.get(CAMPAIGN_FINANCE_URL)
     if response.status_code == 200:
-        zip_path = './data/TEC_CF_CSV.zip'
+        zip_path = './data/temp_data/tx_campaign_finance/TEC_CF_CSV.zip'
         # Save zip file
         with open(zip_path, 'wb') as f:
             f.write(response.content)
