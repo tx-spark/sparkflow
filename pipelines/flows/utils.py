@@ -12,6 +12,7 @@ from parsons import GoogleBigQuery, Table
 from gspread import SpreadsheetNotFound
 
 import os
+import sys
 import json
 import subprocess
 from google.cloud import secretmanager
@@ -282,7 +283,6 @@ def read_gsheets_to_df(google_sheets_id, worksheet_name, header=0):
 
         if data is None:
             raise PermissionError(f"{credentials['client_email']} could not read https://docs.google.com/spreadsheets/d/{google_sheets_id}. Please ensure the google sheet is shared with the service account.")
-        print(data)
         if header is not None:
             # Use the specified row(s) as headers
             headers = data[header]
@@ -401,7 +401,7 @@ def upload_google_sheets(gsheets_config_path, config_path, env):
             print(e)
 
 @task(retries=3, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE, timeout_seconds=600)
-def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_disposition, chunk_size = 50000, allow_empty_table=False):
+def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_disposition, chunk_size = 50000, allow_empty_table=False, log_upload=True):
     """
     Load data to destination using Parsons BigQuery connector.
     """
@@ -460,6 +460,9 @@ def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_dispo
         )
 
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loaded {tbl.num_rows} rows to {destination}")
+    
+    if log_upload:
+        log_bq_load(project_id, dataset_id, table_id, env, write_disposition, sys.getsizeof(df))
 
 def bigquery_to_df(project_id, dataset_id, table_id, env):
     gcp_creds = get_secret(secret_id="google_application_credentials")
@@ -484,6 +487,7 @@ def bigquery_to_df(project_id, dataset_id, table_id, env):
             raise ValueError(f"Table {project_id}.{dataset_id}.{table_id} does not exist")
         else:
             raise e
+
         
 def query_bq(query):
     print(query)
@@ -558,11 +562,10 @@ def log_bq_load(project_id, dataset_id, table_id, env, write_disposition, nbytes
         }
     ]
 
-
     upload_desc_df = pd.DataFrame(upload_desc)
     upload_desc_df['upload_time'] = current_time
 
-    dataframe_to_bigquery(upload_desc_df, project_id, dataset_id, log_table_id, env, 'append')
+    dataframe_to_bigquery(upload_desc_df, project_id, dataset_id, log_table_id, env, 'append', log_upload=False)
 
 def get_current_table_data(project_id, dataset_id, table_id, env):
     """
