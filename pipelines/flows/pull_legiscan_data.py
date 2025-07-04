@@ -385,16 +385,15 @@ def legiscan_to_bigquery(leg_session, project_id, dataset_id, env='dev'):
         dataset_id (str): BigQuery dataset ID
         env (str, optional): Environment ('dev' or 'prod'). Defaults to 'dev'.
     """
-    if env.lower() == 'dev':
-        dataset_id = f'dev_{dataset_id}'
 
     most_recent_dataset_hash = get_most_recent_dataset_hash(project_id, dataset_id)
     raw_dataset = get_dataset('TX',leg_session, most_recent_hash=most_recent_dataset_hash)
+    if raw_dataset == None: # if there's nothing new, do nothing
+        return
+
     total_size_bytes = sum(len(data) for data in raw_dataset.values())
     total_size_gb = total_size_bytes / (1024 * 1024 * 1024)
     print(f"Raw dataset size: {len(raw_dataset)} files ({total_size_gb:.2f} GB)")
-    if raw_dataset == None: # if there's nothing new, do nothing
-        return
     
     clean_dataset = parse_dataset(raw_dataset)
     clean_size_bytes = sum(df.memory_usage(deep=True).sum() for df in clean_dataset.values())
