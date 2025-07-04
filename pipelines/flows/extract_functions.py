@@ -323,7 +323,7 @@ def get_committee_meetings(committee_meetings_url):
     Returns:
         dict: Dictionary containing meeting details 
     """
-    response = requests.get(committee_meetings_url)
+    response = requests.get(committee_meetings_url, timeout=20)
     soup = BeautifulSoup(response.text, 'html.parser')
 
     # Find the meetings table
@@ -525,7 +525,7 @@ def get_house_hearing_videos_data(house_videos_url, leg_id):
     leg_letter = leg_id[-1]
     house_videos_url = house_videos_url.replace("{leg_id}", f"{leg_num}/{leg_letter}") 
     headers = {}#'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0'}
-    response = requests.get(house_videos_url, headers=headers)
+    response = requests.get(house_videos_url, headers=headers, timeout=20)
 
     videos_list = json.loads(response.text)
     videos_df = pd.DataFrame(videos_list)
@@ -534,7 +534,7 @@ def get_house_hearing_videos_data(house_videos_url, leg_id):
 def get_senate_hearing_videos_data(senate_videos_url, leg_id):
     leg_num = leg_id[:-1]  # Get all but last character
     senate_videos_url = senate_videos_url.replace("{leg_id}", f"{leg_num}") 
-    response = requests.get(senate_videos_url)
+    response = requests.get(senate_videos_url, timeout=20)
     soup = BeautifulSoup(response.text, 'html.parser')
     videos_table = soup.find('table')
     videos_rows = videos_table.find_all('tr')
@@ -905,7 +905,7 @@ def read_committee_meeting(meeting_url):
     Returns:
         dict: Dictionary containing committee info and list of bills to be discussed
     """
-    response = requests.get(meeting_url)
+    response = requests.get(meeting_url, timeout=20)
     soup = BeautifulSoup(response.text, 'html.parser')
     
     # Find the first table with class MsoNormalTable
