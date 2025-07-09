@@ -17,7 +17,7 @@ with committees as (
         absent_votes,
         PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S',  first_seen_at) as first_seen_at,
         PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S',  last_seen_at) as last_seen_at
-    FROM {{ source('raw_bills', 'committees') }}
+    FROM {{ source('raw_bills', 'committee_status') }}
     where name != ''
 ),
 

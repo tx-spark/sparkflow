@@ -1,44 +1,44 @@
-version: 2
+# version: 2
 
-sources:
-  # - name: raw_bills
-  #   schema: tx_leg_raw_bills
-  #   tables:
-  #     - name: actions
-  #     - name: authors
-  #     - name: bill_stages
-  #     - name: bill_tags
-  #     - name: bill_texts
-  #     - name: bills
-  #     - name: committee_hearing_videos
-  #     - name: committee_meetings
-  #     - name: committee_meeting_bills
-  #     - name: committees
-  #     - name: companions
-  #     - name: complete_bills_list
-  #     - name: legiscan_texts
-  #     - name: links
-  #     - name: subjects
-  #     - name: upcoming_committee_meetings
-  #     - name: upcoming_committee_meeting_bills
-  #     - name: versions
+# sources:
+#   # - name: raw_bills
+#   #   schema: tx_leg_raw_bills
+#   #   tables:
+#   #     - name: actions
+#   #     - name: authors
+#   #     - name: bill_stages
+#   #     - name: bill_tags
+#   #     - name: bill_texts
+#   #     - name: bills
+#   #     - name: committee_hearing_videos
+#   #     - name: committee_meetings
+#   #     - name: committee_meeting_bills
+#   #     - name: committees
+#   #     - name: companions
+#   #     - name: complete_bills_list
+#   #     - name: legiscan_texts
+#   #     - name: links
+#   #     - name: subjects
+#   #     - name: upcoming_committee_meetings
+#   #     - name: upcoming_committee_meeting_bills
+#   #     - name: versions
 
-  - name: bills
-    schema: tx_leg_bills
-    tables:
-      - name: actions
-      - name: authors
-      - name: bill_stages
-      - name: bill_tags
-      - name: bills
-      - name: committee_hearing_videos
-      - name: committee_meetings
-      - name: committee_meeting_bills
-      - name: committee_status
-      - name: companions
-      - name: complete_bills_list
-      - name: links
-      - name: subjects
-      - name: upcoming_committee_meetings
-      - name: upcoming_committee_meeting_bills
-      - name: versions
+#   - name: bills
+#     schema: tx_leg_bills
+#     tables:
+#       - name: actions
+#       - name: authors
+#       - name: bill_stages
+#       - name: bill_tags
+#       - name: bills
+#       - name: committee_hearing_videos
+#       - name: committee_meetings
+#       - name: committee_meeting_bills
+#       - name: committee_status
+#       - name: companions
+#       - name: complete_bills_list
+#       - name: links
+#       - name: subjects
+#       - name: upcoming_committee_meetings
+#       - name: upcoming_committee_meeting_bills
+#       - name: versions

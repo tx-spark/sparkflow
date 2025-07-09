@@ -72,7 +72,8 @@ select
     committee_meetings.chamber = 'Senate',
     "Senate does not allow online public comments",
     concat('https://comments.house.texas.gov/home?c=',committee_meetings.committee_code)) as `Public Comment Link`,
-    committee_meeting_bills.meeting_url as `Hearing Link`
+    committee_meeting_bills.meeting_url as `Hearing Link`, 
+    cast(regexp_replace(complete_bills_list.bill_id, '[^0-9]+', '') as INTEGER) as `Bill Number`
 from committee_meeting_bills
 left join bill_party 
   on committee_meeting_bills.bill_id = bill_party.bill_id 
