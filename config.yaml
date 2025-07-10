@@ -1,21 +1,21 @@
 info:
-  LegSess: 89R
+  LegSess: '891'
   pipeline_name: 'texas_bills'
 dev_google_sheets_id: 1mB-wBoFKuu4kS482Yc2FQn6kByDJi6uIgm7l09V_8PQ
 sources:
-  rss:
-    daily:
-      bills_passed: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysbillspassed
-      bills_filed_senate: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysfiledsenate
-      bills_filed_house: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysfiledhouse
-      bill_analyses: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysbillanalyses
-      fiscal_notes: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysfiscalnotes
-      bill_text: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysbilltext
-    upcoming:
-      calendar_senate: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingcalendarssenate
-      calendar_house: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingcalendarshouse
-      meetings_senate: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingmeetingssenate
-      meetings_house: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingmeetingshouse
+  # rss:
+  #   daily:
+  #     bills_passed: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysbillspassed
+  #     bills_filed_senate: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysfiledsenate
+  #     bills_filed_house: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysfiledhouse
+  #     bill_analyses: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysbillanalyses
+  #     fiscal_notes: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysfiscalnotes
+  #     bill_text: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysbilltext
+  #   upcoming:
+  #     calendar_senate: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingcalendarssenate
+  #     calendar_house: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingcalendarshouse
+  #     meetings_senate: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingmeetingssenate
+  #     meetings_house: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingmeetingshouse
   html:
     history: https://capitol.texas.gov/BillLookup/History.aspx #?LegSess=89R&Bill=SB1
     text: https://capitol.texas.gov/BillLookup/Text.aspx
@@ -41,9 +41,6 @@ sources:
       fiscalnotes: fiscalnotes
       reports: reports
       witlistbill: witlistbil
-  videos: 
-    house: https://house.texas.gov/api/GetVideoEvents/{leg_id}/published/committee
-    senate: https://senate.texas.gov/av-archive.php?sess={leg_id}
   election_results:
     districts: https://results.texas-election.com/static/data/election/49664/1012/Districted.json
     statewide: https://results.texas-election.com/static/data/election/49664/1012/StateWide.json
