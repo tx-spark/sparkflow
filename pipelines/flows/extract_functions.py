@@ -455,6 +455,16 @@ def get_html_committee_meetings(leg_session):
     return pd.DataFrame(result)
 
 def extract_committee_meetings_links(committees_page_url, leg_id):
+    """
+    Extracts all committee meeting links from committees page.
+    
+    Args:
+        committees_page_url: String containing the URL of the committees page
+        leg_id: String containing the legislative session ID
+        
+    Returns:
+        DataFrame with committee names and links
+    """    
     session = requests.Session()
 
     # Step 1: GET request to retrieve hidden form fields
