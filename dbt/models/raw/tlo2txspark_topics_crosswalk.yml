@@ -1,0 +1,5 @@
+sources:
+  - name: raw_bills
+    schema: tx_leg_raw_bills
+    tables:
+      - name: tlo2txspark_topics_crosswalk

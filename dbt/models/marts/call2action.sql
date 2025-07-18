@@ -18,6 +18,10 @@ links as (
     select * from {{ ref('links') }}
 ),
 
+subjects as (
+    select * from {{ ref('subjects') }}
+),
+
 rep_sen_contact_sheet as (
     select * from {{ ref('rep_sen_contact_sheet') }}
 ),
@@ -47,46 +51,140 @@ authors_agg as (
     GROUP BY
         bill_id,
         leg_id
+),
+
+bill_tags_intermediate as (
+  select
+  bill_id,
+  leg_id,
+  ARRAY_AGG(position) as positions,
+  ARRAY_AGG(tag) AS tags,
+  ARRAY_AGG(talking_points) AS talking_points,
+  ARRAY_AGG(reason) AS reasons,
+  ARRAY_AGG(note) AS notes
+  from `txspark.tx_leg_bills.bill_tags`
+  group by 1,2
+),
+
+bill_tags_agg as (
+    select
+    bill_id,
+    leg_id,
+    CASE UPPER(ARRAY_TO_STRING(
+        ARRAY(
+            SELECT 
+            DISTINCT position
+            FROM UNNEST(positions) as position
+            order by position
+        ), ', '))
+    WHEN 'AGAINST' THEN 'Against'
+    WHEN 'FOR' THEN 'For'
+    WHEN 'AGAINST, FOR' THEN 'Conflicted'
+    WHEN 'AGAINST, ON' THEN 'Against'
+    WHEN 'FOR, ON' THEN 'For'
+    WHEN 'AGAINST, FOR, ON' THEN 'Conflicted'
+    ELSE NULL END as position,
+
+    ARRAY_TO_STRING(
+        ARRAY(
+        SELECT DISTINCT talking_point
+        FROM UNNEST(talking_points) AS talking_point
+        ), '\n\n'
+    ) AS talking_points,
+
+    ARRAY_TO_STRING(
+        ARRAY(
+        SELECT DISTINCT reason
+        FROM UNNEST(reasons) AS reason
+        ), '\n\n'
+    ) AS reason,
+
+    ARRAY_TO_STRING(
+        ARRAY(
+        SELECT DISTINCT note
+        FROM UNNEST(notes) AS note
+        ), '\n\n'
+    ) AS notes
+    from bill_tags_intermediate
+),
+
+grouped_txspark_topics as (
+  select 
+    leg_id,
+    bill_id, 
+    STRING_AGG(subject_title, ' | ') as subjects,
+    ARRAY_CONCAT_AGG(txspark_topics_array) as txspark_topics_array
+  from subjects
+  group by 1,2
+),
+
+txspark_topics as (
+SELECT 
+  leg_id, 
+  bill_id, 
+  subjects,
+  ARRAY_TO_STRING(
+    ARRAY(
+      SELECT 
+        DISTINCT topics
+      FROM UNNEST(ARRAY_CONCAT(txspark_topics_array)) AS topics 
+      where topics != 'TBD' and topics != ''
+    ), ' | ') AS unique_topics
+FROM grouped_txspark_topics
 )
-
-
 ----------------------------------------------------------
 
 select
     bills.leg_id, -- removed later
     FORMAT_TIMESTAMP('%m/%d/%Y %I:%M %p', committee_meeting_bills.meeting_datetime) as meeting_datetime,
     CONCAT(committee_meeting_bills.chamber, '\n',
-    committee_meeting_bills.committee_name, '\n',
-    FORMAT_TIMESTAMP('%I:%M %p', committee_meeting_bills.meeting_datetime), '\n',
-    committee_meetings.location) as CMT,
+        committee_meeting_bills.committee_name, '\n',
+        FORMAT_TIMESTAMP('%I:%M %p', committee_meeting_bills.meeting_datetime), '\n',
+        committee_meetings.location
+    ) as `CMT`,
     committee_meeting_bills.bill_id,
+    txspark_topics.unique_topics as `topics`,
     bills.caption,
-    '' as Position,
-    bill_party.p_dem,
-    authors_agg.authors_list,
-    '' as Reason,
-    '' as `Link to orgs and advocates for talking points`,
-    '' as Notes,
+    bill_tags_agg.position as Position,
+    -- bill_party.p_dem,
+    -- authors_agg.authors_list,
+    bill_tags_agg.Reason as Reason,
+    bill_tags_agg.talking_points as `Link to orgs and advocates for talking points`,
+    bill_tags_agg.notes as Notes,
     links.history,
     IF(
     committee_meetings.chamber = 'Senate',
     "Senate does not allow online public comments",
     concat('https://comments.house.texas.gov/home?c=',committee_meetings.committee_code)) as `Public Comment Link`,
     committee_meeting_bills.meeting_url as `Hearing Link`, 
-    cast(regexp_replace(complete_bills_list.bill_id, '[^0-9]+', '') as INTEGER) as `Bill Number`
+    cast(regexp_replace(committee_meeting_bills.bill_id, '[^0-9]+', '') as INTEGER) as `Bill Number`
+
 from committee_meeting_bills
 left join bill_party 
   on committee_meeting_bills.bill_id = bill_party.bill_id 
   and committee_meeting_bills.leg_id = bill_party.leg_id 
+
 left join bills
   on committee_meeting_bills.bill_id = bills.bill_id 
   and committee_meeting_bills.leg_id = bills.leg_id 
+
 left join committee_meetings
   on committee_meeting_bills.meeting_url = committee_meetings.meeting_url
+
 left join links
   on committee_meeting_bills.bill_id = links.bill_id 
   and committee_meeting_bills.leg_id = links.leg_id 
+
 left join authors_agg
   on committee_meeting_bills.bill_id = authors_agg.bill_id 
-  and committee_meeting_bills.leg_id = authors_agg.leg_id 
+  and committee_meeting_bills.leg_id = authors_agg.leg_id
+
+left join bill_tags_agg
+  on committee_meeting_bills.bill_id = bill_tags_agg.bill_id 
+  and committee_meeting_bills.leg_id = bill_tags_agg.leg_id
+
+left join txspark_topics
+    on committee_meeting_bills.bill_id = txspark_topics.bill_id
+    and committee_meeting_bills.leg_id = txspark_topics.leg_id
+    
 order by committee_meeting_bills.meeting_datetime desc,committee_meeting_bills.committee_name, committee_meeting_bills.bill_id

@@ -1,4 +1,31 @@
-with subjects as (
+with tlo_topics_crosswalk as (
+    SELECT
+  GSI,
+  `tx_spark Categories`,
+
+  array_concat(
+    REGEXP_EXTRACT_ALL(
+      `tx_spark Categories`,
+      r'"([^"]+)"'
+    ),
+  SPLIT(TRIM(
+    REGEXP_REPLACE(
+    REGEXP_REPLACE(
+      `tx_spark Categories`,
+      r'(^\s*"[^"]+"\s*,?\s*)',  -- remove leading quoted value(s)
+      ','
+    ),
+    r'(,\s*"[^"]+"\s*)',         -- remove remaining quoted values
+    ''
+    ), ', '
+  ),', ')
+  ) AS txspark_topics_array
+
+FROM
+    {{source('raw_bills', 'tlo2txspark_topics_crosswalk')}}
+),
+
+subjects as (
     SELECT
         bill_id,
         leg_id,
@@ -28,6 +55,9 @@ select
     leg_id,
     subject_title,
     subject_id,
+    tlo_topics_crosswalk.txspark_topics_array,
     first_seen_at,
     last_seen_at
 from current_subjects
+left join tlo_topics_crosswalk
+    on  UPPER(coalesce(REGEXP_EXTRACT(subject_title, r'^(.*?)\s*--'), subject_title)) = UPPER(tlo_topics_crosswalk.GSI)

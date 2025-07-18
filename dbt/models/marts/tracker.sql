@@ -1,6 +1,7 @@
 with complete_bills_list as (
     select * from {{ ref('complete_bills_list') }}
 ),
+
 bills as (
     select * from {{ ref('bills') }}
 ),
@@ -53,6 +54,9 @@ bill_tags as (
     select * from {{ ref('bill_tags') }}
 ),
 
+subjects as (
+    select * from {{ ref('subjects') }}
+),
 ----------------------------------------------------------
 
 authors_agg as (
@@ -138,15 +142,12 @@ bill_status as (
     SELECT 
         stages.bill_id,
         stages.leg_id,
-        IF(
-            bills.last_action like '%Failed to receive affirmative vote in comm%',
-            'Dead',
-            IF(
-            stage_num = 7 and stages.status = 'Alive', 
-            'Law', 
-            stages.status
-            )
-        ) as bill_status
+        CASE 
+            WHEN bills.last_action like '%Failed to receive affirmative vote in comm%' THEN 'Dead'
+            WHEN bills.last_action like '%Vetoed%' THEN 'Vetoed'
+            WHEN stage_num = 7 and stages.status = 'Alive' THEN 'Law'
+            ELSE stages.status 
+        END as bill_status
     from stages 
     left join bills
         on stages.bill_id = bills.bill_id
@@ -340,7 +341,7 @@ bill_party as (
     select 
     authors.bill_id, 
     authors.leg_id,
-    avg(if(rep_sen_contact_sheet.Party = 'D', 1,0)) as p_dem
+    concat(safe_cast(avg(if(rep_sen_contact_sheet.Party = 'D', 1,0)) as STRING),'') as p_dem
     from authors
     left join rep_sen_contact_sheet
         on left(authors.bill_id,1) = left(rep_sen_contact_sheet.district_type,1)
@@ -357,6 +358,32 @@ bill_tags_agg as (
     STRING_AGG(tag, ' | ') as tags
     from bill_tags
     group by 1,2
+),
+
+grouped_txspark_topics as (
+  select 
+    leg_id,
+    bill_id, 
+    STRING_AGG(subject_title, ' | ') as subjects,
+    ARRAY_CONCAT_AGG(txspark_topics_array) as txspark_topics_array
+  from subjects
+  group by 1,2
+),
+
+txspark_topics as (
+SELECT 
+  leg_id, 
+  bill_id, 
+  subjects,
+  ARRAY_TO_STRING(
+    ARRAY(
+      SELECT 
+        DISTINCT topics
+      FROM UNNEST(ARRAY_CONCAT(txspark_topics_array)) AS topics 
+      where topics != 'TBD' and topics != ''
+    ), ' | ') AS unique_topics
+FROM grouped_txspark_topics
+
 )
 
 ----------------------------------------------------------
@@ -379,7 +406,7 @@ select
         REPLACE(authors_agg.authors_list, '"', '""'),
         '")'
     ) as authors,
-    bill_tags_agg.tags,
+    txspark_topics.unique_topics,
     INITCAP(bill_tags_agg.position) as position,
     bill_party.p_dem,
     links.captions, -- caption link
@@ -432,10 +459,11 @@ select
     senate_committees_agg.committees_link as senate_committees,
     first_senate_committee_meeting_bills.meeting_datetime as first_senate_committee_meeting_datetime,
     first_senate_committee_meeting_bills.video_link as first_senate_committee_video_link,
-    first_senate_committee_meeting_bills.witness_list_pdf as first_senate_committee_witness_list_pdf
+    first_senate_committee_meeting_bills.witness_list_pdf as first_senate_committee_witness_list_pdf,
     -- first_senate_committee_meeting_bills.hearing_notice_pdf as first_senate_committee_hearing_notice_pdf,
     -- first_senate_committee_meeting_bills.minutes_pdf as first_senate_committee_minutes_pdf,
 
+    cast(regexp_replace(complete_bills_list.bill_id, '[^0-9]+', '') AS INTEGER) as `#`
 from complete_bills_list -- join on complete bills list so that the list includes Unassigned bills.
 
 left join bills
@@ -509,5 +537,9 @@ left join bill_party
 left join bill_tags_agg
     on bills.bill_id = bill_tags_agg.bill_id
     and bills.leg_id = bill_tags_agg.leg_id
+
+left join txspark_topics
+    on bills.bill_id = txspark_topics.bill_id
+    and bills.leg_id = txspark_topics.leg_id
 
 order by cast(regexp_replace(complete_bills_list.bill_id, '[^0-9]+', '') as INTEGER)

@@ -18,7 +18,7 @@ models:
     tests:
     - not_null
     - accepted_values:
-      values: ["Yea",'Nay','Absent','NV']
+        values: ["Yea",'Nay','Absent',]
   - name: name
     description: Name of the representative
     tests:

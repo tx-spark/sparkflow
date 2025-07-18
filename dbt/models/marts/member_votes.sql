@@ -22,7 +22,10 @@ left join votes
 left join people
     on votes.legiscan_people_id = people.people_id
 where votes.date is not null
-    and `desc` like 'Read 3rd time%'
+    and (
+        `desc` like 'Read 3rd time%' 
+        or `desc` like 'Failed to pass to 3rd reading%'
+    )
 order by 
   regexp_extract(bill_number, '[A-Za-z]+'),
   cast(regexp_extract(bill_number, '[0-9]+') as INTEGER),
