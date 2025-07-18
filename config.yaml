@@ -3,44 +3,6 @@ info:
   pipeline_name: 'texas_bills'
 dev_google_sheets_id: 1mB-wBoFKuu4kS482Yc2FQn6kByDJi6uIgm7l09V_8PQ
 sources:
-  # rss:
-  #   daily:
-  #     bills_passed: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysbillspassed
-  #     bills_filed_senate: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysfiledsenate
-  #     bills_filed_house: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysfiledhouse
-  #     bill_analyses: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysbillanalyses
-  #     fiscal_notes: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysfiscalnotes
-  #     bill_text: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=todaysbilltext
-  #   upcoming:
-  #     calendar_senate: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingcalendarssenate
-  #     calendar_house: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingcalendarshouse
-  #     meetings_senate: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingmeetingssenate
-  #     meetings_house: https://capitol.texas.gov/MyTLO/RSS/RSS.aspx?Type=upcomingmeetingshouse
-  html:
-    history: https://capitol.texas.gov/BillLookup/History.aspx #?LegSess=89R&Bill=SB1
-    text: https://capitol.texas.gov/BillLookup/Text.aspx
-    actions: https://capitol.texas.gov/BillLookup/Actions.aspx
-    companions: https://capitol.texas.gov/BillLookup/Companions.aspx
-    amendments: https://capitol.texas.gov/BillLookup/Amendments.aspx
-    authors: https://capitol.texas.gov/BillLookup/Authors.aspx
-    sponsors: https://capitol.texas.gov/BillLookup/Sponsors.aspx
-    captions: https://capitol.texas.gov/BillLookup/Captions.aspx
-    bill_stages: https://capitol.texas.gov/BillLookup/BillStages.aspx
-  static_html:
-    committees_list: https://capitol.texas.gov/Committees/Committees.aspx
-    committees: https://capitol.texas.gov/Committees/
-    commitee_membership: https://capitol.texas.gov/Committees/MembershipCmteHist.aspx
-  ftp:
-    host: ftp.legis.state.tx.us
-    base_path: ftp://ftp.legis.state.tx.us/bills/{LegSess}
-    paths:
-      analysis: analysis
-      billhistory: billhistory
-      billtext: billtext
-      documents: documents
-      fiscalnotes: fiscalnotes
-      reports: reports
-      witlistbill: witlistbil
   election_results:
     districts: https://results.texas-election.com/static/data/election/49664/1012/Districted.json
     statewide: https://results.texas-election.com/static/data/election/49664/1012/StateWide.json

@@ -1,6 +1,7 @@
 from ftplib import FTP
 from urllib.parse import urlparse
 import io
+import re
 import atexit
 import gspread
 import pandas as pd
@@ -201,9 +202,8 @@ class FtpConnection:
 ################################################################################
 # UTILITY FUNCTIONS
 ################################################################################
-
 @task(retries=3, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
-def write_df_to_gsheets(df, google_sheets_id, worksheet_name, minimize_to_rows=False, minimize_to_cols=False, replace_headers=True):
+def write_df_to_gsheets(df, google_sheets_id, worksheet_name, minimize_to_rows=False, minimize_to_cols=False, replace_headers=True, no_headers = False, first_cell='A1'):
     """
     Write a pandas DataFrame to a Google Sheets worksheet.
 
@@ -214,10 +214,24 @@ def write_df_to_gsheets(df, google_sheets_id, worksheet_name, minimize_to_rows=F
         minimize_to_rows: If True, resize the worksheet to match the DataFrame rows.
         minimize_to_cols: If True, resize the worksheet to match the DataFrame columns.
         replace_headers: If True, include the DataFrame headers in the worksheet. If False, only write the values.
+        no_headers: If True, will paste values starting in the first row, without headers
+        first_cell: Cell reference to start writing data from (default 'A1')
 
     The function will resize the worksheet to match the DataFrame dimensions (optionally)
-    and write all data starting from cell A1.
+    and write all data starting from the specified first_cell.
     """
+
+    first_cell_letter = re.search('^[A-Za-z]+', first_cell).group()
+    first_cell_number = int(first_cell.replace(first_cell_letter, ''))
+
+    # Test that first_cell follows format of letter(s) followed by number
+    assert re.match('^[A-Za-z]+[0-9]+$', first_cell), f"first_cell '{first_cell}' must be letter(s) followed by number (e.g. 'AB166')"
+
+    # Test that first_cell_letter contains only letters
+    assert first_cell_letter.isalpha(), f"first_cell_letter '{first_cell_letter}' must contain only letters"
+
+    # Test that first_cell_number is a positive integer
+    assert first_cell_number > 0, f"first_cell_number '{first_cell_number}' must be a positive integer"
 
     google_sheets_df = df.copy()
     for col in google_sheets_df.columns:
@@ -251,9 +265,12 @@ def write_df_to_gsheets(df, google_sheets_id, worksheet_name, minimize_to_rows=F
         worksheet.resize(cols=num_cols)
 
     if replace_headers:
-        worksheet.update('A1', data, value_input_option="USER_ENTERED")
+        worksheet.update(first_cell, data, value_input_option="USER_ENTERED")
+    elif no_headers:
+        worksheet.update(first_cell, data, value_input_option="USER_ENTERED")
     else:
-        worksheet.update('A2', data, value_input_option="USER_ENTERED")
+        first_cell_no_header = first_cell_letter + str(first_cell_number + 1)
+        worksheet.update(first_cell_no_header, data, value_input_option="USER_ENTERED")
 
 @task(retries=3, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
 def read_gsheets_to_df(google_sheets_id, worksheet_name, header=0):
@@ -386,7 +403,6 @@ def upload_google_sheets(gsheets_config_path, config_path, env):
             if df is not None:
                 if env == 'dev':
                     credentials_str = get_secret(secret_id='GOOGLE_SHEETS_SERVICE_ACCOUNT')
-                    print(credentials_str)
                     credentials = json.loads(credentials_str)
                     gc = gspread.service_account_from_dict(credentials)
 
@@ -400,7 +416,7 @@ def upload_google_sheets(gsheets_config_path, config_path, env):
         except Exception as e:
             print(e)
 
-@task(retries=3, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE, timeout_seconds=600)
+@task(retries=3, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE, timeout_seconds=1200)
 def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_disposition, chunk_size = 50000, allow_empty_table=False, log_upload=True):
     """
     Load data to destination using Parsons BigQuery connector.
