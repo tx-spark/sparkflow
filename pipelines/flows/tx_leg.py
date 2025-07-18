@@ -336,12 +336,16 @@ def tx_leg_pipeline(env=None):
         print('FAILED TO GET COMMITTEE HEARING VIDEOS')
 
     try:
-        committee_meeting_bills(leg_session)
         committee_meetings(leg_session)
+        committee_meeting_bills(leg_session)
+    except:
+        print('FAILED TO GET COMMITTEE MEETING SCHEDULES')
+
+    try:
         upcoming_committee_meetings()
         upcoming_committee_meeting_bills()
     except:
-        print('FAILED TO GET COMMITTEE MEETING SCHEDULES')
+        print('FAILED TO GET UPCOMING COMMITTEE MEETINGS')
 
     try:
         logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting raw bills data extraction")
