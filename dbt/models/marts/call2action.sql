@@ -186,5 +186,7 @@ left join bill_tags_agg
 left join txspark_topics
     on committee_meeting_bills.bill_id = txspark_topics.bill_id
     and committee_meeting_bills.leg_id = txspark_topics.leg_id
+
+where bill_tags_agg.position is not null
     
 order by committee_meeting_bills.meeting_datetime desc,committee_meeting_bills.committee_name, committee_meeting_bills.bill_id
