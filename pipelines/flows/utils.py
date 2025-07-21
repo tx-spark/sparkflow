@@ -258,7 +258,10 @@ def write_df_to_gsheets(df, google_sheets_id, worksheet_name, minimize_to_rows=F
 
     if minimize_to_rows:
         num_rows = len(data)
+        if not replace_headers: num_rows += 1
         worksheet.resize(rows=num_rows)
+    elif len(worksheet.get_all_values()) <= 1:
+        worksheet.resize(rows=2)
 
     if minimize_to_cols:
         num_cols = len(data[0]) if data else 0 #handle empty dataframe case
