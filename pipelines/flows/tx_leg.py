@@ -8,6 +8,7 @@ from prefect import flow, task
 from utils import FtpConnection, dataframe_to_bigquery, log_bq_load, get_current_table_data, determine_git_environment, read_gsheets_to_df, upload_google_sheets, get_secret
 from extract_functions import *
 from pull_legiscan_data import legiscan_to_bigquery
+from custom_gsheets import upload_call2action
 
 ################################################################################
 # CONFIGURATION
@@ -301,6 +302,9 @@ def versions(raw_bills_df):
     merge_new_data_in_database(versions_df, PROJECT_ID, OUT_DATASET_NAME, 'versions', ENV)
     # log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'versions', ENV, 'drop', sys.getsizeof(versions_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Versions data processing complete")
+
+def call2action():
+    upload_call2action(env=ENV)
 
 @task(retries=1, retry_delay_seconds=1, log_prints=True, cache_policy=NO_CACHE)
 def legiscan(config):
