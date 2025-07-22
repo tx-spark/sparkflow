@@ -109,8 +109,6 @@ def merge_with_current_data(new_df, curr_df):
     merged.loc[curr_only_mask, 'first_seen_at'] = merged.loc[curr_only_mask, 'first_seen_at_y']
     merged.loc[curr_only_mask, 'last_seen_at'] = merged.loc[curr_only_mask, 'last_seen_at_y']
 
-    print(merged)
-
     # Clean up merge artifacts
     merged = merged.drop(['first_seen_at_x', 'first_seen_at_y', 
                          'last_seen_at_x', 'last_seen_at_y', '_merge'], axis=1)
@@ -280,6 +278,7 @@ def get_rss_committee_meetings():
         for bill in meeting['bills']:
             bill_info = {
                 'bill_id': bill['bill_id'],
+                'leg_id': bill['leg_id'],
                 'link': bill['bill_link'],
                 'author': bill.get('author', ''),
                 'description': bill.get('description', ''),
@@ -1524,7 +1523,6 @@ def get_raw_bills_data(base_path, leg_session, ftp_connection, max_errors=5):
     raw_bills = []
     error_count = 0
     for url in bill_urls:
-        print(url)
         try:
             bill_data = parse_bill_xml(ftp_connection, url)
             if bill_data:
@@ -1537,7 +1535,3 @@ def get_raw_bills_data(base_path, leg_session, ftp_connection, max_errors=5):
             raise Exception(f"Failed to get bill data for {error_count} bills")
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Finished raw bills data extraction")
     return pd.DataFrame(raw_bills)
-
-if __name__ == '__main__':
-    upcoming_bills = get_upcoming_committee_meeting_bills()
-    print(upcoming_bills.head())
