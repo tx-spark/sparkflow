@@ -303,6 +303,7 @@ def versions(raw_bills_df):
     # log_bq_load(PROJECT_ID, OUT_DATASET_NAME, 'versions', ENV, 'drop', sys.getsizeof(versions_df))
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Versions data processing complete")
 
+@task(retries=1, retry_delay_seconds=1, log_prints=True, cache_policy=NO_CACHE)
 def call2action():
     upload_call2action(env=ENV)
 
@@ -389,3 +390,4 @@ def tx_leg_pipeline(env=None):
     # rss_feeds(config, curr_rss_df),
 
     upload_google_sheets(GSHEETS_CONFIG_PATH, CONFIG_PATH, ENV)
+    upload_call2action()
