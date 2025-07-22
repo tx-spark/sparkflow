@@ -367,6 +367,11 @@ def get_html_committee_meetings(leg_session):
     """
     # Get committee links with chamber info
     committee_links = get_committee_meetings_links(leg_session)
+    if len(committee_links) <= 0:
+        return pd.DataFrame(columns=['committee', 'chamber', 'committee_meetings_link', 'leg_id', 'date',
+       'time', 'location', 'chair', 'meeting_url', 'subcommittee',
+       'hearing_notice_html', 'hearing_notice_pdf', 'minutes_html',
+       'minutes_pdf', 'witness_list_html', 'witness_list_pdf', 'comments'])
     
     # Get meetings for each committee
     meetings = []
@@ -424,6 +429,7 @@ def get_html_committee_meetings(leg_session):
         for bill in meeting['bills']:
             bill_info = {
                 'bill_id': bill['bill_id'],
+                'leg_id' : bill['leg_id'],
                 'link': bill['bill_link'],
                 'author': bill.get('author', ''),
                 'description': bill.get('description', ''),
@@ -492,10 +498,14 @@ def extract_committee_meetings_links(committees_page_url, leg_id):
     return committees
 
 def get_committee_meetings_links(leg_session, max_errors=5):
-
+    leg_session = '89R'
     committees_list_url = 'https://capitol.texas.gov/Committees/Committees.aspx'
     committees_url = 'https://capitol.texas.gov/Committees/'
     leg_id = ''.join(filter(lambda i: i.isdigit(), leg_session))
+
+    # special logic for special sessions
+    if leg_id == leg_session:
+        leg_id = leg_id[:-1]
 
     committee_meetings = []
     error_count = 0
@@ -505,11 +515,12 @@ def get_committee_meetings_links(leg_session, max_errors=5):
             committees = extract_committee_meetings_links(committees_page_url, leg_id)
             
             for committee in committees:
+                print(committees_url + committee['href'])
                 committee_meetings.append({
                     'name': committee['name'],
                     'link': committees_url + committee['href'],
                     'chamber': chamber,
-                    'leg_id': leg_session
+                    'leg_id': leg_id # using the version without the indicator of special session / regular session, because these meetings just accumulate across 2 years.
                     })
         except Exception as e:
             logger.debug(f"Failed to get committee meetings links for {chamber}: {e}")
@@ -1453,10 +1464,10 @@ def get_committee_meeting_bills_data(leg_session):
             try:
                 bill_record = meeting_details.copy()
                 # Extract leg_id from link using regex
-                leg_id = re.search(r'/tlodocs/(\w+)/', meeting['meeting_url']).group(1)
+                # leg_id = re.search(r'/tlodocs/(\w+)/', meeting['meeting_url']).group(1)
                 bill_record.update({
                     'bill_id': bill['bill_id'],
-                    'leg_id': leg_id,
+                    'leg_id': bill['leg_id'],
                     'link': bill['link'],
                     'author': bill.get('author', None), 
                     'description': bill.get('description', None),
