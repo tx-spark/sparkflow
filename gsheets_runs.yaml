@@ -126,10 +126,24 @@ uploads:
     drop_cols:
       - leg_id
 
+  - name: "Committee Meetings Without Bills"
+    google_sheets_id: 18fIrxXdfe4X3z2lUhegrlGCD8-aqPS20-eDlcQj7dWY
+    worksheet_name: "Committee Meetings For Tagging"
+    project_id: txspark
+    dataset_id: sandbox
+    table_id: committee_meetings_without_bills
+    replace_headers: false
+
+
 downloads:
   - name: "Bill Tags"
     google_sheets_id: 18fIrxXdfe4X3z2lUhegrlGCD8-aqPS20-eDlcQj7dWY
     worksheet_name: "Bill Tags"
+    table_id: bill_tags
+
+  - name: "Committee Meeting Tags"
+    google_sheets_id: 18fIrxXdfe4X3z2lUhegrlGCD8-aqPS20-eDlcQj7dWY
+    worksheet_name: "Committee Meeting Tags"
     table_id: bill_tags
 
   - name: "Bill Topics"
