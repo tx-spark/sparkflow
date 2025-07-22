@@ -953,6 +953,7 @@ def read_committee_meeting(meeting_url):
             continue
             
         bill_href = 'https://capitol.texas.gov' + bill_link['href']
+        print(bill_href)
         bill_id = bill_link.get_text(strip=True)
         
         # Get author text after </a> tag but before first <br> tag
@@ -971,11 +972,15 @@ def read_committee_meeting(meeting_url):
                 description = re.sub(r'[\r\n]', '', description_content.string.strip())
 
         
+        # Extract LegSess from bill_href
+        leg_sess = re.search(r'LegSess=(\d+)', bill_href).group(1)
+        
         meeting_data['bills'].append({
             'bill_id': bill_id,
+            'leg_id': leg_sess,
             'bill_link': bill_href,
             'author': author,
-            'description': description,
+            'description': description
         })
 
     # Check for deleted and added bills sections
@@ -1396,10 +1401,10 @@ def get_upcoming_committee_meeting_bills():
                 try:
                     bill_record = meeting_details.copy()
                     # Extract leg_id from link using regex
-                    leg_id = re.search(r'/tlodocs/(\w+)/', meeting['meeting_url']).group(1)
+                    # leg_id = re.search(r'/tlodocs/(\w+)/', meeting['meeting_url']).group(1) # Commenting this out because TLO lies about the leg_id for special sessions. Why is TLO like this???
                     bill_record.update({
                         'bill_id': bill['bill_id'],
-                        'leg_id': leg_id,
+                        'leg_id': bill['leg_id'],
                         'link': bill['link'], 
                         'author': bill.get('author', None),
                         'description': bill.get('description', None),
@@ -1532,3 +1537,7 @@ def get_raw_bills_data(base_path, leg_session, ftp_connection, max_errors=5):
             raise Exception(f"Failed to get bill data for {error_count} bills")
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Finished raw bills data extraction")
     return pd.DataFrame(raw_bills)
+
+if __name__ == '__main__':
+    upcoming_bills = get_upcoming_committee_meeting_bills()
+    print(upcoming_bills.head())
