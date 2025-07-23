@@ -26,17 +26,21 @@ rep_sen_contact_sheet as (
     select * from {{ ref('rep_sen_contact_sheet') }}
 ),
 
+committee_meeting_tags as (
+  select * from {{ ref('committee_meeting_tags')}}
+),
+
 ----------------------------------------------------------
 
 bill_party as (
     select 
     authors.bill_id, 
     authors.leg_id,
-    avg(if(rep_sen_contact_sheet.Party = 'D', 1,0)) as p_dem
+    concat(safe_cast(avg(if(rep_sen_contact_sheet.Party = 'D', 1,0)) * 100 as STRING),'') as p_dem
     from authors
     left join rep_sen_contact_sheet
         on left(authors.bill_id,1) = left(rep_sen_contact_sheet.district_type,1)
-        and authors.leg_id = rep_sen_contact_sheet.leg_id
+        and left(authors.leg_id, 2) = left(rep_sen_contact_sheet.leg_id, 2) -- removes the trailing character indicating regular or special session
         and authors.author = rep_sen_contact_sheet.author_id
     group by 1,2
 ),
@@ -131,6 +135,33 @@ SELECT
       where topics != 'TBD' and topics != ''
     ), ' | ') AS unique_topics
 FROM grouped_txspark_topics
+),
+
+important_meetings as (
+  select 
+    committee_meeting_tags.leg_id,
+    FORMAT_TIMESTAMP('%m/%d/%Y %I:%M %p', committee_meetings.meeting_datetime) as meeting_datetime,
+    CONCAT(committee_meetings.chamber, '\n',
+            committee_meetings.committee_name, '\n',
+            FORMAT_TIMESTAMP('%I:%M %p', committee_meetings.meeting_datetime), '\n',
+            committee_meetings.location
+    ) as `CMT`,
+    "Important Meeting" as bill_id,
+    committee_meeting_tags.tag as Topics,
+    '' as Caption,
+    committee_meeting_tags.position as Position,
+    committee_meeting_tags.Reason,
+    committee_meeting_tags.talking_points as `Link to orgs and advocates for talking points`,
+    committee_meeting_tags.note as Notes,
+    '' as history,
+      IF(
+        committee_meetings.chamber = 'Senate',
+        "Senate does not allow online public comments",
+      concat('https://comments.house.texas.gov/home?c=',committee_meetings.committee_code)) as `Public Comment Link`,
+    committee_meetings.meeting_url as `Hearing Link`,
+    NULL as `Bill Number` 
+  from committee_meetings
+  inner join committee_meeting_tags using (meeting_url)
 )
 ----------------------------------------------------------
 
@@ -186,5 +217,9 @@ left join bill_tags_agg
 left join txspark_topics
     on committee_meeting_bills.bill_id = txspark_topics.bill_id
     and committee_meeting_bills.leg_id = txspark_topics.leg_id
+
+UNION ALL
+
+select * from important_meetings
     
-order by committee_meeting_bills.meeting_datetime desc,committee_meeting_bills.committee_name, committee_meeting_bills.bill_id
+order by 1 desc, 2, 3

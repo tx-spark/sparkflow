@@ -144,7 +144,7 @@ downloads:
   - name: "Committee Meeting Tags"
     google_sheets_id: 18fIrxXdfe4X3z2lUhegrlGCD8-aqPS20-eDlcQj7dWY
     worksheet_name: "Committee Meeting Tags"
-    table_id: bill_tags
+    table_id: committee_meeting_tags
 
   - name: "Bill Topics"
     google_sheets_id: 1u8DtSRrRLVgdIj_dW77PVarxPdBE3A2Q5YzSZbvk1H0

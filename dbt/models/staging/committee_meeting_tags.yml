@@ -1,0 +1,16 @@
+models:
+- name: bill
+  description: Tags associated with legislative bills
+  columns:
+  - name: leg_id
+    description: Legislative session ID
+    tests:
+    - not_null
+  - name: bill_id
+    tests:
+    - not_null
+  - name: tag
+  - name: position
+    description: Position on the bill
+  - name: organization
+  - name: notes
