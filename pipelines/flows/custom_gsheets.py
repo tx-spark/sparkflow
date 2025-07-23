@@ -7,18 +7,16 @@ import json
 import re
 
 
-def upload_call2action(env = 'dev'):
+def upload_call2action(leg_id, env = 'dev'):
 
     if env=='dev':
         return
 
     date_col = 'meeting_datetime'
     curr_date = datetime.now().strftime('%m-%d-%Y')
-    curr_date = '05-12-2025'
     gsheets_id = '1XRBXMeOMmmdDr5MdcCHkidjpoh4JKu7kUrQ-MlTfTCw'
 
     df = bigquery_to_df('txspark','tx_leg_bills', 'call2action', env = 'prod')
-    leg_id = '89R'
     # Filter to specified leg_id and drop leg_id column
     df = df[df['leg_id'] == leg_id].drop('leg_id', axis=1)
     df = df[pd.notnull(df['Position'])]
@@ -56,7 +54,6 @@ def upload_call2action(env = 'dev'):
             date_df = pd.DataFrame([{col: '—-' for col in df.columns}])
             hide = True
 
-        print(date_df)
         write_df_to_gsheets(
             date_df,
             gsheets_id,
@@ -88,4 +85,4 @@ def upload_call2action(env = 'dev'):
     )
 
 if __name__ == '__main__':
-    upload_call2action()
+    upload_call2action('891', env='prod')

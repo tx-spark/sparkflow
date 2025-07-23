@@ -341,11 +341,11 @@ bill_party as (
     select 
     authors.bill_id, 
     authors.leg_id,
-    concat(safe_cast(avg(if(rep_sen_contact_sheet.Party = 'D', 1,0)) as STRING),'') as p_dem
+    concat(safe_cast(avg(if(rep_sen_contact_sheet.Party = 'D', 1,0)) * 100 as STRING),'') as p_dem
     from authors
     left join rep_sen_contact_sheet
         on left(authors.bill_id,1) = left(rep_sen_contact_sheet.district_type,1)
-        and authors.leg_id = rep_sen_contact_sheet.leg_id
+        and left(authors.leg_id, 2) = left(rep_sen_contact_sheet.leg_id, 2) -- removes the trailing character indicating regular or special session
         and authors.author = rep_sen_contact_sheet.author_id
     group by 1,2
 ),

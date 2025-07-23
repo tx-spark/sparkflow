@@ -370,14 +370,14 @@ def upload_google_sheets(gsheets_config_path, config_path, env):
     # Validate required fields are present in config
     required_fields = ['name', 'google_sheets_id', 'worksheet_name', 'project_id', 'dataset_id', 'table_id', 'filters', 'drop_cols']
     for upload in gsheets_config['uploads']:
-        missing_fields = [field for field in required_fields if field not in upload]
+        missing_fields = [field for field in required_fields if field.lower() not in upload and field.lower() not in ['filters','drop_cols']]
         if missing_fields:
             raise ValueError(f"Missing required fields in config: {missing_fields}")
         
         # Validate filters and drop_cols are lists
-        if not isinstance(upload['filters'], list):
+        if 'filters' in upload.keys() and not isinstance(upload['filters'], list):
             raise ValueError(f"'filters' must be a list for {upload['name']}")
-        if not isinstance(upload['drop_cols'], list):
+        if 'drop_cols' in upload.keys() and not isinstance(upload['drop_cols'], list):
             raise ValueError(f"'drop_cols' must be a list for {upload['name']}")
             
         # Validate google_sheets_id exists
@@ -391,10 +391,20 @@ def upload_google_sheets(gsheets_config_path, config_path, env):
             upload['dataset_id'] = 'dev_' + upload['dataset_id']
 
         # TO DO: Add logic to handle the case where the table doesn't exist in BigQuery
-        query = f""" select * except({','.join(upload['drop_cols'])})
+        query = f""" select * $except$
         from `{upload['project_id']}.{upload['dataset_id']}.{upload['table_id']}` 
-        where {' AND '.join(upload['filters'])}
+        $where$
         """
+        if 'drop_cols' in upload.keys():
+            query = query.replace('$except$',f'except({','.join(upload['drop_cols'])})')
+        else:
+            query = query.replace('$except$','')
+
+        if 'filters' in upload.keys():
+            query = query.replace('$where$',f'where {' AND '.join(upload['filters'])}')
+        else:
+            query = query.replace('$where$','')
+
         
         for var in config['info']:
             query = query.replace(f'{{{var}}}', config['info'][var])
