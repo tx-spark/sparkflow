@@ -341,12 +341,12 @@ def get_committee_meetings(committee_meetings_url):
                 'date': cells[0].get_text(strip=True),
                 'time': cells[1].get_text(strip=True), 
                 'subcommittee': cells[2].get_text(strip=True),
-                'hearing_notice_html': 'https://capitol.texas.gov/' + cells[3].find('a', href=lambda x: x and 'html' in x)['href'] if cells[3].find('a', href=lambda x: x and 'html' in x) else None,
-                'hearing_notice_pdf': 'https://capitol.texas.gov/' + cells[3].find('a', href=lambda x: x and 'pdf' in x.lower())['href'] if cells[3].find('a', href=lambda x: x and 'pdf' in x.lower()) else None,
-                'minutes_html': 'https://capitol.texas.gov/' + cells[4].find('a', href=lambda x: x and 'html' in x)['href'] if cells[4].find('a', href=lambda x: x and 'html' in x) else None,
-                'minutes_pdf': 'https://capitol.texas.gov/' + cells[4].find('a', href=lambda x: x and 'pdf' in x.lower())['href'] if cells[4].find('a', href=lambda x: x and 'pdf' in x.lower()) else None,
-                'witness_list_html': 'https://capitol.texas.gov/' + cells[5].find('a', href=lambda x: x and 'html' in x)['href'] if cells[5].find('a', href=lambda x: x and 'html' in x) else None,
-                'witness_list_pdf': 'https://capitol.texas.gov/' + cells[5].find('a', href=lambda x: x and 'pdf' in x.lower())['href'] if cells[5].find('a', href=lambda x: x and 'pdf' in x.lower()) else None,
+                'hearing_notice_html': 'https://capitol.texas.gov' + cells[3].find('a', href=lambda x: x and 'html' in x)['href'] if cells[3].find('a', href=lambda x: x and 'html' in x) else None,
+                'hearing_notice_pdf': 'https://capitol.texas.gov' + cells[3].find('a', href=lambda x: x and 'pdf' in x.lower())['href'] if cells[3].find('a', href=lambda x: x and 'pdf' in x.lower()) else None,
+                'minutes_html': 'https://capitol.texas.gov' + cells[4].find('a', href=lambda x: x and 'html' in x)['href'] if cells[4].find('a', href=lambda x: x and 'html' in x) else None,
+                'minutes_pdf': 'https://capitol.texas.gov' + cells[4].find('a', href=lambda x: x and 'pdf' in x.lower())['href'] if cells[4].find('a', href=lambda x: x and 'pdf' in x.lower()) else None,
+                'witness_list_html': 'https://capitol.texas.gov' + cells[5].find('a', href=lambda x: x and 'html' in x)['href'] if cells[5].find('a', href=lambda x: x and 'html' in x) else None,
+                'witness_list_pdf': 'https://capitol.texas.gov' + cells[5].find('a', href=lambda x: x and 'pdf' in x.lower())['href'] if cells[5].find('a', href=lambda x: x and 'pdf' in x.lower()) else None,
                 'comments': cells[6].get_text(strip=True)
             }
 

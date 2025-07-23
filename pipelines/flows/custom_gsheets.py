@@ -54,7 +54,6 @@ def upload_call2action(leg_id, env = 'dev'):
             date_df = pd.DataFrame([{col: '—-' for col in df.columns}])
             hide = True
 
-        print(date_df)
         write_df_to_gsheets(
             date_df,
             gsheets_id,
