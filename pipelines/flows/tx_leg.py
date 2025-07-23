@@ -305,7 +305,7 @@ def versions(raw_bills_df):
 
 @task(retries=1, retry_delay_seconds=1, log_prints=True, cache_policy=NO_CACHE)
 def call2action(leg_id):
-    upload_call2action(env=ENV)
+    upload_call2action(leg_id, env=ENV)
 
 @task(retries=1, retry_delay_seconds=1, log_prints=True, cache_policy=NO_CACHE)
 def legiscan(config):
