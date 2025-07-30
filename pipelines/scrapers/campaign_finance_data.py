@@ -2,7 +2,7 @@ import os
 import requests
 import zipfile
 import pandas as pd
-from utils import dataframe_to_bigquery, get_secret, determine_git_environment
+from pipelines.utils.utils import dataframe_to_bigquery, get_secret, determine_git_environment
 
 CAMPAIGN_FINANCE_URL = 'https://prd.tecprd.ethicsefile.com/public/cf/public/TEC_CF_CSV.zip'
 PROJECT_ID = get_secret(secret_id='GCP_PROJECT_ID')

@@ -12,7 +12,7 @@ import duckdb
 from prefect import task
 from prefect.cache_policies import NO_CACHE
 
-from utils import get_current_table_data, get_secret, query_bq
+from pipelines.utils.utils import get_current_table_data, get_secret, query_bq, FtpConnection
 
 logger = logging.getLogger(__name__)
 PROJECT_ID = get_secret(secret_id='GCP_PROJECT_ID')
@@ -790,10 +790,17 @@ def parse_bill_xml(ftp_connection, url):
         bill_data['caption_version'] = caption.get('version')
     
     # Authors and co-authors
-    bill_data['authors'] = [a.strip() for a in soup.find('authors').text.strip().split('|') if a.strip()]
-    bill_data['coauthors'] = [a.strip() for a in soup.find('coauthors').text.strip().split('|') if a.strip()]
-    bill_data['sponsors'] = [a.strip() for a in soup.find('sponsors').text.strip().split('|') if a.strip()]
-    bill_data['cosponsors'] = [a.strip() for a in soup.find('cosponsors').text.strip().split('|') if a.strip()]
+    authors_elem = soup.find('authors')
+    bill_data['authors'] = [a.strip() for a in authors_elem.text.strip().split('|') if a.strip()] if authors_elem else []
+
+    coauthors_elem = soup.find('coauthors')
+    bill_data['coauthors'] = [a.strip() for a in coauthors_elem.text.strip().split('|') if a.strip()] if coauthors_elem else []
+
+    sponsors_elem = soup.find('sponsors')
+    bill_data['sponsors'] = [a.strip() for a in sponsors_elem.text.strip().split('|') if a.strip()] if sponsors_elem else []
+
+    cosponsors_elem = soup.find('cosponsors')
+    bill_data['cosponsors'] = [a.strip() for a in cosponsors_elem.text.strip().split('|') if a.strip()] if cosponsors_elem else []
     
     # Subjects
     bill_data['subjects'] = [s.text.strip() for s in soup.find_all('subject')]
@@ -842,12 +849,18 @@ def parse_bill_xml(ftp_connection, url):
     # Actions
     bill_data['actions'] = []
     for action in soup.find_all('action'):
+        action_number_elem = action.find('actionNumber')
+        date_elem = action.find('date')
+        description_elem = action.find('description')
+        comment_elem = action.find('comment')
+        timestamp_elem = action.find('actionTimestamp')
+        
         action_data = {
-            'number': action.find('actionNumber').text.strip(),
-            'date': action.find('date').text.strip(),
-            'description': action.find('description').text.strip(),
-            'comment': action.find('comment').text.strip() if action.find('comment') else None,
-            'timestamp': action.find('actionTimestamp').text.strip() if action.find('actionTimestamp') else None
+            'number': action_number_elem.text.strip() if action_number_elem else None,
+            'date': date_elem.text.strip() if date_elem else None,
+            'description': description_elem.text.strip() if description_elem else None,
+            'comment': comment_elem.text.strip() if comment_elem else None,
+            'timestamp': timestamp_elem.text.strip() if timestamp_elem else None
         }
         bill_data['actions'].append(action_data)
     
@@ -855,53 +868,88 @@ def parse_bill_xml(ftp_connection, url):
     bill_data['versions'] = []
     
     # Get versions from bill text
-    bill_versions = soup.find('billtext').find('docTypes').find('bill').find('versions').find_all('version')
-    for idx, version in enumerate(bill_versions):
-        version_data = {
-            'type': 'Bill',
-            'text_order': idx+1,  # Adding index +1 as text_order
-            'description': version.find('versionDescription').text.strip(),
-            'urls': {
-                'web_html': version.find('WebHTMLURL').text.strip(),
-                'web_pdf': version.find('WebPDFURL').text.strip(),
-                'ftp_html': version.find('FTPHTMLURL').text.strip(),
-                'ftp_pdf': version.find('FTPPDFURL').text.strip()
-            }
-        }
-        bill_data['versions'].append(version_data)
+    billtext_elem = soup.find('billtext')
+    if billtext_elem:
+        doc_types_elem = billtext_elem.find('docTypes')
+        if doc_types_elem:
+            bill_elem = doc_types_elem.find('bill')
+            if bill_elem:
+                versions_elem = bill_elem.find('versions')
+                if versions_elem:
+                    bill_versions = versions_elem.find_all('version')
+                    for idx, version in enumerate(bill_versions):
+                        version_desc_elem = version.find('versionDescription')
+                        web_html_elem = version.find('WebHTMLURL')
+                        web_pdf_elem = version.find('WebPDFURL')
+                        ftp_html_elem = version.find('FTPHTMLURL')
+                        ftp_pdf_elem = version.find('FTPPDFURL')
+                        
+                        version_data = {
+                            'type': 'Bill',
+                            'text_order': idx+1,
+                            'description': version_desc_elem.text.strip() if version_desc_elem else None,
+                            'urls': {
+                                'web_html': web_html_elem.text.strip() if web_html_elem else None,
+                                'web_pdf': web_pdf_elem.text.strip() if web_pdf_elem else None,
+                                'ftp_html': ftp_html_elem.text.strip() if ftp_html_elem else None,
+                                'ftp_pdf': ftp_pdf_elem.text.strip() if ftp_pdf_elem else None
+                            }
+                        }
+                        bill_data['versions'].append(version_data)
 
-        
     # Get versions from analysis
-    analysis_versions = soup.find('billtext').find('docTypes').find('analysis').find('versions').find_all('version')
-    for idx, version in enumerate(analysis_versions):
-        version_data = {
-            'type': 'Analysis',
-            'text_order': idx+1,  # Adding index +1 as text_order
-            'description': version.find('versionDescription').text.strip(),
-            'urls': {
-                'web_html': version.find('WebHTMLURL').text.strip(),
-                'web_pdf': version.find('WebPDFURL').text.strip(),
-                'ftp_html': version.find('FTPHTMLURL').text.strip(),
-                'ftp_pdf': version.find('FTPPDFURL').text.strip()
-            }
-        }
-        bill_data['versions'].append(version_data)
+    if billtext_elem and doc_types_elem:
+        analysis_elem = doc_types_elem.find('analysis')
+        if analysis_elem:
+            analysis_versions_elem = analysis_elem.find('versions')
+            if analysis_versions_elem:
+                analysis_versions = analysis_versions_elem.find_all('version')
+                for idx, version in enumerate(analysis_versions):
+                    version_desc_elem = version.find('versionDescription')
+                    web_html_elem = version.find('WebHTMLURL')
+                    web_pdf_elem = version.find('WebPDFURL')
+                    ftp_html_elem = version.find('FTPHTMLURL')
+                    ftp_pdf_elem = version.find('FTPPDFURL')
+                    
+                    version_data = {
+                        'type': 'Analysis',
+                        'text_order': idx+1,
+                        'description': version_desc_elem.text.strip() if version_desc_elem else None,
+                        'urls': {
+                            'web_html': web_html_elem.text.strip() if web_html_elem else None,
+                            'web_pdf': web_pdf_elem.text.strip() if web_pdf_elem else None,
+                            'ftp_html': ftp_html_elem.text.strip() if ftp_html_elem else None,
+                            'ftp_pdf': ftp_pdf_elem.text.strip() if ftp_pdf_elem else None
+                        }
+                    }
+                    bill_data['versions'].append(version_data)
         
     # Get versions from fiscal note
-    fiscal_versions = soup.find('billtext').find('docTypes').find('fiscalNote').find('versions').find_all('version')
-    for version in fiscal_versions:
-        version_data = {
-            'type': 'Fiscal Note',
-            'description': version.find('versionDescription').text.strip(),
-            'text_order': idx+1,  # Adding index +1 as text_order
-            'urls': {
-                'web_html': version.find('WebHTMLURL').text.strip(),
-                'web_pdf': version.find('WebPDFURL').text.strip(),
-                'ftp_html': version.find('FTPHTMLURL').text.strip(),
-                'ftp_pdf': version.find('FTPPDFURL').text.strip()
-            }
-        }
-        bill_data['versions'].append(version_data)
+    if billtext_elem and doc_types_elem:
+        fiscal_note_elem = doc_types_elem.find('fiscalNote')
+        if fiscal_note_elem:
+            fiscal_versions_elem = fiscal_note_elem.find('versions')
+            if fiscal_versions_elem:
+                fiscal_versions = fiscal_versions_elem.find_all('version')
+                for idx, version in enumerate(fiscal_versions):
+                    version_desc_elem = version.find('versionDescription')
+                    web_html_elem = version.find('WebHTMLURL')
+                    web_pdf_elem = version.find('WebPDFURL')
+                    ftp_html_elem = version.find('FTPHTMLURL')
+                    ftp_pdf_elem = version.find('FTPPDFURL')
+                    
+                    version_data = {
+                        'type': 'Fiscal Note',
+                        'description': version_desc_elem.text.strip() if version_desc_elem else None,
+                        'text_order': idx+1,
+                        'urls': {
+                            'web_html': web_html_elem.text.strip() if web_html_elem else None,
+                            'web_pdf': web_pdf_elem.text.strip() if web_pdf_elem else None,
+                            'ftp_html': ftp_html_elem.text.strip() if ftp_html_elem else None,
+                            'ftp_pdf': ftp_pdf_elem.text.strip() if ftp_pdf_elem else None
+                        }
+                    }
+                    bill_data['versions'].append(version_data)
         
     return bill_data
 
@@ -963,7 +1011,6 @@ def read_committee_meeting(meeting_url):
             continue
             
         bill_href = 'https://capitol.texas.gov' + bill_link['href']
-        print(bill_href)
         bill_id = bill_link.get_text(strip=True)
         
         # Get author text after </a> tag but before first <br> tag
@@ -1524,25 +1571,35 @@ def get_bill_texts(ftp_conn, dataset_id, env, max_errors=5):
     return pd.DataFrame(pdf_texts)
 
 @task(retries=0, retry_delay_seconds=10, log_prints=False, cache_policy=NO_CACHE, timeout_seconds=7200)
-def get_raw_bills_data(base_path, leg_session, ftp_connection, max_errors=5):
+def get_raw_bills_data(leg_session, max_errors=5):
+
+    ftp_host_url = 'ftp.legis.state.tx.us'
+    try:
+        ftp_connection = FtpConnection(ftp_host_url)
+    except Exception as e:
+        logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to connect to FTP: {e}")
+        raise e
+
+    base_path = f'ftp://ftp.legis.state.tx.us/bills/{leg_session}'
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting raw bills data extraction")
     try:
         bill_urls = get_bill_urls(base_path, leg_session, ftp_connection)
     except Exception as e:
-        logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to get bill URLs: {e}")
+        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to get bill URLs: {e}")
         raise Exception(f"Failed to get bill URLs: {e}")
     raw_bills = []
     error_count = 0
     for url in bill_urls:
         try:
+            print(url)
             bill_data = parse_bill_xml(ftp_connection, url)
             if bill_data:
                 raw_bills.append(bill_data)
         except Exception as e:
-            logger.debug(f"Error getting bill data for {url}: {e}")
+            print(f"Error getting bill data for {url}: {e}")
             error_count += 1
         if error_count > max_errors:
-            logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to get bill data for {error_count} bills")
+            print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to get bill data for {error_count} bills")
             raise Exception(f"Failed to get bill data for {error_count} bills")
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Finished raw bills data extraction")
     return pd.DataFrame(raw_bills)

@@ -18,11 +18,13 @@ import json
 import subprocess
 from google.cloud import secretmanager
 import dotenv
+from dotenv import load_dotenv
 import yaml
 
 from prefect import task
 from prefect.cache_policies import NO_CACHE
 logger = logging.getLogger(__name__)
+load_dotenv()
 
 ################################################################################
 # UTILITY CLASSES

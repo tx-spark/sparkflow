@@ -3,7 +3,7 @@ import re
 import requests
 import zipfile
 import pandas as pd
-from utils import dataframe_to_bigquery, get_secret
+from pipelines.utils.utils import dataframe_to_bigquery, get_secret
 
 OUT_DATASET_NAME = 'tx_leg_raw_bills'
 PROJECT_ID = get_secret(secret_id='GCP_PROJECT_ID')

@@ -3,7 +3,6 @@ Script to deploy Parsons + Prefect flows to a work pool.
 """
 
 from tx_leg import tx_leg_pipeline
-from healthcheck import healthcheck
 # Import additional flows here
 
 from prefect.docker import DockerImage
@@ -50,7 +49,7 @@ flows_to_deploy = [
     {
         "flow": tx_leg_pipeline,
         "name": "Pipeline to pull Texas Legislature Bills",
-        "schedule": "0 0 * * *",  # Daily at 9 PM
+        "schedule": "0 2,11 * * *",  # Daily at 10 PM and 11 AM
     }
     # Add additional flows to deploy here
     # Example:

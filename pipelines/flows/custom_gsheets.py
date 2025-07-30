@@ -1,4 +1,4 @@
-from utils import write_df_to_gsheets, get_secret,  bigquery_to_df
+from pipelines.utils.utils import write_df_to_gsheets, get_secret,  bigquery_to_df
 from datetime import datetime, timedelta
 import pandas as pd
 import gspread

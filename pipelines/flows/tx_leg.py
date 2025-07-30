@@ -5,8 +5,8 @@ import logging
 import google.auth
 
 from prefect import flow, task
-from utils import FtpConnection, dataframe_to_bigquery, log_bq_load, get_current_table_data, determine_git_environment, read_gsheets_to_df, upload_google_sheets, get_secret
-from extract_functions import *
+from utils import dataframe_to_bigquery, determine_git_environment, read_gsheets_to_df, upload_google_sheets, get_secret
+from pipelines.flows.tlo_scraper.extract_functions import *
 from pull_legiscan_data import legiscan_to_bigquery
 from custom_gsheets import upload_call2action
 
@@ -320,18 +320,10 @@ def tx_leg_pipeline(env=None):
 
     logger = logging.getLogger(__name__)
     print('USING ENV: ', ENV)
-    ftp_host_url = 'ftp.legis.state.tx.us'
 
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
-    try:
-        conn = FtpConnection(ftp_host_url)
-    except Exception as e:
-        logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to connect to FTP: {e}")
-        raise e
-
-    base_path = 'ftp://ftp.legis.state.tx.us/bills/{LegSess}'
     leg_session = config['info']['LegSess']
 
     # first get the dataframes without raw_bills_df
@@ -354,7 +346,7 @@ def tx_leg_pipeline(env=None):
 
     try:
         logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Starting raw bills data extraction")
-        raw_bills_df = get_raw_bills_data(base_path, leg_session, conn)
+        raw_bills_df = get_raw_bills_data(leg_session, conn)
         logger.info("Raw bills data extraction complete")
     except Exception as e:
         logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to get raw bills data: {e}")
