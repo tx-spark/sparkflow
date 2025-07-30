@@ -34,8 +34,6 @@ def upload_call2action(leg_id, env = 'dev'):
 
     worksheet_links = []
 
-    date_df = df[df[date_col].dt.date == date.date()]
-
     # Write each date's data to its own sheet
     for i in range(7):
         date = curr_date + timedelta(days=i)
