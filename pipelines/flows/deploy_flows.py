@@ -2,7 +2,7 @@
 Script to deploy Parsons + Prefect flows to a work pool.
 """
 
-from tx_leg import tx_leg_pipeline
+from pipelines.flows.tx_leg import tx_leg_pipeline
 # Import additional flows here
 
 from prefect.docker import DockerImage
