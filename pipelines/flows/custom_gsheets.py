@@ -1,5 +1,5 @@
 from pipelines.utils.utils import write_df_to_gsheets, get_secret,  bigquery_to_df
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pandas as pd
 import gspread
 import yaml
@@ -47,6 +47,7 @@ def upload_call2action(leg_id, env = 'dev'):
             sh.worksheet(curr_date_worksheet[0]).update_title(worksheet_name)
         # print(curr_date_worksheet)
 
+        date_df = df[df[date_col].dt.date == date.date()]
 
         hide = False
         if len(date_df) <= 0:
@@ -74,10 +75,9 @@ def upload_call2action(leg_id, env = 'dev'):
 
     # for i in range(7-len(worksheet_links)):
     #     worksheet_links.append({'links':None})
-    
-    # append current time
-    worksheet_links.append({'link':''})
-    worksheet_links.append({'link':f'Last updated: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}'})
+
+    # add in last updated timestamp to worksheet_links
+    worksheet_links.append({'link':f'Last Updated: {(datetime.now(timezone.utc)  - timedelta(hours=5)).strftime("%B %d, %Y %I:%M %p")}'})
     write_df_to_gsheets(
         pd.DataFrame(worksheet_links),
         gsheets_id,
