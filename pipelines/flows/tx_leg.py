@@ -8,7 +8,7 @@ from prefect import flow, task
 from pipelines.utils.utils import dataframe_to_bigquery, determine_git_environment, read_gsheets_to_df, upload_google_sheets, get_secret
 from pipelines.flows.tlo_scraper.extract_functions import *
 from pipelines.flows.pull_legiscan_data import legiscan_to_bigquery
-from custom_gsheets import upload_call2action
+from pipelines.flows.custom_gsheets import upload_call2action
 
 ################################################################################
 # CONFIGURATION
