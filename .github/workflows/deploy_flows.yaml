@@ -111,4 +111,4 @@ jobs:
           ENVIRONMENT: ${{ env.ENVIRONMENT }}
           BRANCH_NAME: ${{ env.BRANCH_NAME }}
         run: |
-          python -m pipelines/flows/deploy_flows
+          python -m pipelines.flows.deploy_flows
