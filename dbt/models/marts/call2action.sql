@@ -156,8 +156,12 @@ important_meetings as (
     '' as history,
       IF(
         committee_meetings.chamber = 'Senate',
-        "Senate does not allow online public comments",
-      concat('https://comments.house.texas.gov/home?c=',committee_meetings.committee_code)) as `Public Comment Link`,
+        IF(
+          lower(committee_meetings.committee_name) like '%redistricting%', 
+          'https://senate.texas.gov/redistrictingcomment/', 
+          "Senate does not allow online public comments"
+        ),
+        concat('https://comments.house.texas.gov/home?c=',committee_meetings.committee_code)) as `Public Comment Link`,
     committee_meetings.meeting_url as `Hearing Link`,
     NULL as `Bill Number` 
   from committee_meetings
