@@ -34,6 +34,8 @@ def upload_call2action(leg_id, env = 'dev'):
 
     worksheet_links = []
 
+    date_df = df[df[date_col].dt.date == date.date()]
+
     # Write each date's data to its own sheet
     for i in range(7):
         date = curr_date + timedelta(days=i)
@@ -47,7 +49,6 @@ def upload_call2action(leg_id, env = 'dev'):
             sh.worksheet(curr_date_worksheet[0]).update_title(worksheet_name)
         # print(curr_date_worksheet)
 
-        date_df = df[df[date_col].dt.date == date.date()]
 
         hide = False
         if len(date_df) <= 0:
@@ -75,7 +76,10 @@ def upload_call2action(leg_id, env = 'dev'):
 
     # for i in range(7-len(worksheet_links)):
     #     worksheet_links.append({'links':None})
-
+    
+    # append current time
+    worksheet_links.append({'link':''})
+    worksheet_links.append({'link':f'Last updated: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}'})
     write_df_to_gsheets(
         pd.DataFrame(worksheet_links),
         gsheets_id,

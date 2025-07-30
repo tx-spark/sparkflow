@@ -49,7 +49,7 @@ flows_to_deploy = [
     {
         "flow": tx_leg_pipeline,
         "name": "Pipeline to pull Texas Legislature Bills",
-        "schedule": "0 2,11 * * *",  # Daily at 10 PM and 11 AM
+        "schedule": "0 2,15 * * *",  # Daily at 10 PM and 11 AM
     }
     # Add additional flows to deploy here
     # Example:
