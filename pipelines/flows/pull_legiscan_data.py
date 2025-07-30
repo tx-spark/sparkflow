@@ -8,7 +8,7 @@ import io
 import os
 import pandas as pd
 
-from utils import get_secret, dataframe_to_bigquery, determine_git_environment, bigquery_to_df, query_bq
+from pipelines.utils.utils import get_secret, dataframe_to_bigquery, determine_git_environment, bigquery_to_df, query_bq
 
 CONFIG_PATH = 'config.yaml'
 LEGISCAN_API_KEY = get_secret(secret_id='LEGISCAN_API_KEY')
