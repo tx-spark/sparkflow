@@ -33,6 +33,7 @@ def clean_bill_id(bill_id):
             bill_number (str): Bill number in format like 'HB1'
             session (str): Session in format like '89R'
     """
+    print(bill_id)
     # Split into session and bill parts
     session_part, bill_part = bill_id.split(') ')
     
@@ -41,7 +42,8 @@ def clean_bill_id(bill_id):
     
     # Clean bill number (e.g. 'HB 1' -> 'HB1')
     bill_number = bill_part.replace(' ', '')
-    
+    print(f'\tBill Number: {bill_number}')
+    print(f'\tSession: {session}')
     return bill_number, session
 
 def merge_with_current_data(new_df, curr_df):
@@ -770,6 +772,12 @@ def parse_bill_xml(ftp_connection, url):
         return None
         
     soup = BeautifulSoup(xml_str, 'xml')
+
+    # Check for error status
+    status = soup.find('status')
+    if status and "ERROR: Bill does not exist." in status.text:
+        return None
+
     bill_data = {}
     
     # Basic bill info
