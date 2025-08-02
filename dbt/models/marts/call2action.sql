@@ -181,17 +181,17 @@ select
     txspark_topics.unique_topics as `topics`,
     bills.caption,
     bill_tags_agg.position as Position,
+    IF(
+    committee_meetings.chamber = 'Senate',
+    "Senate does not allow online public comments",
+    concat('https://comments.house.texas.gov/home?c=',committee_meetings.committee_code)) as `Public Comment Link`,
+    committee_meeting_bills.meeting_url as `Hearing Link`, 
     -- bill_party.p_dem,
     -- authors_agg.authors_list,
     bill_tags_agg.Reason as Reason,
     bill_tags_agg.talking_points as `Link to orgs and advocates for talking points`,
     bill_tags_agg.notes as Notes,
     links.history,
-    IF(
-    committee_meetings.chamber = 'Senate',
-    "Senate does not allow online public comments",
-    concat('https://comments.house.texas.gov/home?c=',committee_meetings.committee_code)) as `Public Comment Link`,
-    committee_meeting_bills.meeting_url as `Hearing Link`, 
     cast(regexp_replace(committee_meeting_bills.bill_id, '[^0-9]+', '') as INTEGER) as `Bill Number`
 
 from committee_meeting_bills
