@@ -1,0 +1,5 @@
+sources:
+  - name: bills
+    schema: tx_leg_bills
+    tables:
+      - name: rep_sen_contact_sheet
