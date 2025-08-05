@@ -30,6 +30,10 @@ committee_meeting_tags as (
   select * from {{ ref('committee_meeting_tags')}}
 ),
 
+call_to_action_committee_membership_filters as (
+  select * from {{ref('call_to_action_committee_membership_filters')}}
+),
+
 ----------------------------------------------------------
 
 bill_party as (
@@ -40,7 +44,7 @@ bill_party as (
     from authors
     left join rep_sen_contact_sheet
         on left(authors.bill_id,1) = left(rep_sen_contact_sheet.district_type,1)
-        and left(authors.leg_id, 2) = left(rep_sen_contact_sheet.leg_id, 2) -- removes the trailing character indicating regular or special session
+        and left(authors.leg_id, 2) = left(cast(rep_sen_contact_sheet.leg_id as STRING), 2) -- removes the trailing character indicating regular or special session
         and authors.author = rep_sen_contact_sheet.author_id
     group by 1,2
 ),
@@ -150,22 +154,30 @@ important_meetings as (
     committee_meeting_tags.tag as Topics,
     '' as Caption,
     committee_meeting_tags.position as Position,
-    committee_meeting_tags.Reason,
-    committee_meeting_tags.talking_points as `Link to orgs and advocates for talking points`,
-    committee_meeting_tags.note as Notes,
-    '' as history,
-      IF(
+    concat('=HYPERLINK("',call_to_action_committee_membership_filters.filter_id, '", "Contact Committee Members")') as committee_filter_link,
+    IF(
         committee_meetings.chamber = 'Senate',
         IF(
           lower(committee_meetings.committee_name) like '%redistricting%', 
           'https://senate.texas.gov/redistrictingcomment/', 
           "Senate does not allow online public comments"
         ),
-        concat('https://comments.house.texas.gov/home?c=',committee_meetings.committee_code)) as `Public Comment Link`,
+        concat('https://comments.house.texas.gov/home?c=',committee_meetings.committee_code)
+    ) as `Public Comment Link`,
     committee_meetings.meeting_url as `Hearing Link`,
+    committee_meeting_tags.Reason,
+    committee_meeting_tags.talking_points as `Link to orgs and advocates for talking points`,
+    committee_meeting_tags.note as Notes,
+    '' as history,
     NULL as `Bill Number` 
   from committee_meetings
   inner join committee_meeting_tags using (meeting_url)
+
+  left join call_to_action_committee_membership_filters
+    on call_to_action_committee_membership_filters.leg_id = committee_meeting_tags.leg_id
+    and call_to_action_committee_membership_filters.committee_name = committee_meetings.committee_name
+    and call_to_action_committee_membership_filters.chamber = committee_meetings.chamber
+
 )
 ----------------------------------------------------------
 
@@ -181,6 +193,7 @@ select
     txspark_topics.unique_topics as `topics`,
     bills.caption,
     bill_tags_agg.position as Position,
+    concat('=HYPERLINK("',call_to_action_committee_membership_filters.filter_id, '", "Contact Committee Members")') as committee_filter_link,
     IF(
     committee_meetings.chamber = 'Senate',
     "Senate does not allow online public comments",
@@ -221,6 +234,11 @@ left join bill_tags_agg
 left join txspark_topics
     on committee_meeting_bills.bill_id = txspark_topics.bill_id
     and committee_meeting_bills.leg_id = txspark_topics.leg_id
+
+left join call_to_action_committee_membership_filters
+    on call_to_action_committee_membership_filters.leg_id = bills.leg_id
+    and call_to_action_committee_membership_filters.committee_name = committee_meeting_bills.committee_name
+    and call_to_action_committee_membership_filters.chamber = committee_meeting_bills.chamber
 
 UNION ALL
 

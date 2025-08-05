@@ -345,7 +345,7 @@ bill_party as (
     from authors
     left join rep_sen_contact_sheet
         on left(authors.bill_id,1) = left(rep_sen_contact_sheet.district_type,1)
-        and left(authors.leg_id, 2) = left(rep_sen_contact_sheet.leg_id, 2) -- removes the trailing character indicating regular or special session
+        and left(authors.leg_id, 2) = left(safe_cast(rep_sen_contact_sheet.leg_id as STRING), 2) -- removes the trailing character indicating regular or special session
         and authors.author = rep_sen_contact_sheet.author_id
     group by 1,2
 ),
