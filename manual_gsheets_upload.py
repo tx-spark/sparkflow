@@ -1,6 +1,8 @@
 import logging
 
-from pipelines.flows.utils import upload_google_sheets
+from pipelines.utils.utils import upload_google_sheets
+from pipelines.flows.tx_leg import download_google_sheets
+from pipelines.flows.custom_gsheets import upload_call2action
 
 ################################################################################
 # CONFIGURATION
@@ -18,5 +20,6 @@ ENV = 'prod'
 ################################################################################
 
 if __name__ == "__main__":
-
+    download_google_sheets(GSHEETS_CONFIG_PATH)
     upload_google_sheets(GSHEETS_CONFIG_PATH, CONFIG_PATH, ENV)
+    upload_call2action('891',ENV)

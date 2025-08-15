@@ -1611,3 +1611,15 @@ def get_raw_bills_data(leg_session, max_errors=5):
             raise Exception(f"Failed to get bill data for {error_count} bills")
     logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Finished raw bills data extraction")
     return pd.DataFrame(raw_bills)
+
+if __name__ == '__main__':
+    # get_raw_bills_data('891')
+    ftp_host_url = 'ftp.legis.state.tx.us'
+    try:
+        ftp_connection = FtpConnection(ftp_host_url)
+    except Exception as e:
+        logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Failed to connect to FTP: {e}")
+        raise e
+    
+    url = 'ftp://ftp.legis.state.tx.us/bills/891/billhistory/senate_bills/SB00001_SB00099/SB 4.xml'
+    print(parse_bill_xml(ftp_connection, url))

@@ -3,3 +3,4 @@ sources:
     schema: tx_leg_bills
     tables:
       - name: rep_sen_contact_sheet
+      - name: call_to_action_committee_membership_filters

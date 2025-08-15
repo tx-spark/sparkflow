@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Call to Action</title>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Raleway', sans-serif;
+            margin: 0;
+            padding: 00px;
+            background: #f8f9fa;
+            color: #333;
+            line-height: 1.4;
+            background-image: url('{{ background_image_path }}');
+            background-color: rgba(255,255,255,0.7);
+            background-blend-mode: lighten;
+            background-repeat: repeat-y;
+            background-size: 100% auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            color: black;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 80px;
+            font-weight: 1000;
+        }
+        
+        .header .subtitle {
+            margin-top: 8px;
+            font-size: 40px;
+            font-weight: 800;
+        }
+        
+        .date-section {
+            margin-bottom: 40px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .date-header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .committee-section {
+            margin-bottom: 25px;
+            background: transparent;
+        }
+        
+        .committee-header {
+            padding: 12px 15px;
+            margin: 0;
+            font-size: 30px;
+            font-weight: 600;
+            color: #2c3e50;
+            text-align: center;
+        }
+        
+        .bill-item {
+            padding: 30px;
+            background: transparent;
+        }
+        
+        .bill-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 3px;
+            flex-wrap: wrap;
+        }
+        
+        .bill-title {
+            font-size: 30px;
+            font-weight: 600;
+            color: #2c3e50;
+            flex: 1;
+            margin-right: 15px;
+        }
+        
+        .position {
+            margin-left: 10px;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 20px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .position.for {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .position.against {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .position.neutral {
+            background: #95a5a6;
+            color: white;
+        }
+        
+        .bill-committee-time-location {
+            border-radius: 6px;
+            margin-bottom: 5px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        .bill-caption {
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: #555;
+            font-style: italic;
+        }
+        
+        .bill-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 12px;
+        }
+        
+        .detail-section {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 3px solid #008e53;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .detail-content {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.4;
+        }
+        
+        .topics {
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+        
+        .topic-tag {
+            display: inline-block;
+            background: #eff5f1;
+            color: #006a3e;
+            padding: 2px 6px;
+            border-radius: 12px;
+            margin: 2px;
+            font-size: 11px;
+        }
+        
+        .links {
+            margin-top: 12px;
+            padding-top: 12px;
+        }
+        
+        .link-item {
+            display: inline-block;
+            margin-right: 15px;
+            margin-bottom: 5px;
+        }
+        
+        .link-item a {
+            color: #008e53;
+            text-decoration: none;
+            font-size: 12px;
+            padding: 4px 8px;
+            border: 1px solid #008e53;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        
+        .link-item a:hover {
+            background: #008e53;
+            color: white;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 0px;
+            border-radius: 0px;
+            margin: 0px;
+            line-height: 0pt;
+        }
+        
+        @media print {
+            
+            .date-section {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            
+            .bill-item {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+        }
+        
+        .no-bills {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+
+        .footer-image {
+            width: 100%;
+            padding:0px;
+            margin:0px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Call to Action</h1>
+        <div class="subtitle">{{date}}</div>
+    </div>
+
+    {% if not grouped_data %}
+    <div class="no-bills">
+        <h2>No bills found for the specified criteria</h2>
+        <p>Please check your data source and try again.</p>
+    </div>
+    {% else %}
+    
+    {% for committee, bills in grouped_data.items() %}
+    <div class="committee-section">
+        <h3 class="committee-header">{{ committee }}</h3>
+        
+        {% for bill in bills %}
+        <div class="bill-item">
+            <div class="bill-header">
+                <div class="bill-title">
+                    {{ bill.bill_id if bill.bill_id != 'Important Meeting' else 'Important Committee Meeting' }}
+                </div>
+                <div style="display: flex; align-items: center;">
+                    {% if bill.Position %}
+                    <span class="position {{ bill.Position.lower() }}">{{ bill.Position }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if bill.committee_time_location and bill.committee_time_location.strip() %}
+            <div class="bill-committee-time-location">{{ bill.committee_time_location }}</div>
+            {% endif %}
+            
+            {% if bill.caption and bill.caption.strip() %}
+            <div class="bill-caption">{{ bill.caption }}</div>
+            {% endif %}
+            
+            {% if bill.topics %}
+            <div class="topics">
+                {% for topic in bill.topics.split(' | ') %}
+                <span class="topic-tag">{{ topic.strip() }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <div class="bill-details">
+                {% if bill.Reason and bill.Reason.strip() %}
+                <div class="detail-section">
+                    <div class="detail-label">Reason</div>
+                    <div class="detail-content">{{ bill.Reason }}</div>
+                </div>
+                {% endif %}
+                
+                {% if bill['Link to orgs and advocates for talking points'] and bill['Link to orgs and advocates for talking points'].strip() %}
+                <div class="detail-section">
+                    <div class="detail-label">Talking Points</div>
+                    <div class="detail-content">{{ bill['Link to orgs and advocates for talking points'] }}</div>
+                </div>
+                {% endif %}
+                
+                {% if bill.Notes and bill.Notes.strip() %}
+                <div class="detail-section">
+                    <div class="detail-label">Notes</div>
+                    <div class="detail-content">{{ bill.Notes }}</div>
+                </div>
+                {% endif %}
+                
+                {% if bill['Public Comment Link'] and bill['Public Comment Link'] != 'Senate does not allow online public comments' %}
+                <div class="detail-section">
+                    <div class="detail-label">Public Comment</div>
+                    <div class="detail-content">{{ bill['Public Comment Link'] }}</div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="links">
+                {% if bill['Hearing Link'] %}
+                <div class="link-item">
+                    <a href="{{ bill['Hearing Link'] }}" target="_blank">Hearing Details</a>
+                </div>
+                {% endif %}
+                
+                {% if bill.history %}
+                <div class="link-item">
+                    <a href="{{ bill.history }}" target="_blank">Bill History</a>
+                </div>
+                {% endif %}
+                
+                {% if bill.committee_filter_link and 'HYPERLINK' in bill.committee_filter_link %}
+                <div class="link-item">
+                    <a href="#" target="_blank">Contact Committee</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+    {% endif %}
+    
+    <div class="footer">
+    </div> 
+</body>
+</html>

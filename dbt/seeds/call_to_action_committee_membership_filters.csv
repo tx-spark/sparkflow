@@ -1,56 +1,121 @@
-committee_name,filter_id
-Administration,#gid=1531079105andfvid=689336783
-Agriculture and Livestock,#gid=1531079105&fvid=911880456
-Appropriations,#gid=1531079105andfvid=2022418429
-Appropriations - S/C on Article II,#gid=1531079105andfvid=372383562
-Appropriations - S/C on Article III,#gid=1531079105andfvid=1960319594
-"Appropriations - S/C on Articles I, IV, and V", #gid=1531079105&fvid=172387890
-Border Security,#gid=1531079105andfvid=163247005
-Business and Commerce,#gid=1531079105&fvid=983767906
-Corrections,#gid=1531079105andfvid=1270758526
-Criminal Jurisprudence,#gid=1531079105andfvid=1966650336
-Criminal Justice,#gid=1531079105andfvid=868325927
-"Culture, Recreation and Tourism", #gid=1531079105&fvid=1503238953
-Delivery of Government Efficiency,#gid=1531079105andfvid=1973252732
-Economic Development,#gid=1531079105andfvid=1495546899
-Education K-16,#gid=1531079105andfvid=1641630661
-Elections,#gid=1531079105andfvid=429937145
-Energy Resources,#gid=1531079105andfvid=509965052
-Environmental Regulation,#gid=1531079105andfvid=873455374
-Finance,#gid=1531079105andfvid=232476086
-General Investigating,#gid=1531079105andfvid=1835078694
-Health and Human Services,#gid=1531079105&fvid=1924578009
-Higher Education,#gid=1531079105andfvid=881822810
-"Homeland Security, Public Safety and Veterans' Affairs", #gid=1531079105&fvid=1123957066
-House Administration,#gid=1531079105andfvid=2069860776
-Human Services,#gid=1531079105andfvid=17316064
-Insurance,#gid=1531079105andfvid=390003891
-Intergovernmental Affairs,#gid=1531079105andfvid=1822454832
-Judiciary and Civil Jurisprudence,#gid=1531079105&fvid=692913353
-Jurisprudence,#gid=1531079105andfvid=1100497872
-Land and Resource Management,#gid=1531079105&fvid=1717363681
-Licensing and Administrative Procedures,#gid=1531079105&fvid=121002150
-Local and Consent Calendars,#gid=1531079105&fvid=606797074
-Local Government,#gid=1531079105andfvid=436078360
-Natural Resources,#gid=1531079105andfvid=1675350622
-"Pensions, Investments and Financial Services", #gid=1531079105&fvid=598401171
-Public Education,#gid=1531079105andfvid=1222169915
-Public Health,#gid=1531079105andfvid=1236412068
-S/C on Academic and Career-Oriented Education,#gid=1531079105&fvid=360283079
-S/C on County and Regional Government,#gid=1531079105&fvid=338193609
-S/C on Defense and Veterans' Affairs,#gid=1531079105&fvid=453189916
-S/C on Disease Prevention and Women's & Children's Health,#gid=1531079105&fvid=279791896
-S/C on Family and Fiduciary Relationships,#gid=1531079105&fvid=54400463
-S/C on International Relations,#gid=1531079105andfvid=1374514511
-S/C on Juvenile Justice,#gid=1531079105andfvid=1441361145
-S/C on Property Tax Appraisals,#gid=1531079105andfvid=8338884
-S/C on State-Federal Relations,#gid=1531079105andfvid=1136182533
-S/C on Telecommunications and Broadband,#gid=1531079105&fvid=365534244
-S/C on Transportation Funding,#gid=1531079105andfvid=2043598874
-S/C on Workforce,#gid=1531079105andfvid=1458607336
-State Affairs,#gid=1531079105andfvid=1520965547
-"Trade, Workforce and Economic Development", #gid=1531079105&fvid=1915495668
-Transportation,#gid=1531079105andfvid=164173747
-Veteran Affairs,#gid=1531079105andfvid=2070856703
-"Water, Agriculture and Rural Affairs", #gid=1531079105andfvid=1626313493
-Ways and Means,#gid=1531079105&fvid=147494469
+Chamber,leg_id,committee_name,filter_id
+,89R,Administration,#gid=1531079105andfvid=689336783
+,89R,Agriculture and Livestock,#gid=1531079105&fvid=911880456
+,89R,Appropriations,#gid=1531079105andfvid=2022418429
+,89R,Appropriations - S/C on Article II,#gid=1531079105andfvid=372383562
+,89R,Appropriations - S/C on Article III,#gid=1531079105andfvid=1960319594
+,89R,"Appropriations - S/C on Articles I, IV, and V", #gid=1531079105&fvid=172387890
+,89R,Border Security,#gid=1531079105andfvid=163247005
+,89R,Business and Commerce,#gid=1531079105&fvid=983767906
+,89R,Corrections,#gid=1531079105andfvid=1270758526
+,89R,Criminal Jurisprudence,#gid=1531079105andfvid=1966650336
+,89R,Criminal Justice,#gid=1531079105andfvid=868325927
+,89R,"Culture, Recreation and Tourism", #gid=1531079105&fvid=1503238953
+,89R,Delivery of Government Efficiency,#gid=1531079105andfvid=1973252732
+,89R,Economic Development,#gid=1531079105andfvid=1495546899
+,89R,Education K-16,#gid=1531079105andfvid=1641630661
+,89R,Elections,#gid=1531079105andfvid=429937145
+,89R,Energy Resources,#gid=1531079105andfvid=509965052
+,89R,Environmental Regulation,#gid=1531079105andfvid=873455374
+,89R,Finance,#gid=1531079105andfvid=232476086
+,89R,General Investigating,#gid=1531079105andfvid=1835078694
+,89R,Health and Human Services,#gid=1531079105&fvid=1924578009
+,89R,Higher Education,#gid=1531079105andfvid=881822810
+,89R,"Homeland Security, Public Safety and Veterans' Affairs", #gid=1531079105&fvid=1123957066
+,89R,House Administration,#gid=1531079105andfvid=2069860776
+,89R,Human Services,#gid=1531079105andfvid=17316064
+,89R,Insurance,#gid=1531079105andfvid=390003House
+,89R,Intergovernmental Affairs,#gid=1531079105andfvid=1822454832
+,89R,Judiciary and Civil Jurisprudence,#gid=1531079105&fvid=692913353
+,89R,Jurisprudence,#gid=1531079105andfvid=1100497872
+,89R,Land and Resource Management,#gid=1531079105&fvid=1717363681
+,89R,Licensing and Administrative Procedures,#gid=1531079105&fvid=121002150
+,89R,Local and Consent Calendars,#gid=1531079105&fvid=606797074
+,89R,Local Government,#gid=1531079105andfvid=436078360
+,89R,Natural Resources,#gid=1531079105andfvid=1675350622
+,89R,"Pensions, Investments and Financial Services", #gid=1531079105&fvid=598401171
+,89R,Public Education,#gid=1531079105andfvid=1222169915
+,89R,Public Health,#gid=1531079105andfvid=1236412068
+,89R,S/C on Academic and Career-Oriented Education,#gid=1531079105&fvid=360283079
+,89R,S/C on County and Regional Government,#gid=1531079105&fvid=338193609
+,89R,S/C on Defense and Veterans' Affairs,#gid=1531079105&fvid=453189916
+,89R,S/C on Disease Prevention and Women's & Children's Health,#gid=1531079105&fvid=279791896
+,89R,S/C on Family and Fiduciary Relationships,#gid=1531079105&fvid=54400463
+,89R,S/C on International Relations,#gid=1531079105andfvid=1374514511
+,89R,S/C on Juvenile Justice,#gid=1531079105andfvid=1441361145
+,89R,S/C on Property Tax Appraisals,#gid=1531079105andfvid=8338884
+,89R,S/C on State-Federal Relations,#gid=1531079105andfvid=1136182533
+,89R,S/C on Telecommunications and Broadband,#gid=1531079105&fvid=365534244
+,89R,S/C on Transportation Funding,#gid=1531079105andfvid=2043598874
+,89R,S/C on Workforce,#gid=1531079105andfvid=1458607336
+,89R,State Affairs,#gid=1531079105andfvid=1520965547
+,89R,"Trade, Workforce and Economic Development", #gid=1531079105&fvid=1915495668
+,89R,Transportation,#gid=1531079105andfvid=164173747
+,89R,Veteran Affairs,#gid=1531079105andfvid=2070856703
+,89R,"Water, Agriculture and Rural Affairs", #gid=1531079105andfvid=1626313493
+,89R,Ways and Means,#gid=1531079105&fvid=147494469
+House,891,Appropriations - S/C on Article II,#gid=0&fvid=2116119227
+House,891,Appropriations - S/C on Article III,#gid=0&fvid=645764995
+House,891,"Appropriations - S/C on Articles I, IV, & V",#gid=0&fvid=1110526337
+House,891,"Appropriations - S/C on Articles VI, VII, & VIII",#gid=0&fvid=847926334
+House,891,Agriculture & Livestock,#gid=0&fvid=1183928961
+House,891,Appropriations,#gid=0&fvid=1184083095
+House,891,Calendars,#gid=0&fvid=1335895826
+House,891,"Congressional Redistricting, Select",#gid=0&fvid=424488538
+House,891,Redistricting,#gid=0&fvid=671973364
+House,891,Corrections,#gid=0&fvid=241594379
+House,891,Criminal Jurisprudence,#gid=0&fvid=415244663
+House,891,S/C on Juvenile Justice,#gid=0&fvid=328903690
+House,891,Delivery of Government Efficiency,#gid=0&fvid=1350561788
+House,891,"Disaster Preparedness & Flooding, Select",#gid=0&fvid=2122139892
+House,891,Elections,#gid=0&fvid=677577405
+House,891,Energy Resources,#gid=0&fvid=438595243
+House,891,Environmental Regulation,#gid=0&fvid=249441445
+House,891,General Investigating,#gid=0&fvid=1232401670
+House,891,Higher Education,#gid=0&fvid=418868608
+House,891,House Administration,#gid=0&fvid=1802806668
+House,891,"Homeland Security, Public Safety & Veterans' Affairs",#gid=0&fvid=830115658
+House,891,S/C on Defense & Veterans' Affairs,#gid=0&fvid=816928231
+House,891,Human Services,#gid=0&fvid=1802483740
+House,891,Insurance,#gid=0&fvid=238255770
+House,891,Intergovernmental Affairs,#gid=0&fvid=899758385
+House,891,S/C on County & Regional Government,#gid=0&fvid=234396949
+House,891,S/C on State-Federal Relations,#gid=0&fvid=1780369052
+House,891,Judiciary & Civil Jurisprudence,#gid=0&fvid=586971178
+House,891,S/C on Family & Fiduciary Relationships,#gid=0&fvid=1632995170
+House,891,Licensing & Administrative Procedures,#gid=0&fvid=1862205836
+House,891,Land & Resource Management,#gid=0&fvid=660147171
+House,891,Local & Consent Calendars,#gid=0&fvid=1457290686
+House,891,Natural Resources,#gid=0&fvid=930342626
+House,891,"Pensions, Investments & Financial Services",#gid=0&fvid=973301806
+House,891,Public Education,#gid=0&fvid=799201500
+House,891,S/C on Academic & Career-Oriented Education,#gid=0&fvid=923527254
+House,891,Public Health,#gid=0&fvid=535772836
+House,891,S/C on Disease Prevention & Women's & Children's Health,#gid=0&fvid=1387215240
+House,891,"Culture, Recreation & Tourism",#gid=0&fvid=1412000728
+House,891,State Affairs,#gid=0&fvid=1477649826
+House,891,S/C on Telecommunications & Broadband,#gid=0&fvid=1848638
+House,891,Transportation,#gid=0&fvid=321240495
+House,891,"Trade, Workforce & Economic Development",#gid=0&fvid=270494087
+House,891,S/C on Workforce,#gid=0&fvid=142192785
+House,891,S/C on International Relations,#gid=0&fvid=1407819537
+House,891,S/C on Transportation Funding,#gid=0&fvid=1505084569
+House,891,Ways & Means,#gid=0&fvid=1512405241
+House,891,S/C on Property Tax Appraisals,#gid=0&fvid=1291722269
+Senate,891,Administration,#gid=0&fvid=1776981052
+Senate,891,Business & Commerce,#gid=0&fvid=910901761
+Senate,891,Border Security,#gid=0&fvid=1630131397
+Senate,891,"Disaster Preparedness & Flooding, Select",#gid=0&fvid=491045796
+Senate,891,Economic Development,#gid=0&fvid=2135458612
+Senate,891,Education K-16,#gid=0&fvid=1911429764
+Senate,891,Finance,#gid=0&fvid=1012270041
+Senate,891,Jurisprudence,#gid=0&fvid=911889334
+Senate,891,Local Government,#gid=0&fvid=1201864182
+Senate,891,State Affairs,#gid=0&fvid=1021807952
+Senate,891,Natural Resources,#gid=0&fvid=1135574600
+Senate,891,Criminal Justice,#gid=0&fvid=1796401485
+Senate,891,Health & Human Services,#gid=0&fvid=237631373
+Senate,891,Transportation,#gid=0&fvid=624411996
+Senate,891,Veteran Affairs,#gid=0&fvid=1549897162
+Senate,891,"Congressional Redistricting, Special",#gid=0&fvid=433753402
+Senate,891,"Water, Agriculture and Rural Affairs",#gid=0&fvid=1778139356
