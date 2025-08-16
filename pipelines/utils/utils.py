@@ -1,28 +1,28 @@
+import atexit
+import datetime
+import io
+import json
+import logging
+import os
+import re
+import subprocess
+import sys
+import warnings
 from ftplib import FTP
 from urllib.parse import urlparse
-import io
-import re
-import atexit
+
+import dotenv
 import gspread
 import pandas as pd
 import pdfplumber
-import warnings
-import logging
-import datetime
-from parsons import GoogleBigQuery, Table
-from gspread import SpreadsheetNotFound
-
-import os
-import sys
-import json
-import subprocess
-from google.cloud import secretmanager
-import dotenv
-from dotenv import load_dotenv
 import yaml
-
+from dotenv import load_dotenv
+from google.cloud import secretmanager
+from gspread import SpreadsheetNotFound
+from parsons import GoogleBigQuery, Table
 from prefect import task
 from prefect.cache_policies import NO_CACHE
+
 logger = logging.getLogger(__name__)
 load_dotenv()
 
@@ -30,11 +30,12 @@ load_dotenv()
 # UTILITY CLASSES
 ################################################################################
 
+
 class FtpConnection:
     def __init__(self, host, username=None, password=None, timeout=120):
         """
         Initialize FTP connection to specified host.
-        
+
         Args:
             host: FTP server hostname
             username: Optional username for FTP login
@@ -42,12 +43,12 @@ class FtpConnection:
             timeout: Connection timeout in seconds (default 30)
         """
         self.host = host
-        self.username = username # Is saving this secure? Does it matter?
+        self.username = username  # Is saving this secure? Does it matter?
         self.password = password
         self.timeout = timeout
         self.ftp = None
         self.connect()
-        atexit.register(self.close) # Close the FTP connection when the program exits
+        atexit.register(self.close)  # Close the FTP connection when the program exits
 
     def connect(self):
         """Establish FTP connection and login"""
@@ -55,157 +56,175 @@ class FtpConnection:
         if self.username and self.password:
             self.ftp.login(user=self.username, passwd=self.password)
         else:
-            self.ftp.login() # Anonymous login
+            self.ftp.login()  # Anonymous login
 
     def _retry_on_disconnect(self, operation):
         """
         Try an FTP operation and retry once with reconnect if it fails.
-        
+
         Args:
             operation: Function that performs the FTP operation
-            
+
         Returns:
             Result of the operation, or None if it fails
         """
         try:
             return operation()
-        except Exception: # TO DO: Add specific exceptions
+        except Exception:  # TO DO: Add specific exceptions
             try:
                 self.connect()
                 return operation()
             except Exception as e:
                 print(f"Error after relogin attempt: {e}")
                 return None
-            
+
     def get_data(self, url):
         """
         Retrieve data from a URL on the FTP server.
-        
+
         Args:
             url: FTP URL to retrieve data from
-            
+
         Returns:
             Retrieved data as a string, or None if retrieval failed
         """
         parsed = urlparse(url)
         if parsed.netloc != self.host:
-            logger.warning(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Warning: URL {url} is for different host than connection")
+            logger.warning(
+                f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Warning: URL {url} is for different host than connection"
+            )
             return None
-            
+
         def retrieve():
             buffer = io.BytesIO()
-            self.ftp.retrbinary(f'RETR {parsed.path}', buffer.write)
+            self.ftp.retrbinary(f"RETR {parsed.path}", buffer.write)
             buffer.seek(0)
-            return buffer.read().decode('utf-8')
-            
+            return buffer.read().decode("utf-8")
+
         return self._retry_on_disconnect(retrieve)
-        
+
     def ls(self, url):
         """
         List all files and folders at the given FTP URL path.
-        
+
         Args:
             url: FTP URL path to list contents from
-            
+
         Returns:
             List of URLs for all files/folders in the directory
         """
         parsed = urlparse(url)
         if parsed.netloc != self.host:
-            logger.warning(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Warning: URL {url} is for different host than connection")
+            logger.warning(
+                f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Warning: URL {url} is for different host than connection"
+            )
             return []
-            
+
         def list_dir():
             file_list = []
-            self.ftp.retrlines(f'LIST {parsed.path}', file_list.append)
+            self.ftp.retrlines(f"LIST {parsed.path}", file_list.append)
 
             urls = []
             for item in file_list:
                 # Split into parts but preserve filename with spaces
                 parts = item.split()
-                    
-                filename = ' '.join(parts[3:])
-                if parsed.path.endswith('/'):
+
+                filename = " ".join(parts[3:])
+                if parsed.path.endswith("/"):
                     path = parsed.path + filename
                 else:
-                    path = parsed.path + '/' + filename
+                    path = parsed.path + "/" + filename
                 url = f"ftp://{self.host}{path}"
                 urls.append(url)
-                
+
             return urls
-            
+
         result = self._retry_on_disconnect(list_dir)
         return result if result is not None else []
 
     def get_pdf_text(self, pdf_url):
         """
         Download and extract text from a PDF on the FTP server.
-        
+
         Args:
             pdf_url: URL of the PDF on the FTP server
-            
+
         Returns:
             Extracted text from the PDF as a string, or None if extraction fails
         """
-        
+
         # Suppress all warnings and logging
-        warnings.filterwarnings('ignore')
-        logging.getLogger('pdfminer').setLevel(logging.ERROR)
-        
+        warnings.filterwarnings("ignore")
+        logging.getLogger("pdfminer").setLevel(logging.ERROR)
+
         parsed = urlparse(pdf_url)
-        
+
         def retrieve():
             buffer = io.BytesIO()
             # Get raw bytes instead of trying to decode as text
-            self.ftp.retrbinary(f'RETR {parsed.path}', buffer.write, rest=0)
-            
+            self.ftp.retrbinary(f"RETR {parsed.path}", buffer.write, rest=0)
+
             # Check if we actually got any data
             if buffer.getbuffer().nbytes == 0:
-                logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Error: No data received from {pdf_url}")
+                logger.error(
+                    f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Error: No data received from {pdf_url}"
+                )
                 return None
-            
+
             buffer.seek(0)
-            
+
             # Read PDF with pdfplumber
             with pdfplumber.open(buffer) as pdf:
                 text = []
                 total_pages = len(pdf.pages)
                 logger.info(f"Processing PDF with {total_pages} pages")
-                
+
                 for i, page in enumerate(pdf.pages):
                     try:
                         page_text = page.extract_text()
-                        page.flush_cache() # PDF Plumber is terrible, and holds soooo much memory for no reason. This gets rid of this
-                        page.get_textmap.cache_clear() # You also need to get rid of it here lol
+                        page.flush_cache()  # PDF Plumber is terrible, and holds soooo much memory for no reason. This gets rid of this
+                        page.get_textmap.cache_clear()  # You also need to get rid of it here lol
                         if page_text:
                             text.append(page_text)
                         else:
-                            logger.warning(f"No text extracted from page {i+1} of {pdf_url}")
+                            logger.warning(
+                                f"No text extracted from page {i+1} of {pdf_url}"
+                            )
                         page.flush_cache()
                     except Exception as e:
                         logger.error(f"Error extracting text from page {i+1}: {str(e)}")
                         continue
-            
-            return '\n'.join(text) if text else ''
+
+            return "\n".join(text) if text else ""
 
         print(f"Retrieving PDF text for {pdf_url}")
         return self._retry_on_disconnect(retrieve)
-    
+
     def close(self):
         """Close the FTP connection"""
 
-        try:    
+        try:
             if self.ftp:
                 self.ftp.quit()
                 self.ftp = None
         except BrokenPipeError:
             pass
 
+
 ################################################################################
 # UTILITY FUNCTIONS
 ################################################################################
 @task(retries=3, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
-def write_df_to_gsheets(df, google_sheets_id, worksheet_name, minimize_to_rows=False, minimize_to_cols=False, replace_headers=True, no_headers = False, first_cell='A1'):
+def write_df_to_gsheets(
+    df,
+    google_sheets_id,
+    worksheet_name,
+    minimize_to_rows=False,
+    minimize_to_cols=False,
+    replace_headers=True,
+    no_headers=False,
+    first_cell="A1",
+):
     """
     Write a pandas DataFrame to a Google Sheets worksheet.
 
@@ -223,33 +242,41 @@ def write_df_to_gsheets(df, google_sheets_id, worksheet_name, minimize_to_rows=F
     and write all data starting from the specified first_cell.
     """
 
-    first_cell_letter = re.search('^[A-Za-z]+', first_cell).group()
-    first_cell_number = int(first_cell.replace(first_cell_letter, ''))
+    first_cell_letter = re.search("^[A-Za-z]+", first_cell).group()
+    first_cell_number = int(first_cell.replace(first_cell_letter, ""))
 
     # Test that first_cell follows format of letter(s) followed by number
-    assert re.match('^[A-Za-z]+[0-9]+$', first_cell), f"first_cell '{first_cell}' must be letter(s) followed by number (e.g. 'AB166')"
+    assert re.match(
+        "^[A-Za-z]+[0-9]+$", first_cell
+    ), f"first_cell '{first_cell}' must be letter(s) followed by number (e.g. 'AB166')"
 
     # Test that first_cell_letter contains only letters
-    assert first_cell_letter.isalpha(), f"first_cell_letter '{first_cell_letter}' must contain only letters"
+    assert (
+        first_cell_letter.isalpha()
+    ), f"first_cell_letter '{first_cell_letter}' must contain only letters"
 
     # Test that first_cell_number is a positive integer
-    assert first_cell_number > 0, f"first_cell_number '{first_cell_number}' must be a positive integer"
+    assert (
+        first_cell_number > 0
+    ), f"first_cell_number '{first_cell_number}' must be a positive integer"
 
     google_sheets_df = df.copy()
     for col in google_sheets_df.columns:
         google_sheets_df[col] = google_sheets_df[col].astype(str)
-    google_sheets_df.fillna('', inplace=True)
-    google_sheets_df.replace('None','', inplace=True)
-    google_sheets_df.replace('nan','', inplace=True)
+    google_sheets_df.fillna("", inplace=True)
+    google_sheets_df.replace("None", "", inplace=True)
+    google_sheets_df.replace("nan", "", inplace=True)
 
-    credentials_str = get_secret(secret_id='GOOGLE_SHEETS_SERVICE_ACCOUNT')
+    credentials_str = get_secret(secret_id="GOOGLE_SHEETS_SERVICE_ACCOUNT")
     credentials = json.loads(credentials_str)
     gc = gspread.service_account_from_dict(credentials)
 
     try:
         sh = gc.open_by_key(google_sheets_id)
     except SpreadsheetNotFound:
-        raise SpreadsheetNotFound(f"Could not find {google_sheets_id}. Either the service account doesn\'t have access to the sheet, or the spreadsheet doesn't exist")
+        raise SpreadsheetNotFound(
+            f"Could not find {google_sheets_id}. Either the service account doesn't have access to the sheet, or the spreadsheet doesn't exist"
+        )
 
     worksheet = sh.worksheet(worksheet_name)
 
@@ -260,13 +287,14 @@ def write_df_to_gsheets(df, google_sheets_id, worksheet_name, minimize_to_rows=F
 
     if minimize_to_rows:
         num_rows = len(data)
-        if not replace_headers: num_rows += 1
+        if not replace_headers:
+            num_rows += 1
         worksheet.resize(rows=num_rows)
     elif len(worksheet.get_all_values()) <= 1:
         worksheet.resize(rows=2)
 
     if minimize_to_cols:
-        num_cols = len(data[0]) if data else 0 #handle empty dataframe case
+        num_cols = len(data[0]) if data else 0  # handle empty dataframe case
         worksheet.resize(cols=num_cols)
 
     if replace_headers:
@@ -277,6 +305,7 @@ def write_df_to_gsheets(df, google_sheets_id, worksheet_name, minimize_to_rows=F
         first_cell_no_header = first_cell_letter + str(first_cell_number + 1)
         worksheet.update(first_cell_no_header, data, value_input_option="USER_ENTERED")
 
+
 @task(retries=3, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
 def read_gsheets_to_df(google_sheets_id, worksheet_name, header=0):
     """
@@ -285,7 +314,7 @@ def read_gsheets_to_df(google_sheets_id, worksheet_name, header=0):
     Args:
         google_sheets_id: ID of the Google Sheet.
         worksheet_name: Name of the worksheet to read.
-        header: Row number(s) to use as the column names, and the start of the data. 
+        header: Row number(s) to use as the column names, and the start of the data.
                 Defaults to 0 (first row).
 
     Returns:
@@ -293,7 +322,7 @@ def read_gsheets_to_df(google_sheets_id, worksheet_name, header=0):
         Returns None if an error occurs.
     """
     try:
-        credentials_str = get_secret(secret_id='GOOGLE_SHEETS_SERVICE_ACCOUNT')
+        credentials_str = get_secret(secret_id="GOOGLE_SHEETS_SERVICE_ACCOUNT")
         credentials = json.loads(credentials_str)
         gc = gspread.service_account_from_dict(credentials)
 
@@ -304,11 +333,13 @@ def read_gsheets_to_df(google_sheets_id, worksheet_name, header=0):
         data = worksheet.get_all_values()
 
         if data is None:
-            raise PermissionError(f"{credentials['client_email']} could not read https://docs.google.com/spreadsheets/d/{google_sheets_id}. Please ensure the google sheet is shared with the service account.")
+            raise PermissionError(
+                f"{credentials['client_email']} could not read https://docs.google.com/spreadsheets/d/{google_sheets_id}. Please ensure the google sheet is shared with the service account."
+            )
         if header is not None:
             # Use the specified row(s) as headers
             headers = data[header]
-            values = data[header + 1:]
+            values = data[header + 1 :]
             df = pd.DataFrame(values, columns=headers)
         else:
             # No headers, use default integer index
@@ -317,10 +348,15 @@ def read_gsheets_to_df(google_sheets_id, worksheet_name, header=0):
         return df
 
     except PermissionError as e:
-        logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- An error occurred: {e}")
-        print(f"{credentials['client_email']} could not read https://docs.google.com/spreadsheets/d/{google_sheets_id}. Please ensure the google sheet is shared with the service account.")
+        logger.error(
+            f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- An error occurred: {e}"
+        )
+        print(
+            f"{credentials['client_email']} could not read https://docs.google.com/spreadsheets/d/{google_sheets_id}. Please ensure the google sheet is shared with the service account."
+        )
         raise e
-    
+
+
 @task(retries=0, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
 def upload_google_sheets(gsheets_config_path, config_path, env):
     """
@@ -330,7 +366,7 @@ def upload_google_sheets(gsheets_config_path, config_path, env):
         uploads:
           - name: "Ben's Tracker - All House Bills"
             google_sheets_id: 1LLRIF6TTD5z4BRdYUGrNz_pT9FxDdxwIq7dqgGmDJyM
-            worksheet_name: "All House Bills" 
+            worksheet_name: "All House Bills"
             project_id: lgover
             dataset_id: tx_leg_bills
             table_id: tracker
@@ -363,89 +399,142 @@ def upload_google_sheets(gsheets_config_path, config_path, env):
         Prints status messages and errors to console.
     """
 
-    with open(gsheets_config_path, 'r') as file:
+    with open(gsheets_config_path, "r") as file:
         gsheets_config = yaml.safe_load(file)
 
-    with open(config_path, 'r') as file:
+    with open(config_path, "r") as file:
         config = yaml.safe_load(file)
 
     # Validate required fields are present in config
-    required_fields = ['name', 'google_sheets_id', 'worksheet_name', 'project_id', 'dataset_id', 'table_id', 'filters', 'drop_cols']
-    for upload in gsheets_config['uploads']:
-        missing_fields = [field for field in required_fields if field.lower() not in upload and field.lower() not in ['filters','drop_cols']]
+    required_fields = [
+        "name",
+        "google_sheets_id",
+        "worksheet_name",
+        "project_id",
+        "dataset_id",
+        "table_id",
+        "filters",
+        "drop_cols",
+    ]
+    for upload in gsheets_config["uploads"]:
+        missing_fields = [
+            field
+            for field in required_fields
+            if field.lower() not in upload
+            and field.lower() not in ["filters", "drop_cols"]
+        ]
         if missing_fields:
             raise ValueError(f"Missing required fields in config: {missing_fields}")
-        
+
         # Validate filters and drop_cols are lists
-        if 'filters' in upload.keys() and not isinstance(upload['filters'], list):
+        if "filters" in upload.keys() and not isinstance(upload["filters"], list):
             raise ValueError(f"'filters' must be a list for {upload['name']}")
-        if 'drop_cols' in upload.keys() and not isinstance(upload['drop_cols'], list):
+        if "drop_cols" in upload.keys() and not isinstance(upload["drop_cols"], list):
             raise ValueError(f"'drop_cols' must be a list for {upload['name']}")
-            
+
         # Validate google_sheets_id exists
-        if not upload['google_sheets_id']:
+        if not upload["google_sheets_id"]:
             raise ValueError(f"google_sheets_id cannot be empty for {upload['name']}")
 
-    for upload in gsheets_config['uploads']:
-        logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Uploading {upload['name']} from {upload['project_id']}.{upload['dataset_id']}.{upload['table_id']} to {config['dev_google_sheets_id'] if env == 'dev' else upload['google_sheets_id']}")
-        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Uploading {upload['name']} from {upload['project_id']}.{upload['dataset_id']}.{upload['table_id']} to {config['dev_google_sheets_id'] if env == 'dev' else upload['google_sheets_id']}")
-        if env == 'dev':
-            upload['dataset_id'] = 'dev_' + upload['dataset_id']
+    for upload in gsheets_config["uploads"]:
+        logger.info(
+            f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Uploading {upload['name']} from {upload['project_id']}.{upload['dataset_id']}.{upload['table_id']} to {config['dev_google_sheets_id'] if env == 'dev' else upload['google_sheets_id']}"
+        )
+        print(
+            f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Uploading {upload['name']} from {upload['project_id']}.{upload['dataset_id']}.{upload['table_id']} to {config['dev_google_sheets_id'] if env == 'dev' else upload['google_sheets_id']}"
+        )
+        if env == "dev":
+            upload["dataset_id"] = "dev_" + upload["dataset_id"]
 
         # TO DO: Add logic to handle the case where the table doesn't exist in BigQuery
         query = f""" select * $except$
         from `{upload['project_id']}.{upload['dataset_id']}.{upload['table_id']}` 
         $where$
         """
-        if 'drop_cols' in upload.keys():
-            query = query.replace('$except$',f'except({','.join(upload['drop_cols'])})')
+        if "drop_cols" in upload.keys():
+            query = query.replace(
+                "$except$", f"except({','.join(upload['drop_cols'])})"
+            )
         else:
-            query = query.replace('$except$','')
+            query = query.replace("$except$", "")
 
-        if 'filters' in upload.keys():
-            query = query.replace('$where$',f'where {' AND '.join(upload['filters'])}')
+        if "filters" in upload.keys():
+            query = query.replace("$where$", f"where {' AND '.join(upload['filters'])}")
         else:
-            query = query.replace('$where$','')
+            query = query.replace("$where$", "")
 
-        
-        for var in config['info']:
-            query = query.replace(f'{{{var}}}', config['info'][var])
+        for var in config["info"]:
+            query = query.replace(f"{{{var}}}", config["info"][var])
 
         # TO DO: check if there are any {variables} in the query that are not in the config['info']
         try:
             df = query_bq(query)
 
             if df is not None:
-                if env == 'dev':
-                    credentials_str = get_secret(secret_id='GOOGLE_SHEETS_SERVICE_ACCOUNT')
+                if env == "dev":
+                    credentials_str = get_secret(
+                        secret_id="GOOGLE_SHEETS_SERVICE_ACCOUNT"
+                    )
                     credentials = json.loads(credentials_str)
                     gc = gspread.service_account_from_dict(credentials)
 
-                    sh = gc.open_by_key(config['dev_google_sheets_id'])
+                    sh = gc.open_by_key(config["dev_google_sheets_id"])
                     worksheets = sh.worksheets()
                     worksheet_names = [worksheet.title for worksheet in worksheets]
-                    if upload['worksheet_name'] not in worksheet_names:
-                        sh.add_worksheet(upload['worksheet_name'], rows = 1, cols = 1)
-                    
-                write_df_to_gsheets(df, config['dev_google_sheets_id'] if env == 'dev' else upload['google_sheets_id'], upload['worksheet_name'], minimize_to_rows=True, minimize_to_cols=False, replace_headers=upload['replace_headers'])
+                    if upload["worksheet_name"] not in worksheet_names:
+                        sh.add_worksheet(upload["worksheet_name"], rows=1, cols=1)
+
+                write_df_to_gsheets(
+                    df,
+                    (
+                        config["dev_google_sheets_id"]
+                        if env == "dev"
+                        else upload["google_sheets_id"]
+                    ),
+                    upload["worksheet_name"],
+                    minimize_to_rows=True,
+                    minimize_to_cols=False,
+                    replace_headers=upload["replace_headers"],
+                )
         except Exception as e:
             print(e)
 
-@task(retries=3, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE, timeout_seconds=1200)
-def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_disposition, chunk_size = 50000, allow_empty_table=False, log_upload=True):
+
+@task(
+    retries=3,
+    retry_delay_seconds=10,
+    log_prints=True,
+    cache_policy=NO_CACHE,
+    timeout_seconds=1200,
+)
+def dataframe_to_bigquery(
+    df,
+    project_id,
+    dataset_id,
+    table_id,
+    env,
+    write_disposition,
+    chunk_size=50000,
+    allow_empty_table=False,
+    log_upload=True,
+):
     """
     Load data to destination using Parsons BigQuery connector.
     """
 
     if df is None:
-        logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- DataFrame is None")
+        logger.error(
+            f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- DataFrame is None"
+        )
         raise ValueError("DataFrame is None")
-    
+
     if len(df) <= 0:
-        if write_disposition == 'append':
+        if write_disposition == "append":
             return
         if allow_empty_table:
-            query_bq(f"CREATE OR REPLACE TABLE `{project_id}.{dataset_id}.{table_id}` AS SELECT * FROM `{project_id}.{dataset_id}.{table_id}` WHERE 1=0")
+            query_bq(
+                f"CREATE OR REPLACE TABLE `{project_id}.{dataset_id}.{table_id}` AS SELECT * FROM `{project_id}.{dataset_id}.{table_id}` WHERE 1=0"
+            )
 
     # Add environment prefix for dev
     dataset_name = dataset_id
@@ -456,7 +545,7 @@ def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_dispo
     table_name = f"{project_id}.{dataset_name}.{table_id}"
 
     # Initialize Parsons BigQuery connector
-    print(f'Loading data to {table_name} with write disposition of {write_disposition}')
+    print(f"Loading data to {table_name} with write disposition of {write_disposition}")
     gcp_creds = get_secret(secret_id="google_application_credentials")
     bq = GoogleBigQuery(app_creds=gcp_creds)
 
@@ -465,35 +554,46 @@ def dataframe_to_bigquery(df, project_id, dataset_id, table_id, env, write_dispo
 
     # convert datetime columns to ISO format strings for BigQuery compatibility -- annoying, but I can't figure out how to get Parsons to read it in properly
     # TO DO: Fix code so this doesn't happen once more familiar with Parsons
-    print('Cleaning the data for BigQuery')
+    print("Cleaning the data for BigQuery")
     for col in df.columns:
-        if df[col].dtype == 'datetime64[us]' or df[col].dtype == 'datetime64[ns]':
-            df[col] = df[col].dt.strftime('%Y-%m-%d %H:%M:%S')
+        if df[col].dtype == "datetime64[us]" or df[col].dtype == "datetime64[ns]":
+            df[col] = df[col].dt.strftime("%Y-%m-%d %H:%M:%S")
 
-    df.replace('<NA>',None, inplace=True)
+    df.replace("<NA>", None, inplace=True)
     df.replace(pd.NA, None, inplace=True)
 
     # Split dataframe into chunks of 100k rows
     total_rows = len(df)
-    
+
     for i in range(0, total_rows, chunk_size):
-        chunk_df = df.iloc[i:min(i+chunk_size, total_rows)]
+        chunk_df = df.iloc[i : min(i + chunk_size, total_rows)]
         tbl = Table.from_dataframe(chunk_df)
         print(tbl)
-        
-        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loading chunk {i//chunk_size + 1} to {destination} using Parsons")
+
+        print(
+            f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loading chunk {i//chunk_size + 1} to {destination} using Parsons"
+        )
         # Load data to BigQuery using Parsons
         bq.copy(
             tbl,
             table_name=table_name,
-            if_exists="append" if i > 0 else write_disposition,  # First chunk uses write_disposition, subsequent chunks append
-            tmp_gcs_bucket=get_secret(secret_id="GCS_TEMP_BUCKET"),  # Replace with your GCS bucket
+            if_exists=(
+                "append" if i > 0 else write_disposition
+            ),  # First chunk uses write_disposition, subsequent chunks append
+            tmp_gcs_bucket=get_secret(
+                secret_id="GCS_TEMP_BUCKET"
+            ),  # Replace with your GCS bucket
         )
 
-    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loaded {tbl.num_rows} rows to {destination}")
-    
+    logger.info(
+        f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loaded {tbl.num_rows} rows to {destination}"
+    )
+
     if log_upload:
-        log_bq_load(project_id, dataset_id, table_id, env, write_disposition, sys.getsizeof(df))
+        log_bq_load(
+            project_id, dataset_id, table_id, env, write_disposition, sys.getsizeof(df)
+        )
+
 
 def bigquery_to_df(project_id, dataset_id, table_id, env):
     gcp_creds = get_secret(secret_id="google_application_credentials")
@@ -510,16 +610,18 @@ def bigquery_to_df(project_id, dataset_id, table_id, env):
     try:
         result = bq.query(query)
         bq_df = pd.DataFrame(result)
-        bq_df.replace('<NA>',None, inplace=True)
+        bq_df.replace("<NA>", None, inplace=True)
         bq_df.replace(pd.NA, None, inplace=True)
         return bq_df
     except Exception as e:
         if "Not found: Table" in str(e):
-            raise ValueError(f"Table {project_id}.{dataset_id}.{table_id} does not exist")
+            raise ValueError(
+                f"Table {project_id}.{dataset_id}.{table_id} does not exist"
+            )
         else:
             raise e
 
-        
+
 def query_bq(query):
     print(query)
     gcp_creds = get_secret(secret_id="google_application_credentials")
@@ -528,7 +630,7 @@ def query_bq(query):
     try:
         result = bq.query(query)
         bq_df = pd.DataFrame(result)
-        bq_df.replace('<NA>',pd.NA, inplace=True)
+        bq_df.replace("<NA>", pd.NA, inplace=True)
         return bq_df
     except Exception as e:
         if "Not found: Table" in str(e):
@@ -536,8 +638,9 @@ def query_bq(query):
         else:
             raise e
 
+
 @task(retries=1, retry_delay_seconds=10, log_prints=True, cache_policy=NO_CACHE)
-def dataframe_to_duckdb(df, duckdb_conn, dataset_id, table_id, env,write_disposition):
+def dataframe_to_duckdb(df, duckdb_conn, dataset_id, table_id, env, write_disposition):
     """
     Load data to destination using Parsons BigQuery connector.
     Replace with your actual data loading logic.
@@ -550,15 +653,16 @@ def dataframe_to_duckdb(df, duckdb_conn, dataset_id, table_id, env,write_disposi
         dataset_name = f"dev_{dataset_name}"
 
     destination = f"{dataset_name}.{table_name}"
-    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loading data to {destination} using DuckDB")
+    logger.info(
+        f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loading data to {destination} using DuckDB"
+    )
 
     # convert datetime columns to ISO format strings for BigQuery compatibility -- annoying, but I can't figure out how to get Parsons to read it in properly
     # Doing this in DuckDB too, so the tables are consistent
     # TO DO: Fix code so this doesn't happen once more familiar with Parsons
     for col in df.columns:
-        if df[col].dtype == 'datetime64[us]' or df[col].dtype == 'datetime64[ns]':
-            df[col] = df[col].dt.strftime('%Y-%m-%d %H:%M:%S')
-
+        if df[col].dtype == "datetime64[us]" or df[col].dtype == "datetime64[ns]":
+            df[col] = df[col].dt.strftime("%Y-%m-%d %H:%M:%S")
 
     # Load data to DuckDB
     duckdb_conn.sql(f"CREATE SCHEMA IF NOT EXISTS {dataset_name}")
@@ -567,7 +671,13 @@ def dataframe_to_duckdb(df, duckdb_conn, dataset_id, table_id, env,write_disposi
         duckdb_conn.sql(f"CREATE TABLE {destination} AS SELECT * FROM df")
     elif write_disposition.lower() == "append":
         # check if table exists
-        if duckdb_conn.sql(f"SELECT * FROM information_schema.tables WHERE table_schema = '{dataset_name}' AND table_name = '{table_name}'").df().empty:
+        if (
+            duckdb_conn.sql(
+                f"SELECT * FROM information_schema.tables WHERE table_schema = '{dataset_name}' AND table_name = '{table_name}'"
+            )
+            .df()
+            .empty
+        ):
             duckdb_conn.sql(f"CREATE TABLE {destination} AS SELECT * FROM df")
         else:
             duckdb_conn.sql(f"INSERT INTO {destination} SELECT * FROM df")
@@ -575,28 +685,48 @@ def dataframe_to_duckdb(df, duckdb_conn, dataset_id, table_id, env,write_disposi
         raise ValueError(f"Table {destination} already exists")
     else:
         raise ValueError(f"Invalid write disposition: {write_disposition}")
-    logger.info(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loaded {len(df)} rows to {destination}")
+    logger.info(
+        f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Loaded {len(df)} rows to {destination}"
+    )
 
-def log_bq_load(project_id, dataset_id, table_id, env, write_disposition, nbytes, log_table_id = '_log_bq_load'):
+
+def log_bq_load(
+    project_id,
+    dataset_id,
+    table_id,
+    env,
+    write_disposition,
+    nbytes,
+    log_table_id="_log_bq_load",
+):
     """
     Log the BigQuery load to a table in BigQuery.
     """
 
-    current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     upload_desc = [
         {
-            'project_id':project_id,
-            'dataset_id':dataset_id,
-            'table_id':table_id,
-            'write_disposition':write_disposition,
-            'bytes':nbytes
+            "project_id": project_id,
+            "dataset_id": dataset_id,
+            "table_id": table_id,
+            "write_disposition": write_disposition,
+            "bytes": nbytes,
         }
     ]
 
     upload_desc_df = pd.DataFrame(upload_desc)
-    upload_desc_df['upload_time'] = current_time
+    upload_desc_df["upload_time"] = current_time
 
-    dataframe_to_bigquery(upload_desc_df, project_id, dataset_id, log_table_id, env, 'append', log_upload=False)
+    dataframe_to_bigquery(
+        upload_desc_df,
+        project_id,
+        dataset_id,
+        log_table_id,
+        env,
+        "append",
+        log_upload=False,
+    )
+
 
 def get_current_table_data(project_id, dataset_id, table_id, env):
     """
@@ -606,13 +736,17 @@ def get_current_table_data(project_id, dataset_id, table_id, env):
     try:
         bq_df = bigquery_to_df(project_id, dataset_id, table_id, env)
     except Exception as e:
-        logger.error(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Error querying BigQuery table {project_id}.{dataset_id}.{table_id}: {e}")
+        logger.error(
+            f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -- Error querying BigQuery table {project_id}.{dataset_id}.{table_id}: {e}"
+        )
         return None
     return bq_df
-        
+
+
 ################################################################################
 # FROM https://github.com/matthewkrausse/parsons-prefect-dbt-cloud-tutorial
 ################################################################################
+
 
 def determine_git_environment():
     """
