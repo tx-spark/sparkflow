@@ -1,7 +1,7 @@
 [project]
-name = "texas_leg_scraper"  # Change to your project name
+name = "sparkflow"  
 version = "0.1.0"
-description = "Texas Legislature Data Pipeline"
+description = "Primary codebase for tx_spark data pipelines"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
