@@ -2,14 +2,16 @@
 Script to deploy Parsons + Prefect flows to a work pool.
 """
 
+import os
+
+import dotenv
+from prefect.docker import DockerImage
+
 from pipelines.flows.tx_leg import tx_leg_pipeline
+from pipelines.utils.utils import determine_git_environment
+
 # Import additional flows here
 
-from prefect.docker import DockerImage
-import os
-import dotenv
-
-from pipelines.utils.utils import determine_git_environment
 
 dotenv.load_dotenv()
 
