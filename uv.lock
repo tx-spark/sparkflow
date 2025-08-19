@@ -2629,6 +2629,69 @@ wheels = [
 ]
 
 [[package]]
+name = "sparkflow"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "bs4" },
+    { name = "dbt-bigquery" },
+    { name = "duckdb" },
+    { name = "feedparser" },
+    { name = "google-cloud-bigquery" },
+    { name = "google-cloud-secret-manager" },
+    { name = "gspread" },
+    { name = "jinja2" },
+    { name = "pandas" },
+    { name = "pdfkit" },
+    { name = "pdfplumber" },
+    { name = "prefect" },
+    { name = "prefect-gcp" },
+    { name = "pydantic-core" },
+    { name = "python-dotenv" },
+    { name = "pyyaml" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "uv" },
+]
+lint = [
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "bs4", specifier = ">=0.0.2" },
+    { name = "dbt-bigquery", specifier = ">=1.9.1" },
+    { name = "duckdb", specifier = ">=1.2.2" },
+    { name = "feedparser", specifier = ">=6.0.11" },
+    { name = "google-cloud-bigquery", specifier = ">=3.11.4" },
+    { name = "google-cloud-secret-manager", specifier = ">=2.23.2" },
+    { name = "gspread", specifier = "==6.2.0" },
+    { name = "jinja2", specifier = ">=3.1.6" },
+    { name = "pandas", specifier = ">=2.0.0" },
+    { name = "pdfkit", specifier = ">=1.0.0" },
+    { name = "pdfplumber", specifier = ">=0.11.6" },
+    { name = "prefect", specifier = ">=3.2.15" },
+    { name = "prefect-gcp", specifier = ">=0.6.4" },
+    { name = "pydantic-core", specifier = ">=2.33.0" },
+    { name = "python-dotenv", specifier = ">=1.1.0" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pre-commit", specifier = ">=4.2.0" },
+    { name = "pytest", specifier = ">=8.3.5" },
+    { name = "pytest-cov", specifier = ">=4.1.0" },
+    { name = "uv", specifier = ">=0.6.10" },
+]
+lint = [{ name = "ruff", specifier = ">=0.11.2" }]
+
+[[package]]
 name = "sqlalchemy"
 version = "2.0.40"
 source = { registry = "https://pypi.org/simple" }
