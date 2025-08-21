@@ -15,14 +15,13 @@ dependencies = [
     "duckdb>=1.2.2",
     "pdfplumber>=0.11.6",
     "feedparser>=6.0.11",
-    "dbt-bigquery>=1.9.1",
     "pyyaml>=6.0.2",
-    "gspread==6.2.0",
     "bs4>=0.0.2",
     "pdfkit>=1.0.0",
     "jinja2>=3.1.6",
     "black[jupyter]>=25.1.0",
     "isort>=6.0.1",
+    "parsons",
 ]
 
 [dependency-groups]
@@ -47,3 +46,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 py-modules = []
+
+[tool.uv.sources]
+parsons = { git = "https://github.com/move-coop/parsons.git", tag = "v5.2.0" }
