@@ -1,4 +1,4 @@
-texas_leg_scraper:
+sparkflow:
   target: dev
   outputs:
     duckdb:
@@ -14,7 +14,7 @@ texas_leg_scraper:
       method: service-account
       project: txspark
       dataset: tx_leg_bills # Change to your development dataset
-      keyfile: # DONT CHANGE, set at runtime, Path to your GCP service account key
+      keyfile: "{{ env_var('DBT_KEY') }}"
       threads: 4
       timeout_seconds: 300
       location: US
