@@ -383,3 +383,6 @@ def tx_leg_pipeline(env=None):
 
     upload_google_sheets(GSHEETS_CONFIG_PATH, CONFIG_PATH, ENV)
     call2action(leg_id = leg_session)
+
+if __name__ == "__main__":
+    tx_leg_pipeline()
