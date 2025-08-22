@@ -48,6 +48,7 @@ def upload_call2action(leg_id, env = 'dev'):
         # print(curr_date_worksheet)
 
         date_df = df[df[date_col].dt.date == date.date()]
+        print(date_df)
 
         hide = False
         if len(date_df) <= 0:
@@ -87,4 +88,8 @@ def upload_call2action(leg_id, env = 'dev'):
     )
 
 if __name__ == '__main__':
-    upload_call2action('891', env='prod')
+    CONFIG_PATH = 'config.yaml'
+    with open(CONFIG_PATH, 'r') as f:
+        config = f.read()
+    
+    upload_call2action(config['info']['LegSess'], env='prod')
