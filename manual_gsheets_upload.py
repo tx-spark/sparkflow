@@ -22,4 +22,8 @@ ENV = "prod"
 if __name__ == "__main__":
     download_google_sheets(GSHEETS_CONFIG_PATH)
     upload_google_sheets(GSHEETS_CONFIG_PATH, CONFIG_PATH, ENV)
-    upload_call2action("891", ENV)
+
+    with open(CONFIG_PATH, 'r') as f:
+        config = f.read()
+
+    upload_call2action(config['info']['LegSess'] ,ENV)

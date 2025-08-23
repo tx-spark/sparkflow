@@ -597,4 +597,5 @@ def tx_leg_pipeline(env=None):
     # rss_feeds(config, curr_rss_df),
 
     upload_google_sheets(GSHEETS_CONFIG_PATH, CONFIG_PATH, ENV)
+
     call2action(leg_id=leg_session)
