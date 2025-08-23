@@ -1,19 +1,19 @@
 import logging
 
-from pipelines.utils.utils import upload_google_sheets
-from pipelines.flows.tx_leg import download_google_sheets
 from pipelines.flows.custom_gsheets import upload_call2action
+from pipelines.flows.tx_leg import download_google_sheets
+from pipelines.utils.utils import upload_google_sheets
 
 ################################################################################
 # CONFIGURATION
 ################################################################################
 
-CONFIG_PATH = 'config.yaml'
-GSHEETS_CONFIG_PATH = 'gsheets_runs.yaml'
+CONFIG_PATH = "config.yaml"
+GSHEETS_CONFIG_PATH = "gsheets_runs.yaml"
 DUCKDB_NAME = "texas_bills"
-LOG_PATH = 'tx-leg.log'
-OUT_DATASET_NAME = 'tx_leg_raw_bills'
-ENV = 'prod'
+LOG_PATH = "tx-leg.log"
+OUT_DATASET_NAME = "tx_leg_raw_bills"
+ENV = "prod"
 
 ################################################################################
 # MAIN
