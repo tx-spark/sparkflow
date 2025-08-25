@@ -77,6 +77,8 @@ class HouseCalendarParser(CalendarParser):
         # Normalize common variations
         if "PRE-FILED" in text or "PREFILED" in text:
             return "LIST OF PRE-FILED AMENDMENTS"
+        elif "SUPPLEMENTAL" in text and "HOUSE" in text:
+            return "SUPPLEMENTAL HOUSE CALENDAR"
         elif "DAILY" in text and "HOUSE" in text:
             return "DAILY HOUSE CALENDAR"
         elif "HOUSE" in text and "CALENDAR" in text:
