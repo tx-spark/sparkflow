@@ -69,7 +69,7 @@ class TestHouseCalendarParser(TestCase):
             calendar_date=datetime(2025, 8, 21),
             subcalendars=[
                 Subcalendar(
-                    reading_count=2,
+                    reading_count=1,
                     subcalendar_type="",
                     bill_ids=["HB 1"],
                 ),
