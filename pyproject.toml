@@ -22,6 +22,7 @@ dependencies = [
     "black[jupyter]>=25.1.0",
     "isort>=6.0.1",
     "parsons",
+    "beautifulsoup4>=4.13.4",
 ]
 
 [dependency-groups]

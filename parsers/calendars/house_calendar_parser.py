@@ -1,5 +1,8 @@
 import re
 from datetime import datetime
+from typing import Optional
+
+from bs4 import BeautifulSoup, Tag
 
 from models.calendar import Calendar
 from models.chamber import Chamber
@@ -28,42 +31,62 @@ class HouseCalendarParser(CalendarParser):
         )
 
     def _extract_calendar_type(self, data: str) -> str:
-        """Extract the calendar type from the HTML dynamically."""
-        # Look for title tag first
-        title_match = re.search(r"<title>(.*?)</title>", data, re.IGNORECASE)
-        if title_match:
-            title_text = title_match.group(1).strip()
-            # Extract calendar type from title - remove date information
-            # Examples: "Prefiled Amendments Calendar - Thursday, August 21, 2025"
-            #          "Daily House Calendar - Monday, August 25, 2025"
-            calendar_type_match = re.search(
-                r"^(.*?)\s*(?:-\s*\w+day,|\s*-)", title_text
-            )
-            if calendar_type_match:
-                calendar_type = calendar_type_match.group(1).strip()
-                # Normalize and format the calendar type
-                return self._normalize_calendar_type(calendar_type)
+        """Extract the calendar type from the HTML using BeautifulSoup."""
+        try:
+            soup = BeautifulSoup(data, "html.parser")
 
-        # Fallback: Look for calendar type in the body content
-        # Look for centered text that appears to be a calendar title
-        # Pattern for calendar titles (usually in center-aligned spans or divs)
-        body_patterns = [
-            r'align="?center"?[^>]*>([^<]*(?:calendar|amendments)[^<]*)<',
-            r"text-align:\s*center[^>]*>([^<]*(?:calendar|amendments)[^<]*)<",
-            r">\s*([A-Z][^<]*(?:CALENDAR|Calendar|AMENDMENTS|Amendments)[^<]*)\s*<",
-        ]
+            # Strategy 1: Look for calendar type in the second <p> tag (works for most calendars)
+            p_tags = soup.find_all("p")
+            if len(p_tags) >= 2:
+                second_p = p_tags[1]
+                if isinstance(second_p, Tag):
+                    span = second_p.find("span")
 
-        for pattern in body_patterns:
-            matches = re.findall(pattern, data, re.IGNORECASE)
-            for match in matches:
-                # Clean up HTML entities and extra whitespace
-                clean_text = re.sub(r"&\w+;", " ", match).strip()
-                clean_text = re.sub(r"\s+", " ", clean_text)
-                if len(clean_text) > 5 and (
-                    "calendar" in clean_text.lower()
-                    or "amendment" in clean_text.lower()
-                ):
-                    return self._normalize_calendar_type(clean_text)
+                    if span and isinstance(span, Tag) and span.get_text(strip=True):
+                        calendar_type_text = span.get_text(strip=True)
+
+                        # Clean up and extract just the calendar type (remove asterisks and extra content)
+                        lines = calendar_type_text.split("\n")
+                        for line in lines:
+                            clean_line = line.strip().strip("*").strip()
+                            if clean_line and len(clean_line) > 5:
+                                # Skip lines that are just asterisks or very short
+                                if not re.match(r"^[\*\s]*$", clean_line):
+                                    return self._normalize_calendar_type(clean_line)
+
+            # Strategy 2: Look for calendar type in centered table cells (works for prefiled amendments)
+            # Find all elements that might contain calendar type text
+            calendar_keywords = ["calendar", "amendment", "resolution"]
+            for element in soup.find_all(["td", "span", "div"], align="center"):
+                text = element.get_text(strip=True)
+                # Clean up HTML entities like &nbsp;
+                text = text.replace("\xa0", " ").replace("&nbsp;", " ")
+
+                # Check if this looks like a calendar type
+                text_lower = text.lower()
+                if any(keyword in text_lower for keyword in calendar_keywords):
+                    # Skip very short text or text that looks like dates
+                    if len(text) > 5 and not re.match(r"^\w+day,", text):
+                        return self._normalize_calendar_type(text)
+
+            # Strategy 3: Fallback - look for any element with calendar-related text
+            for element in soup.find_all(["span", "td", "div"]):
+                text = element.get_text(strip=True)
+                text = text.replace("\xa0", " ").replace("&nbsp;", " ")
+                text_lower = text.lower()
+
+                if ("calendar" in text_lower or "amendment" in text_lower) and len(
+                    text
+                ) > 5:
+                    # Skip dates and very generic text
+                    if not re.match(r"^\w+day,", text) and "by" not in text_lower:
+                        clean_text = text.strip().strip("*").strip()
+                        if len(clean_text) > 5:
+                            return self._normalize_calendar_type(clean_text)
+
+        except Exception:
+            # If BeautifulSoup fails, fall back to default
+            pass
 
         # Final fallback: Default to daily house calendar
         return "DAILY HOUSE CALENDAR"
@@ -74,22 +97,23 @@ class HouseCalendarParser(CalendarParser):
         text = re.sub(r"&\w+;", " ", text)
         text = re.sub(r"\s+", " ", text).strip().upper()
 
-        # Normalize common variations
-        if "PRE-FILED" in text or "PREFILED" in text:
-            return "LIST OF PRE-FILED AMENDMENTS"
-        elif "CONGRATULATORY" in text and "MEMORIAL" in text:
-            return "CONGRATULATORY AND MEMORIAL CALENDAR"
-        elif "SUPPLEMENTAL" in text and "HOUSE" in text:
-            return "SUPPLEMENTAL HOUSE CALENDAR"
-        elif "DAILY" in text and "HOUSE" in text:
-            return "DAILY HOUSE CALENDAR"
-        elif "HOUSE" in text and "CALENDAR" in text:
-            return "DAILY HOUSE CALENDAR"
-        elif "AMENDMENT" in text:
-            return "LIST OF PRE-FILED AMENDMENTS"
-        else:
-            # Return the cleaned text as-is if we can't categorize it
-            return text
+        # Define calendar type patterns and their normalized forms
+        calendar_patterns = {
+            r".*(?:PRE-FILED|PREFILED).*AMENDMENT.*": "LIST OF PRE-FILED AMENDMENTS",
+            r".*CONGRATULATORY.*MEMORIAL.*CALENDAR.*": "CONGRATULATORY AND MEMORIAL CALENDAR",
+            r".*SUPPLEMENTAL.*HOUSE.*CALENDAR.*": "SUPPLEMENTAL HOUSE CALENDAR",
+            r".*DAILY.*HOUSE.*CALENDAR.*": "DAILY HOUSE CALENDAR",
+            r".*HOUSE.*CALENDAR.*": "DAILY HOUSE CALENDAR",
+            r".*AMENDMENT.*": "LIST OF PRE-FILED AMENDMENTS",
+        }
+
+        # Find the first matching pattern
+        for pattern, normalized_type in calendar_patterns.items():
+            if re.match(pattern, text):
+                return normalized_type
+
+        # Return the cleaned text as-is if no pattern matches
+        return text
 
     def _extract_calendar_date(self, data: str) -> datetime:
         """Extract the calendar date from the HTML."""
