@@ -42,12 +42,12 @@ class TestHouseCalendarParser(TestCase):
                 ),
                 Subcalendar(
                     reading_count=2,
-                    subcalendar_type="MAJOR STATE CALENDAR",
+                    subcalendar_type="GENERAL STATE CALENDAR",
                     bill_ids=["HB 27", "HB 23"],
                 ),
                 Subcalendar(
                     reading_count=2,
-                    subcalendar_type="MAJOR STATE CALENDAR",
+                    subcalendar_type="GENERAL STATE CALENDAR",
                     bill_ids=["SB 15", "SB 18"],
                 ),
             ],
