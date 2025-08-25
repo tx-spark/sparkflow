@@ -54,3 +54,26 @@ class TestHouseCalendarParser(TestCase):
         )
 
         assert self._parser.parse(contents) == expected
+
+    def test_parse_prefiled_amendments(self) -> None:
+        prefiled_amendments_path: Path = (
+            self._HOUSE_CALENDAR_PARSER / "prefiled_amendments.htm"
+        )
+
+        with open(prefiled_amendments_path, "r", encoding="utf-8") as fs:
+            contents: str = fs.read()
+
+        expected: Calendar = Calendar(
+            chamber=Chamber.HOUSE,
+            calendar_type="LIST OF PRE-FILED AMENDMENTS",
+            calendar_date=datetime(2025, 8, 21),
+            subcalendars=[
+                Subcalendar(
+                    reading_count=2,
+                    subcalendar_type="",
+                    bill_ids=["HB 1"],
+                ),
+            ],
+        )
+
+        assert self._parser.parse(contents) == expected
