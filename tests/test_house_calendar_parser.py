@@ -65,7 +65,7 @@ class TestHouseCalendarParser(TestCase):
 
         expected: Calendar = Calendar(
             chamber=Chamber.HOUSE,
-            calendar_type="LIST OF PRE-FILED AMENDMENTS",
+            calendar_type="PREFILED AMENDMENTS CALENDAR",
             calendar_date=datetime(2025, 8, 21),
             subcalendars=[
                 Subcalendar(

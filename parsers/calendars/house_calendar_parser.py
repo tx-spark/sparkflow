@@ -35,32 +35,15 @@ class HouseCalendarParser(CalendarParser):
         soup: BeautifulSoup = BeautifulSoup(data, "html.parser")
 
         p_tags = soup.find_all("p")
-        _, title_tag, *__ = p_tags
-        return title_tag.find("span").get_text(strip=True).replace("*", "").upper()
+        if len(p_tags) > 0:
+            _, title_tag, *__ = p_tags
+            return title_tag.find("span").get_text(strip=True).replace("*", "").upper()
 
-    def _normalize_calendar_type(self, text: str) -> str:
-        """Normalize calendar type text to standard format."""
-        # Remove HTML entities and clean up
-        text = re.sub(r"&\w+;", " ", text)
-        text = re.sub(r"\s+", " ", text).strip().upper()
+        title_tag = soup.find("title")
+        if title_tag is not None:
+            return title_tag.get_text(strip=True).split(" - ")[0].upper()
 
-        # Define calendar type patterns and their normalized forms
-        calendar_patterns = {
-            r".*(?:PRE-FILED|PREFILED).*AMENDMENT.*": "LIST OF PRE-FILED AMENDMENTS",
-            r".*CONGRATULATORY.*MEMORIAL.*CALENDAR.*": "CONGRATULATORY AND MEMORIAL CALENDAR",
-            r".*SUPPLEMENTAL.*HOUSE.*CALENDAR.*": "SUPPLEMENTAL HOUSE CALENDAR",
-            r".*DAILY.*HOUSE.*CALENDAR.*": "DAILY HOUSE CALENDAR",
-            r".*HOUSE.*CALENDAR.*": "DAILY HOUSE CALENDAR",
-            r".*AMENDMENT.*": "LIST OF PRE-FILED AMENDMENTS",
-        }
-
-        # Find the first matching pattern
-        for pattern, normalized_type in calendar_patterns.items():
-            if re.match(pattern, text):
-                return normalized_type
-
-        # Return the cleaned text as-is if no pattern matches
-        return text
+        return ""
 
     def _extract_calendar_date(self, data: str) -> datetime:
         """Extract the calendar date from the HTML."""
@@ -120,7 +103,7 @@ class HouseCalendarParser(CalendarParser):
         calendar_type = self._extract_calendar_type(data)
 
         # Check if this is a prefiled amendments calendar
-        if "PRE-FILED AMENDMENTS" in calendar_type:
+        if "PREFILED AMENDMENTS" in calendar_type:
             return self._extract_prefiled_amendments_subcalendars(data)
 
         # Check if this is a memorial calendar
