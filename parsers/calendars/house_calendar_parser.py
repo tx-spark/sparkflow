@@ -12,7 +12,7 @@ class HouseCalendarParser(CalendarParser):
 
     def parse(self, data: str) -> Calendar:
         # Extract calendar type
-        calendar_type = "DAILY HOUSE CALENDAR"
+        calendar_type = self._extract_calendar_type(data)
 
         # Extract calendar date
         calendar_date = self._extract_calendar_date(data)
@@ -26,6 +26,17 @@ class HouseCalendarParser(CalendarParser):
             calendar_date=calendar_date,
             subcalendars=subcalendars,
         )
+
+    def _extract_calendar_type(self, data: str) -> str:
+        """Extract the calendar type from the HTML."""
+        # Check for different calendar types - handle HTML entities and variations
+        if "Pre-filed" in data or "Prefiled" in data or "PRE-FILED" in data:
+            return "LIST OF PRE-FILED AMENDMENTS"
+        elif "Daily House Calendar" in data:
+            return "DAILY HOUSE CALENDAR"
+        else:
+            # Default fallback
+            return "DAILY HOUSE CALENDAR"
 
     def _extract_calendar_date(self, data: str) -> datetime:
         """Extract the calendar date from the HTML."""
@@ -60,6 +71,40 @@ class HouseCalendarParser(CalendarParser):
 
     def _extract_subcalendars(self, data: str) -> list[Subcalendar]:
         """Extract subcalendars from the HTML."""
+        subcalendars = []
+
+        # Check if this is a prefiled amendments calendar
+        if "Pre-filed" in data or "Prefiled" in data or "PRE-FILED" in data:
+            return self._extract_prefiled_amendments_subcalendars(data)
+
+        # Otherwise handle as daily calendar
+        return self._extract_daily_calendar_subcalendars(data)
+
+    def _extract_prefiled_amendments_subcalendars(self, data: str) -> list[Subcalendar]:
+        """Extract subcalendars from prefiled amendments format."""
+        # Find all bill IDs using regex
+        bill_pattern = r"Bill=([A-Z]+\s*\d+)"
+        bill_matches = re.findall(bill_pattern, data)
+
+        if bill_matches:
+            # Ensure proper spacing in bill IDs
+            bill_ids = [
+                re.sub(r"([A-Z]+)(\d+)", r"\1 \2", bill.replace(" ", ""))
+                for bill in bill_matches
+            ]
+
+            return [
+                Subcalendar(
+                    reading_count=1,
+                    subcalendar_type="",
+                    bill_ids=bill_ids,
+                )
+            ]
+
+        return []
+
+    def _extract_daily_calendar_subcalendars(self, data: str) -> list[Subcalendar]:
+        """Extract subcalendars from daily calendar format."""
         subcalendars = []
 
         # Find all bill IDs using regex - include space in the pattern
