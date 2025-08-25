@@ -1,8 +1,9 @@
 import re
 from datetime import datetime
-from typing import Optional
+from typing import Sequence
 
 from bs4 import BeautifulSoup, Tag
+from bs4.element import PageElement
 
 from models.calendar import Calendar
 from models.chamber import Chamber
@@ -31,65 +32,11 @@ class HouseCalendarParser(CalendarParser):
         )
 
     def _extract_calendar_type(self, data: str) -> str:
-        """Extract the calendar type from the HTML using BeautifulSoup."""
-        try:
-            soup = BeautifulSoup(data, "html.parser")
+        soup: BeautifulSoup = BeautifulSoup(data, "html.parser")
 
-            # Strategy 1: Look for calendar type in the second <p> tag (works for most calendars)
-            p_tags = soup.find_all("p")
-            if len(p_tags) >= 2:
-                second_p = p_tags[1]
-                if isinstance(second_p, Tag):
-                    span = second_p.find("span")
-
-                    if span and isinstance(span, Tag) and span.get_text(strip=True):
-                        calendar_type_text = span.get_text(strip=True)
-
-                        # Clean up and extract just the calendar type (remove asterisks and extra content)
-                        lines = calendar_type_text.split("\n")
-                        for line in lines:
-                            clean_line = line.strip().strip("*").strip()
-                            if clean_line and len(clean_line) > 5:
-                                # Skip lines that are just asterisks or very short
-                                if not re.match(r"^[\*\s]*$", clean_line):
-                                    return self._normalize_calendar_type(clean_line)
-
-            # Strategy 2: Look for calendar type in centered table cells (works for prefiled amendments)
-            # Find all elements that might contain calendar type text
-            calendar_keywords = ["calendar", "amendment", "resolution"]
-            for element in soup.find_all(["td", "span", "div"], align="center"):
-                text = element.get_text(strip=True)
-                # Clean up HTML entities like &nbsp;
-                text = text.replace("\xa0", " ").replace("&nbsp;", " ")
-
-                # Check if this looks like a calendar type
-                text_lower = text.lower()
-                if any(keyword in text_lower for keyword in calendar_keywords):
-                    # Skip very short text or text that looks like dates
-                    if len(text) > 5 and not re.match(r"^\w+day,", text):
-                        return self._normalize_calendar_type(text)
-
-            # Strategy 3: Fallback - look for any element with calendar-related text
-            for element in soup.find_all(["span", "td", "div"]):
-                text = element.get_text(strip=True)
-                text = text.replace("\xa0", " ").replace("&nbsp;", " ")
-                text_lower = text.lower()
-
-                if ("calendar" in text_lower or "amendment" in text_lower) and len(
-                    text
-                ) > 5:
-                    # Skip dates and very generic text
-                    if not re.match(r"^\w+day,", text) and "by" not in text_lower:
-                        clean_text = text.strip().strip("*").strip()
-                        if len(clean_text) > 5:
-                            return self._normalize_calendar_type(clean_text)
-
-        except Exception:
-            # If BeautifulSoup fails, fall back to default
-            pass
-
-        # Final fallback: Default to daily house calendar
-        return "DAILY HOUSE CALENDAR"
+        p_tags = soup.find_all("p")
+        _, title_tag, *__ = p_tags
+        return title_tag.find("span").get_text(strip=True).replace("*", "").upper()
 
     def _normalize_calendar_type(self, text: str) -> str:
         """Normalize calendar type text to standard format."""
