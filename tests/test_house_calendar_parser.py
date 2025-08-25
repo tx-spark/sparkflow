@@ -77,3 +77,24 @@ class TestHouseCalendarParser(TestCase):
         )
 
         assert self._parser.parse(contents) == expected
+
+    def test_parse_supplemental_calendar(self) -> None:
+        supplemental_path: Path = self._HOUSE_CALENDAR_PARSER / "supplemental.htm"
+
+        with open(supplemental_path, "r", encoding="utf-8") as fs:
+            contents: str = fs.read()
+
+        expected: Calendar = Calendar(
+            chamber=Chamber.HOUSE,
+            calendar_type="SUPPLEMENTAL HOUSE CALENDAR",
+            calendar_date=datetime(2025, 8, 15),
+            subcalendars=[
+                Subcalendar(
+                    reading_count=2,
+                    subcalendar_type="MAJOR STATE CALENDAR",
+                    bill_ids=["HB 4", "HB 1", "HB 2", "HB 18", "HB 19", "HB 20"],
+                ),
+            ],
+        )
+
+        assert self._parser.parse(contents) == expected
