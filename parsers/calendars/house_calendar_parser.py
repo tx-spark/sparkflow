@@ -28,15 +28,64 @@ class HouseCalendarParser(CalendarParser):
         )
 
     def _extract_calendar_type(self, data: str) -> str:
-        """Extract the calendar type from the HTML."""
-        # Check for different calendar types - handle HTML entities and variations
-        if "Pre-filed" in data or "Prefiled" in data or "PRE-FILED" in data:
+        """Extract the calendar type from the HTML dynamically."""
+        # Look for title tag first
+        title_match = re.search(r"<title>(.*?)</title>", data, re.IGNORECASE)
+        if title_match:
+            title_text = title_match.group(1).strip()
+            # Extract calendar type from title - remove date information
+            # Examples: "Prefiled Amendments Calendar - Thursday, August 21, 2025"
+            #          "Daily House Calendar - Monday, August 25, 2025"
+            calendar_type_match = re.search(
+                r"^(.*?)\s*(?:-\s*\w+day,|\s*-)", title_text
+            )
+            if calendar_type_match:
+                calendar_type = calendar_type_match.group(1).strip()
+                # Normalize and format the calendar type
+                return self._normalize_calendar_type(calendar_type)
+
+        # Fallback: Look for calendar type in the body content
+        # Look for centered text that appears to be a calendar title
+        # Pattern for calendar titles (usually in center-aligned spans or divs)
+        body_patterns = [
+            r'align="?center"?[^>]*>([^<]*(?:calendar|amendments)[^<]*)<',
+            r"text-align:\s*center[^>]*>([^<]*(?:calendar|amendments)[^<]*)<",
+            r">\s*([A-Z][^<]*(?:CALENDAR|Calendar|AMENDMENTS|Amendments)[^<]*)\s*<",
+        ]
+
+        for pattern in body_patterns:
+            matches = re.findall(pattern, data, re.IGNORECASE)
+            for match in matches:
+                # Clean up HTML entities and extra whitespace
+                clean_text = re.sub(r"&\w+;", " ", match).strip()
+                clean_text = re.sub(r"\s+", " ", clean_text)
+                if len(clean_text) > 5 and (
+                    "calendar" in clean_text.lower()
+                    or "amendment" in clean_text.lower()
+                ):
+                    return self._normalize_calendar_type(clean_text)
+
+        # Final fallback: Default to daily house calendar
+        return "DAILY HOUSE CALENDAR"
+
+    def _normalize_calendar_type(self, text: str) -> str:
+        """Normalize calendar type text to standard format."""
+        # Remove HTML entities and clean up
+        text = re.sub(r"&\w+;", " ", text)
+        text = re.sub(r"\s+", " ", text).strip().upper()
+
+        # Normalize common variations
+        if "PRE-FILED" in text or "PREFILED" in text:
             return "LIST OF PRE-FILED AMENDMENTS"
-        elif "Daily House Calendar" in data:
+        elif "DAILY" in text and "HOUSE" in text:
             return "DAILY HOUSE CALENDAR"
+        elif "HOUSE" in text and "CALENDAR" in text:
+            return "DAILY HOUSE CALENDAR"
+        elif "AMENDMENT" in text:
+            return "LIST OF PRE-FILED AMENDMENTS"
         else:
-            # Default fallback
-            return "DAILY HOUSE CALENDAR"
+            # Return the cleaned text as-is if we can't categorize it
+            return text
 
     def _extract_calendar_date(self, data: str) -> datetime:
         """Extract the calendar date from the HTML."""
@@ -71,10 +120,11 @@ class HouseCalendarParser(CalendarParser):
 
     def _extract_subcalendars(self, data: str) -> list[Subcalendar]:
         """Extract subcalendars from the HTML."""
-        subcalendars = []
+        # Get the calendar type to determine parsing method
+        calendar_type = self._extract_calendar_type(data)
 
         # Check if this is a prefiled amendments calendar
-        if "Pre-filed" in data or "Prefiled" in data or "PRE-FILED" in data:
+        if "PRE-FILED AMENDMENTS" in calendar_type:
             return self._extract_prefiled_amendments_subcalendars(data)
 
         # Otherwise handle as daily calendar
