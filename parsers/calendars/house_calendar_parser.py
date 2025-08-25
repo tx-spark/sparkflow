@@ -77,6 +77,8 @@ class HouseCalendarParser(CalendarParser):
         # Normalize common variations
         if "PRE-FILED" in text or "PREFILED" in text:
             return "LIST OF PRE-FILED AMENDMENTS"
+        elif "CONGRATULATORY" in text and "MEMORIAL" in text:
+            return "CONGRATULATORY AND MEMORIAL CALENDAR"
         elif "SUPPLEMENTAL" in text and "HOUSE" in text:
             return "SUPPLEMENTAL HOUSE CALENDAR"
         elif "DAILY" in text and "HOUSE" in text:
@@ -150,6 +152,10 @@ class HouseCalendarParser(CalendarParser):
         if "PRE-FILED AMENDMENTS" in calendar_type:
             return self._extract_prefiled_amendments_subcalendars(data)
 
+        # Check if this is a memorial calendar
+        elif "CONGRATULATORY AND MEMORIAL CALENDAR" in calendar_type:
+            return self._extract_memorial_calendar_subcalendars(data)
+
         # Otherwise handle as daily calendar
         return self._extract_daily_calendar_subcalendars(data)
 
@@ -168,6 +174,52 @@ class HouseCalendarParser(CalendarParser):
             ]
 
         return []
+
+    def _extract_memorial_calendar_subcalendars(self, data: str) -> list[Subcalendar]:
+        """Extract subcalendars from memorial calendar format."""
+        subcalendars = []
+
+        # Look for sections marked with asterisks like "CONGRATULATORY RESOLUTIONS"
+        # Pattern matches: ********** SECTION NAME **********
+        # Handle HTML tags that might be mixed in
+        section_pattern = r"\*{10}\s*([^*<]+?)(?:<[^>]*>)?\s*\*{10}"
+        sections = re.findall(section_pattern, data)
+
+        for section_name in sections:
+            section_name = section_name.strip()
+
+            # Find the content after this section header
+            section_start_pattern = rf"\*{{10}}\s*{re.escape(section_name)}.*?\*{{10}}"
+            section_match = re.search(section_start_pattern, data, re.DOTALL)
+
+            if section_match:
+                # Get content from after this section until the next section or end
+                content_start = section_match.end()
+
+                # Look for next section or end of content
+                next_section_match = re.search(
+                    r"\*{10}\s*[^*]+?\s*\*{10}", data[content_start:]
+                )
+                if next_section_match:
+                    content_end = content_start + next_section_match.start()
+                else:
+                    content_end = len(data)
+
+                section_content = data[content_start:content_end]
+
+                # Extract bill IDs from this section
+                bill_ids = self._extract_bill_ids_from_text(section_content)
+
+                if bill_ids:
+                    subcalendars.append(
+                        Subcalendar(
+                            reading_count=1,
+                            subcalendar_type=section_name,
+                            bill_ids=bill_ids,
+                        )
+                    )
+
+        return subcalendars
 
     def _extract_daily_calendar_subcalendars(self, data: str) -> list[Subcalendar]:
         """Extract subcalendars from daily calendar format."""
