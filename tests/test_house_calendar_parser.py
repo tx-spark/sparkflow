@@ -98,3 +98,46 @@ class TestHouseCalendarParser(TestCase):
         )
 
         assert self._parser.parse(contents) == expected
+
+    def test_parse_memorial_calendar(self) -> None:
+        memorial_path: Path = self._HOUSE_CALENDAR_PARSER / "memorial.htm"
+
+        with open(memorial_path, "r", encoding="utf-8") as fs:
+            contents: str = fs.read()
+
+        expected: Calendar = Calendar(
+            chamber=Chamber.HOUSE,
+            calendar_type="CONGRATULATORY AND MEMORIAL CALENDAR",
+            calendar_date=datetime(2025, 6, 1),
+            subcalendars=[
+                Subcalendar(
+                    reading_count=1,
+                    subcalendar_type="CONGRATULATORY RESOLUTIONS",
+                    bill_ids=[
+                        "HCR 158",
+                        "HCR 159",
+                        "HCR 160",
+                        "HCR 161",
+                        "HCR 162",
+                        "HCR 163",
+                        "HCR 164",
+                        "HR 174",
+                        "HR 427",
+                        "HR 790",
+                        "HR 810",
+                        "HR 857",
+                        "HR 866",
+                        "HR 882",
+                        "HR 883",
+                        "HR 962",
+                        "HR 966",
+                        "HR 1001",
+                        "HR 1045",
+                        "HR 1085",
+                        "HR 1097",
+                    ],
+                ),
+            ],
+        )
+
+        assert self._parser.parse(contents) == expected
