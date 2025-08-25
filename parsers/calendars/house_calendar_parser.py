@@ -118,6 +118,38 @@ class HouseCalendarParser(CalendarParser):
 
         return datetime.now()
 
+    def _extract_bill_ids_from_text(
+        self, text: str, bill_type_filter: str | None = None
+    ) -> list[str]:
+        """Extract and format bill IDs from text content.
+
+        Args:
+            text: The text content to search for bill IDs
+            bill_type_filter: Optional filter for bill type ('HB', 'SB', etc.)
+
+        Returns:
+            List of formatted bill IDs with proper spacing (e.g., ['HB 17', 'SB 10'])
+        """
+        # Find all bill IDs using regex pattern
+        bill_pattern = r"Bill=([A-Z]+\s*\d+)"
+        bill_matches = re.findall(bill_pattern, text)
+
+        # Filter by bill type if specified
+        if bill_type_filter:
+            bill_matches = [
+                bill
+                for bill in bill_matches
+                if bill.replace(" ", "").startswith(bill_type_filter)
+            ]
+
+        # Ensure proper spacing in bill IDs
+        bill_ids = [
+            re.sub(r"([A-Z]+)(\d+)", r"\1 \2", bill.replace(" ", ""))
+            for bill in bill_matches
+        ]
+
+        return bill_ids
+
     def _extract_subcalendars(self, data: str) -> list[Subcalendar]:
         """Extract subcalendars from the HTML."""
         # Get the calendar type to determine parsing method
@@ -132,17 +164,10 @@ class HouseCalendarParser(CalendarParser):
 
     def _extract_prefiled_amendments_subcalendars(self, data: str) -> list[Subcalendar]:
         """Extract subcalendars from prefiled amendments format."""
-        # Find all bill IDs using regex
-        bill_pattern = r"Bill=([A-Z]+\s*\d+)"
-        bill_matches = re.findall(bill_pattern, data)
+        # Extract all bill IDs from the data
+        bill_ids = self._extract_bill_ids_from_text(data)
 
-        if bill_matches:
-            # Ensure proper spacing in bill IDs
-            bill_ids = [
-                re.sub(r"([A-Z]+)(\d+)", r"\1 \2", bill.replace(" ", ""))
-                for bill in bill_matches
-            ]
-
+        if bill_ids:
             return [
                 Subcalendar(
                     reading_count=1,
@@ -156,10 +181,6 @@ class HouseCalendarParser(CalendarParser):
     def _extract_daily_calendar_subcalendars(self, data: str) -> list[Subcalendar]:
         """Extract subcalendars from daily calendar format."""
         subcalendars = []
-
-        # Find all bill IDs using regex - include space in the pattern
-        bill_pattern = r"Bill=([A-Z]+\s*\d+)"
-        bill_matches = re.findall(bill_pattern, data)
 
         # Split the content by major sections
         parts = re.split(
@@ -183,15 +204,9 @@ class HouseCalendarParser(CalendarParser):
                     )
                     if house_section_match:
                         house_section = house_section_match.group(0)
-                        house_bill_matches = re.findall(bill_pattern, house_section)
-                        house_bills = [
-                            bill for bill in house_bill_matches if bill.startswith("HB")
-                        ]
-                        # Ensure proper spacing in bill IDs
-                        house_bills = [
-                            re.sub(r"([A-Z]+)(\d+)", r"\1 \2", bill.replace(" ", ""))
-                            for bill in house_bills
-                        ]
+                        house_bills = self._extract_bill_ids_from_text(
+                            house_section, "HB"
+                        )
 
                 if "SENATE BILLS" in section_content:
                     senate_section_match = re.search(
@@ -199,17 +214,9 @@ class HouseCalendarParser(CalendarParser):
                     )
                     if senate_section_match:
                         senate_section = senate_section_match.group(0)
-                        senate_bill_matches = re.findall(bill_pattern, senate_section)
-                        senate_bills = [
-                            bill
-                            for bill in senate_bill_matches
-                            if bill.startswith("SB")
-                        ]
-                        # Ensure proper spacing in bill IDs
-                        senate_bills = [
-                            re.sub(r"([A-Z]+)(\d+)", r"\1 \2", bill.replace(" ", ""))
-                            for bill in senate_bills
-                        ]
+                        senate_bills = self._extract_bill_ids_from_text(
+                            senate_section, "SB"
+                        )
 
                 # Add subcalendars for house bills first, then senate bills
                 if house_bills:
