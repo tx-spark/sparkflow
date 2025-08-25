@@ -118,14 +118,11 @@ class HouseCalendarParser(CalendarParser):
 
         return datetime.now()
 
-    def _extract_bill_ids_from_text(
-        self, text: str, bill_type_filter: str | None = None
-    ) -> list[str]:
+    def _extract_bill_ids_from_text(self, text: str) -> list[str]:
         """Extract and format bill IDs from text content.
 
         Args:
             text: The text content to search for bill IDs
-            bill_type_filter: Optional filter for bill type ('HB', 'SB', etc.)
 
         Returns:
             List of formatted bill IDs with proper spacing (e.g., ['HB 17', 'SB 10'])
@@ -133,14 +130,6 @@ class HouseCalendarParser(CalendarParser):
         # Find all bill IDs using regex pattern
         bill_pattern = r"Bill=([A-Z]+\s*\d+)"
         bill_matches = re.findall(bill_pattern, text)
-
-        # Filter by bill type if specified
-        if bill_type_filter:
-            bill_matches = [
-                bill
-                for bill in bill_matches
-                if bill.replace(" ", "").startswith(bill_type_filter)
-            ]
 
         # Ensure proper spacing in bill IDs
         bill_ids = [
@@ -193,50 +182,69 @@ class HouseCalendarParser(CalendarParser):
                 section_type = parts[i].strip()
                 section_content = parts[i + 1]
 
-                # Look for HOUSE BILLS and SENATE BILLS subsections
-                house_bills = []
-                senate_bills = []
+                # Parse subsections within this calendar section
+                # Look for bill type headers like "HOUSE BILLS" or "SENATE BILLS"
+                bill_type_sections = self._parse_bill_type_sections(section_content)
 
-                # Split by HOUSE BILLS and SENATE BILLS
-                if "HOUSE BILLS" in section_content:
-                    house_section_match = re.search(
-                        r"HOUSE BILLS.*?(?=SENATE BILLS|$)", section_content, re.DOTALL
-                    )
-                    if house_section_match:
-                        house_section = house_section_match.group(0)
-                        house_bills = self._extract_bill_ids_from_text(
-                            house_section, "HB"
+                # Create subcalendars for each bill type section found
+                for bill_type, bills in bill_type_sections.items():
+                    if bills:
+                        subcalendars.append(
+                            Subcalendar(
+                                reading_count=2,
+                                subcalendar_type=section_type,
+                                bill_ids=bills,
+                            )
                         )
-
-                if "SENATE BILLS" in section_content:
-                    senate_section_match = re.search(
-                        r"SENATE BILLS.*", section_content, re.DOTALL
-                    )
-                    if senate_section_match:
-                        senate_section = senate_section_match.group(0)
-                        senate_bills = self._extract_bill_ids_from_text(
-                            senate_section, "SB"
-                        )
-
-                # Add subcalendars for house bills first, then senate bills
-                if house_bills:
-                    subcalendars.append(
-                        Subcalendar(
-                            reading_count=2,
-                            subcalendar_type=section_type,
-                            bill_ids=house_bills,
-                        )
-                    )
-
-                if senate_bills:
-                    subcalendars.append(
-                        Subcalendar(
-                            reading_count=2,
-                            subcalendar_type=section_type,
-                            bill_ids=senate_bills,
-                        )
-                    )
 
             i += 2
 
         return subcalendars
+
+    def _parse_bill_type_sections(self, section_content: str) -> dict[str, list[str]]:
+        """Parse bill type sections and return bills grouped by type.
+
+        Args:
+            section_content: Content of a calendar section
+
+        Returns:
+            Dictionary mapping bill types to lists of bill IDs
+        """
+        bill_sections = {}
+
+        # Split by bill type headers (HOUSE BILLS, SENATE BILLS, etc.)
+        # This regex captures the bill type and includes everything until the next bill type or end
+        bill_type_pattern = r"([A-Z]+\s+BILLS)\s*\n.*?(?=(?:[A-Z]+\s+BILLS)|$)"
+        matches = re.findall(bill_type_pattern, section_content, re.DOTALL)
+
+        # If no matches found with the above pattern, try a simpler approach
+        if not matches:
+            # Look for bill type headers and split content accordingly
+            bill_type_splits = re.split(r"([A-Z]+\s+BILLS)", section_content)
+
+            # Process the splits - every odd index is a bill type, every even index is content
+            for i in range(1, len(bill_type_splits), 2):
+                if i + 1 < len(bill_type_splits):
+                    bill_type = bill_type_splits[i].strip()
+                    bill_content = bill_type_splits[i + 1]
+
+                    # Extract bills from this section
+                    bills = self._extract_bill_ids_from_text(bill_content)
+                    if bills:
+                        bill_sections[bill_type] = bills
+        else:
+            # Process matches from the more complex pattern
+            for bill_type in matches:
+                # Find the content for this bill type
+                bill_type_match = re.search(
+                    rf"{re.escape(bill_type)}\s*.*?(?=(?:[A-Z]+\s+BILLS)|$)",
+                    section_content,
+                    re.DOTALL,
+                )
+                if bill_type_match:
+                    bill_content = bill_type_match.group(0)
+                    bills = self._extract_bill_ids_from_text(bill_content)
+                    if bills:
+                        bill_sections[bill_type.strip()] = bills
+
+        return bill_sections
