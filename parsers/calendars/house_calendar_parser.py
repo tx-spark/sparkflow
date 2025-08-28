@@ -15,10 +15,7 @@ from .calendar_parser import CalendarParser
 class HouseCalendarParser(CalendarParser):
 
     def parse(self, data: str) -> Calendar:
-        # Extract calendar type
         calendar_type = self._extract_calendar_type(data)
-
-        # Extract calendar date
         calendar_date = self._extract_calendar_date(data)
 
         # Extract subcalendars
