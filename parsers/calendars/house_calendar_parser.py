@@ -59,8 +59,11 @@ class HouseCalendarParser(CalendarParser):
 
     def _extract_calendar_type(self, soup: BeautifulSoup) -> str:
         if len(p_tags := soup.find_all("p")) > 0:
-            _, title_tag, *__ = p_tags
-            return title_tag.find("span").get_text(strip=True).replace("*", "").upper()
+            for p_tag in p_tags:
+                tag_text: str = p_tag.find("span").get_text(strip=True)
+
+                if "*" in tag_text:
+                    return tag_text.replace("*", "").upper()
 
         title_tag = soup.find("title")
         if title_tag is not None:
@@ -86,8 +89,11 @@ class HouseCalendarParser(CalendarParser):
 
     def _get_date_string(self, soup: BeautifulSoup) -> str:
         if len(p_tags := soup.find_all("p")) > 0:
-            _, __, date_tag, *___ = p_tags
-            return date_tag.find("span").get_text(strip=True)
+            for p_tag in p_tags:
+                tag_text: str = p_tag.find("span").get_text(strip=True)
+
+                if self._DATE_PATTERN.search(tag_text) is not None:
+                    return tag_text
         else:
             title_tag = soup.find("title")
             if title_tag is not None:
