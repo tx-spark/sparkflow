@@ -216,3 +216,72 @@ class TestHouseCalendarParser(TestCase):
         )
 
         assert self._parser.parse(contents) == expected
+
+    def test_parse_items_for_resolutions(self) -> None:
+        resolutions_path: Path = self._HOUSE_CALENDAR_PARSER / "resolutions.htm"
+
+        with open(resolutions_path, "r", encoding="utf-8") as fs:
+            contents: str = fs.read()
+
+        expected: Calendar = Calendar(
+            chamber=Chamber.HOUSE,
+            calendar_type="LOCAL, CONSENT, AND RESOLUTIONS CALENDAR",
+            calendar_date=datetime(2025, 5, 28),
+            subcalendars=[
+                Subcalendar(
+                    reading_count=1,
+                    subcalendar_type="SENATE BILLS AND RESOLUTIONS",
+                    bill_ids=[
+                        "SB 204",
+                        "SB 437",
+                        "SB 568",
+                        "SB 612",
+                        "SB 672",
+                        "SB 710",
+                        "SB 823",
+                        "SB 876",
+                        "SB 904",
+                        "SB 905",
+                        "SB 968",
+                        "SB 1084",
+                        "SB 1207",
+                        "SB 1230",
+                        "SB 1313",
+                        "SB 1504",
+                        "SB 1790",
+                        "SB 2232",
+                        "SB 2366",
+                        "SB 2367",
+                        "SB 2398",
+                        "SB 2515",
+                        "SB 2520",
+                        "SB 2589",
+                        "SB 2786",
+                        "SB 2790",
+                        "SB 3048",
+                        "SB 3050",
+                        "SB 3052",
+                        "SB 3053",
+                        "SB 3056",
+                        "SB 3029",
+                        "SCR 3",
+                        "SCR 18",
+                        "SCR 30",
+                    ],
+                ),
+                Subcalendar(
+                    reading_count=1,
+                    subcalendar_type="HOUSE BILLS AND RESOLUTIONS",
+                    bill_ids=[
+                        "HCR 146",
+                        "HCR 148",
+                        "HCR 149",
+                        "HCR 153",
+                        "HCR 155",
+                        "HCR 157",
+                    ],
+                ),
+            ],
+        )
+
+        assert self._parser.parse(contents) == expected
