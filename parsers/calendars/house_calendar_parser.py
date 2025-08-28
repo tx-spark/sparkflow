@@ -34,25 +34,31 @@ class HouseCalendarParser(CalendarParser):
         "december": 12,
     }
 
+    _ORDINAL_MAP: dict[str, int] = {
+        "first": 1,
+        "second": 2,
+        "third": 3,
+        "fourth": 4,
+        "fifth": 5,
+        "sixth": 6,
+        "seventh": 7,
+        "eighth": 8,
+        "ninth": 9,
+        "tenth": 10,
+    }
+
     def parse(self, data: str) -> Calendar:
         soup: BeautifulSoup = BeautifulSoup(data, "html.parser")
 
-        calendar_type: str = self._extract_calendar_type(soup)
-        calendar_date: datetime | None = self._extract_calendar_date(soup)
-
-        # Extract subcalendars
-        subcalendars = self._extract_subcalendars(data, calendar_type)
-
         return Calendar(
             chamber=Chamber.HOUSE,
-            calendar_type=calendar_type,
-            calendar_date=calendar_date,
-            subcalendars=subcalendars,
+            calendar_type=self._extract_calendar_type(soup),
+            calendar_date=self._extract_calendar_date(soup),
+            subcalendars=self._extract_subcalendars(soup),
         )
 
     def _extract_calendar_type(self, soup: BeautifulSoup) -> str:
-        p_tags = soup.find_all("p")
-        if len(p_tags) > 0:
+        if len(p_tags := soup.find_all("p")) > 0:
             _, title_tag, *__ = p_tags
             return title_tag.find("span").get_text(strip=True).replace("*", "").upper()
 
@@ -79,9 +85,7 @@ class HouseCalendarParser(CalendarParser):
         return None
 
     def _get_date_string(self, soup: BeautifulSoup) -> str:
-        p_tags = soup.find_all("p")
-
-        if len(p_tags) > 0:
+        if len(p_tags := soup.find_all("p")) > 0:
             _, __, date_tag, *___ = p_tags
             return date_tag.find("span").get_text(strip=True)
         else:
@@ -91,179 +95,56 @@ class HouseCalendarParser(CalendarParser):
 
         return ""
 
-    def _extract_bill_ids_from_text(self, text: str) -> list[str]:
-        """Extract and format bill IDs from text content.
+    def _extract_subcalendars(self, soup: BeautifulSoup) -> list[Subcalendar]:
+        if soup.find("p") is None:
+            return self._parse_table_subcalendars(soup)
 
-        Args:
-            text: The text content to search for bill IDs
+        return self._parse_paragraph_subcalendars(soup)
 
-        Returns:
-            List of formatted bill IDs with proper spacing (e.g., ['HB 17', 'SB 10'])
-        """
-        # Find all bill IDs using regex pattern
-        bill_pattern = r"Bill=([A-Z]+\s*\d+)"
-        bill_matches = re.findall(bill_pattern, text)
+    def _parse_table_subcalendars(self, soup: BeautifulSoup) -> list[Subcalendar]:
+        a_tags = soup.find_all("a")
 
-        # Ensure proper spacing in bill IDs
-        bill_ids = [
-            re.sub(r"([A-Z]+)(\d+)", r"\1 \2", bill.replace(" ", ""))
-            for bill in bill_matches
+        return [
+            Subcalendar(
+                reading_count=1,
+                subcalendar_type="",
+                bill_ids=[
+                    a_tag.get_text(strip=True).replace("\xa0", " ").upper()
+                    for a_tag in a_tags
+                ],
+            )
         ]
 
-        return bill_ids
+    def _parse_paragraph_subcalendars(self, soup: BeautifulSoup) -> list[Subcalendar]:
+        toplevel_table = soup.find("body").find("div").find("table")
 
-    def _extract_subcalendars(self, data: str, calendar_type: str) -> list[Subcalendar]:
-        # Check if this is a prefiled amendments calendar
-        if "PREFILED AMENDMENTS" in calendar_type:
-            return self._extract_prefiled_amendments_subcalendars(data)
+        # There's an extra blank row at the end of every table
+        *rows, _ = toplevel_table.find_all("tr", recursive=False)
 
-        # Check if this is a memorial calendar
-        elif "CONGRATULATORY AND MEMORIAL CALENDAR" in calendar_type:
-            return self._extract_memorial_calendar_subcalendars(data)
+        return [self._parse_row_subcalendar(row) for row in rows]
 
-        # Otherwise handle as daily calendar
-        return self._extract_daily_calendar_subcalendars(data)
+    def _parse_row_subcalendar(self, row: Tag) -> Subcalendar:
+        header_text = row.find("p").find("span").get_text()
 
-    def _extract_prefiled_amendments_subcalendars(self, data: str) -> list[Subcalendar]:
-        """Extract subcalendars from prefiled amendments format."""
-        # Extract all bill IDs from the data
-        bill_ids = self._extract_bill_ids_from_text(data)
+        header_components: list[str] = [
+            elem.strip() for elem in header_text.split("\n") if elem != ""
+        ]
+        subcalendar_type, *remaining_components = header_components
 
-        if bill_ids:
-            return [
-                Subcalendar(
-                    reading_count=1,
-                    subcalendar_type="",
-                    bill_ids=bill_ids,
-                )
-            ]
-
-        return []
-
-    def _extract_memorial_calendar_subcalendars(self, data: str) -> list[Subcalendar]:
-        """Extract subcalendars from memorial calendar format."""
-        subcalendars = []
-
-        # Look for sections marked with asterisks like "CONGRATULATORY RESOLUTIONS"
-        # Pattern matches: ********** SECTION NAME **********
-        # Handle HTML tags that might be mixed in
-        section_pattern = r"\*{10}\s*([^*<]+?)(?:<[^>]*>)?\s*\*{10}"
-        sections = re.findall(section_pattern, data)
-
-        for section_name in sections:
-            section_name = section_name.strip()
-
-            # Find the content after this section header
-            section_start_pattern = rf"\*{{10}}\s*{re.escape(section_name)}.*?\*{{10}}"
-            section_match = re.search(section_start_pattern, data, re.DOTALL)
-
-            if section_match:
-                # Get content from after this section until the next section or end
-                content_start = section_match.end()
-
-                # Look for next section or end of content
-                next_section_match = re.search(
-                    r"\*{10}\s*[^*]+?\s*\*{10}", data[content_start:]
-                )
-                if next_section_match:
-                    content_end = content_start + next_section_match.start()
-                else:
-                    content_end = len(data)
-
-                section_content = data[content_start:content_end]
-
-                # Extract bill IDs from this section
-                bill_ids = self._extract_bill_ids_from_text(section_content)
-
-                if bill_ids:
-                    subcalendars.append(
-                        Subcalendar(
-                            reading_count=1,
-                            subcalendar_type=section_name,
-                            bill_ids=bill_ids,
-                        )
-                    )
-
-        return subcalendars
-
-    def _extract_daily_calendar_subcalendars(self, data: str) -> list[Subcalendar]:
-        """Extract subcalendars from daily calendar format."""
-        subcalendars = []
-
-        # Split the content by major sections
-        parts = re.split(
-            r"\*{10}\s*(MAJOR STATE CALENDAR|GENERAL STATE CALENDAR)\s*\*{10}", data
-        )
-
-        i = 1
-        while i < len(parts):
-            if i + 1 < len(parts):
-                section_type = parts[i].strip()
-                section_content = parts[i + 1]
-
-                # Parse subsections within this calendar section
-                # Look for bill type headers like "HOUSE BILLS" or "SENATE BILLS"
-                bill_type_sections = self._parse_bill_type_sections(section_content)
-
-                # Create subcalendars for each bill type section found
-                for bill_type, bills in bill_type_sections.items():
-                    if bills:
-                        subcalendars.append(
-                            Subcalendar(
-                                reading_count=2,
-                                subcalendar_type=section_type,
-                                bill_ids=bills,
-                            )
-                        )
-
-            i += 2
-
-        return subcalendars
-
-    def _parse_bill_type_sections(self, section_content: str) -> dict[str, list[str]]:
-        """Parse bill type sections and return bills grouped by type.
-
-        Args:
-            section_content: Content of a calendar section
-
-        Returns:
-            Dictionary mapping bill types to lists of bill IDs
-        """
-        bill_sections = {}
-
-        # Split by bill type headers (HOUSE BILLS, SENATE BILLS, etc.)
-        # This regex captures the bill type and includes everything until the next bill type or end
-        bill_type_pattern = r"([A-Z]+\s+BILLS)\s*\n.*?(?=(?:[A-Z]+\s+BILLS)|$)"
-        matches = re.findall(bill_type_pattern, section_content, re.DOTALL)
-
-        # If no matches found with the above pattern, try a simpler approach
-        if not matches:
-            # Look for bill type headers and split content accordingly
-            bill_type_splits = re.split(r"([A-Z]+\s+BILLS)", section_content)
-
-            # Process the splits - every odd index is a bill type, every even index is content
-            for i in range(1, len(bill_type_splits), 2):
-                if i + 1 < len(bill_type_splits):
-                    bill_type = bill_type_splits[i].strip()
-                    bill_content = bill_type_splits[i + 1]
-
-                    # Extract bills from this section
-                    bills = self._extract_bill_ids_from_text(bill_content)
-                    if bills:
-                        bill_sections[bill_type] = bills
+        if len(remaining_components) > 0:
+            *_, reading_str = remaining_components
+            ordinal, *_ = reading_str.split(" ")
+            reading_count: int = self._ORDINAL_MAP.get(ordinal.lower(), 1)
         else:
-            # Process matches from the more complex pattern
-            for bill_type in matches:
-                # Find the content for this bill type
-                bill_type_match = re.search(
-                    rf"{re.escape(bill_type)}\s*.*?(?=(?:[A-Z]+\s+BILLS)|$)",
-                    section_content,
-                    re.DOTALL,
-                )
-                if bill_type_match:
-                    bill_content = bill_type_match.group(0)
-                    bills = self._extract_bill_ids_from_text(bill_content)
-                    if bills:
-                        bill_sections[bill_type.strip()] = bills
+            reading_count: int = 1
 
-        return bill_sections
+        a_tags = row.find_all("a")
+
+        return Subcalendar(
+            reading_count=reading_count,
+            subcalendar_type=subcalendar_type.replace("*", "").strip(),
+            bill_ids=[
+                a_tag.get_text(strip=True).replace("\xa0", " ").upper()
+                for a_tag in a_tags
+            ],
+        )
