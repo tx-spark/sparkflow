@@ -9,5 +9,5 @@ from .subcalendar import Subcalendar
 class Calendar:
     chamber: Chamber
     calendar_type: str
-    calendar_date: datetime
+    calendar_date: datetime | None
     subcalendars: list[Subcalendar]

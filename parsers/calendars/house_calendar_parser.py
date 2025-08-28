@@ -14,12 +14,34 @@ from .calendar_parser import CalendarParser
 
 class HouseCalendarParser(CalendarParser):
 
+    _DATE_PATTERN: re.Pattern = re.compile(r"\w+day,\s+(\w+)\s+(\d+),\s+(\d{4})")
+    _MONTH_MATCH_IDX: int = 1
+    _DAY_MATCH_IDX: int = 2
+    _YEAR_MATCH_IDX: int = 3
+
+    _MONTH_MAP: dict[str, int] = {
+        "january": 1,
+        "february": 2,
+        "march": 3,
+        "april": 4,
+        "may": 5,
+        "june": 6,
+        "july": 7,
+        "august": 8,
+        "september": 9,
+        "october": 10,
+        "november": 11,
+        "december": 12,
+    }
+
     def parse(self, data: str) -> Calendar:
-        calendar_type = self._extract_calendar_type(data)
-        calendar_date = self._extract_calendar_date(data)
+        soup: BeautifulSoup = BeautifulSoup(data, "html.parser")
+
+        calendar_type: str = self._extract_calendar_type(soup)
+        calendar_date: datetime | None = self._extract_calendar_date(soup)
 
         # Extract subcalendars
-        subcalendars = self._extract_subcalendars(data)
+        subcalendars = self._extract_subcalendars(data, calendar_type)
 
         return Calendar(
             chamber=Chamber.HOUSE,
@@ -28,9 +50,7 @@ class HouseCalendarParser(CalendarParser):
             subcalendars=subcalendars,
         )
 
-    def _extract_calendar_type(self, data: str) -> str:
-        soup: BeautifulSoup = BeautifulSoup(data, "html.parser")
-
+    def _extract_calendar_type(self, soup: BeautifulSoup) -> str:
         p_tags = soup.find_all("p")
         if len(p_tags) > 0:
             _, title_tag, *__ = p_tags
@@ -42,36 +62,34 @@ class HouseCalendarParser(CalendarParser):
 
         return ""
 
-    def _extract_calendar_date(self, data: str) -> datetime:
-        """Extract the calendar date from the HTML."""
-        # Look for date pattern like "Monday, August 25, 2025"
-        date_pattern = r"(\w+day),\s+(\w+)\s+(\d+),\s+(\d+)"
-        match = re.search(date_pattern, data)
-        if match:
-            month_name = match.group(2)
-            day = int(match.group(3))
-            year = int(match.group(4))
+    def _extract_calendar_date(self, soup: BeautifulSoup) -> datetime | None:
+        match: re.Match[str] | None = self._DATE_PATTERN.search(
+            self._get_date_string(soup)
+        )
 
-            # Convert month name to number
-            month_map = {
-                "January": 1,
-                "February": 2,
-                "March": 3,
-                "April": 4,
-                "May": 5,
-                "June": 6,
-                "July": 7,
-                "August": 8,
-                "September": 9,
-                "October": 10,
-                "November": 11,
-                "December": 12,
-            }
-            month = month_map.get(month_name, 1)
+        if match is not None:
+            month_name: str = match.group(self._MONTH_MATCH_IDX)
+            month: int | None = self._MONTH_MAP.get(month_name.lower())
 
-            return datetime(year, month, day)
+            day: int = 1 if month is None else int(match.group(self._DAY_MATCH_IDX))
+            year: int = int(match.group(self._YEAR_MATCH_IDX))
 
-        return datetime.now()
+            return datetime(year, 1 if month is None else month, day)
+
+        return None
+
+    def _get_date_string(self, soup: BeautifulSoup) -> str:
+        p_tags = soup.find_all("p")
+
+        if len(p_tags) > 0:
+            _, __, date_tag, *___ = p_tags
+            return date_tag.find("span").get_text(strip=True)
+        else:
+            title_tag = soup.find("title")
+            if title_tag is not None:
+                return title_tag.get_text(strip=True).split(" - ")[1]
+
+        return ""
 
     def _extract_bill_ids_from_text(self, text: str) -> list[str]:
         """Extract and format bill IDs from text content.
@@ -94,11 +112,7 @@ class HouseCalendarParser(CalendarParser):
 
         return bill_ids
 
-    def _extract_subcalendars(self, data: str) -> list[Subcalendar]:
-        """Extract subcalendars from the HTML."""
-        # Get the calendar type to determine parsing method
-        calendar_type = self._extract_calendar_type(data)
-
+    def _extract_subcalendars(self, data: str, calendar_type: str) -> list[Subcalendar]:
         # Check if this is a prefiled amendments calendar
         if "PREFILED AMENDMENTS" in calendar_type:
             return self._extract_prefiled_amendments_subcalendars(data)
