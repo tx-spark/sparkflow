@@ -78,6 +78,22 @@ class SenateCalendarParser(CalendarParser):
             for idx, table_contents in enumerate(valid_table_contents)
             if self._is_subcalendar_header(table_contents)
         ]
+
+        if len(header_indices) == 0:
+            bill_ids: list[str] = [
+                bill_id
+                for table_content in valid_table_contents
+                for bill_id in table_content
+                if len(table_content) == 1
+            ]
+            return [
+                Subcalendar(
+                    reading_count=1,
+                    subcalendar_type="",
+                    bill_ids=bill_ids,
+                )
+            ]
+
         header_indices.append(len(valid_table_contents))
 
         raw_subcalendars: list[Subcalendar] = [
@@ -96,11 +112,9 @@ class SenateCalendarParser(CalendarParser):
 
     def _parse_table(self, table: Tag) -> list[str] | None:
         if len(a_tags := table.find_all("a")) > 0:
-            print(f"Found multiple a tags: {table}")
             return [a_tag.get_text(strip=True) for a_tag in a_tags]
 
         if len(p_tags := table.find_all("p")) > 1:
-            print(f"Found multiple p tags: {table}")
             return [p_tag.get_text(strip=True) for p_tag in p_tags]
 
         return None
