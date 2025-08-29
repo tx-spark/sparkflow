@@ -19,7 +19,7 @@ class TestHouseCalendarParser(TestCase):
     def setUp(self) -> None:
         self._parser: CalendarParser = SenateCalendarParser()
 
-    def test_parse_daily_calendar(self) -> None:
+    def test_parse_regular_calendar(self) -> None:
         regular_calendar_path: Path = self._SENATE_CALENDAR_PARSER / "regular.htm"
 
         with open(regular_calendar_path, "r", encoding="utf-8") as fs:
@@ -39,6 +39,32 @@ class TestHouseCalendarParser(TestCase):
                     reading_count=2,
                     subcalendar_type="HOUSE BILLS",
                     bill_ids=["HB 17"],
+                ),
+            ],
+        )
+
+        assert self._parser.parse(contents) == expected
+
+    def test_parse_regular_calendar2(self) -> None:
+        regular_calendar_path: Path = self._SENATE_CALENDAR_PARSER / "regular2.htm"
+
+        with open(regular_calendar_path, "r", encoding="utf-8") as fs:
+            contents: str = fs.read()
+
+        expected: Calendar = Calendar(
+            chamber=Chamber.SENATE,
+            calendar_type="REGULAR ORDER OF BUSINESS",
+            calendar_date=datetime(2025, 2, 5),
+            subcalendars=[
+                Subcalendar(
+                    reading_count=2,
+                    subcalendar_type="SENATE JOINT RESOLUTIONS",
+                    bill_ids=["SJR 36"],
+                ),
+                Subcalendar(
+                    reading_count=2,
+                    subcalendar_type="SENATE BILLS",
+                    bill_ids=["SB 2"],
                 ),
             ],
         )
