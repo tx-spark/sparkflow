@@ -31,19 +31,9 @@ class TestHouseCalendarParser(TestCase):
             calendar_date=datetime(2025, 9, 2),
             subcalendars=[
                 Subcalendar(
-                    reading_count=1,
-                    subcalendar_type="SENATE BILLS",
-                    bill_ids=[],
-                ),
-                Subcalendar(
                     reading_count=2,
                     subcalendar_type="SENATE BILLS",
                     bill_ids=["SB 9", "SB 7", "SB 17", "SB 4"],
-                ),
-                Subcalendar(
-                    reading_count=1,
-                    subcalendar_type="HOUSE BILLS",
-                    bill_ids=[],
                 ),
                 Subcalendar(
                     reading_count=2,
