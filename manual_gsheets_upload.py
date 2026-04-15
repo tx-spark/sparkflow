@@ -23,7 +23,7 @@ if __name__ == "__main__":
     download_google_sheets(GSHEETS_CONFIG_PATH)
     upload_google_sheets(GSHEETS_CONFIG_PATH, CONFIG_PATH, ENV)
 
-    with open(CONFIG_PATH, 'r') as f:
+    with open(CONFIG_PATH, "r") as f:
         config = f.read()
 
-    upload_call2action(config['info']['LegSess'] ,ENV)
+    upload_call2action(config["info"]["LegSess"], ENV)

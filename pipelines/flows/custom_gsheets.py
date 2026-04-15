@@ -104,10 +104,11 @@ def upload_call2action(leg_id, env="dev"):
         replace_headers=False,
         first_cell="A4",
     )
-    
-if __name__ == '__main__':
-    CONFIG_PATH = 'config.yaml'
-    with open(CONFIG_PATH, 'r') as f:
+
+
+if __name__ == "__main__":
+    CONFIG_PATH = "config.yaml"
+    with open(CONFIG_PATH, "r") as f:
         config = f.read()
-    
-    upload_call2action(config['info']['LegSess'], env='prod')
+
+    upload_call2action(config["info"]["LegSess"], env="prod")
