@@ -182,3 +182,5 @@ logs/
 
 # DLT
 .dlt/
+
+.vscode
